@@ -1,0 +1,68 @@
+/dts-v1/;
+
+#include <unisoc/uwp566x.dtsi>
+
+/ {
+	model = "UNISOC UWP566x EVB";
+	compatible = "unisoc,uwp566x_evb", "unisoc,uwp5", "unisoc,uwp";
+
+	aliases {
+		uart_0 = &uart0;
+		uart_1 = &uart1;
+		uart_2 = &uart2;
+	};
+
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,console = &uart0;
+		zephyr,flash = &flash0;
+	};
+};
+
+&uart0 {
+	status = "ok";
+	current-speed = <115200>;
+	clock-frequency = <26000000>;
+};
+
+&uart2 {
+	status = "ok";
+	current-speed = <115200>;
+	clock-frequency = <26000000>;
+};
+
+&flash0 {
+	/*
+	 * For more information, see:
+	 * http://docs.zephyrproject.org/devices/dts/flash_partitions.html
+	 */
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 0x10000>;
+		};
+		slot0_partition: partition@10000 {
+			label = "image-0";
+			reg = <0x00010000 0x46000>;
+		};
+		slot1_partition: partition@56000 {
+			label = "image-1";
+			reg = <0x00056000 0x46000>;
+		};
+		scratch_partition: partition@9c000 {
+			label = "image-scratch";
+			reg = <0x0009c000 0xa000>;
+		};
+
+#if defined(CONFIG_FILE_SYSTEM_NFFS)
+		nffs_partition: partition@a6000 {
+			label = "nffs";
+			reg = <0x000a6000 0x00006000>;
+		};
+#endif
+	};
+};

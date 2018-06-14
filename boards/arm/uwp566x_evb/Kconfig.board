@@ -1,0 +1,6 @@
+# Kconfig - UNISOC UWP566x EVB Board
+#
+
+config  BOARD_UWP566x_EVB
+	bool "UNISOC uwp566x evb"
+	depends on SOC_UWP566x

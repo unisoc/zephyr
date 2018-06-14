@@ -1,0 +1,10 @@
+# Kconfig - UNISOC UWP566x EVB board configuration
+#
+
+if BOARD_UWP566x_EVB
+
+config BOARD
+	string
+	default "uwp566x_evb"
+
+endif # BOARD_UWP566x_EVB
