@@ -1,3 +1,5 @@
+zephyr_include_directories(.)
+
 zephyr_sources_ifdef(CONFIG_ARCV2_INTERRUPT_UNIT    arcv2_irq_unit.c)
 zephyr_sources_ifdef(CONFIG_IOAPIC                  ioapic_intr.c)
 zephyr_sources_ifdef(CONFIG_LOAPIC                  loapic_intr.c system_apic.c)
@@ -9,3 +11,6 @@ zephyr_sources_ifdef(CONFIG_SHARED_IRQ              shared_irq.c)
 zephyr_sources_ifdef(CONFIG_SOC_FAMILY_STM32        exti_stm32.c)
 zephyr_sources_ifdef(CONFIG_CAVS_ICTL               cavs_ictl.c)
 zephyr_sources_ifdef(CONFIG_DW_ICTL                 dw_ictl.c)
+zephyr_sources_ifdef(CONFIG_INTC_UWP	            intc_uwp.c)
+zephyr_sources_ifdef(CONFIG_EIC_UWP                 eic_uwp.c)
+zephyr_sources_ifdef(CONFIG_IPI_UWP                 ipi_uwp.c)
