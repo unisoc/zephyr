@@ -56,3 +56,8 @@ ti
 -------
 Texas Instruments SimpleLink SDKs provide peripheral and WiFi driver libraries
 for the SimpleLink family of SoCs.
+
+unisoc
+-------
+The Unisoc SDKs provides device header files and driver libraries for the
+Unisoc UWP5 SoCs.
