@@ -1,0 +1,20 @@
+# Kconfig.soc - UNISOC UWP566x
+#
+
+choice
+prompt "Unisoc UWP566x MCU Selection"
+depends on SOC_SERIES_UWP5
+
+config SOC_UWP566x
+	bool "uwp566x"
+endchoice
+
+if SOC_UWP566x
+
+config UWP566x_DEBUG
+	bool "Prepend debug header, disabling flash verification"
+	depends on XIP
+	default y if XIP
+	default n if !XIP
+
+endif # SOC_UWP566x

@@ -1,0 +1,12 @@
+# Kconfig.defconfig.series - UNISOC UWP Family
+#
+
+if SOC_SERIES_UWP5
+
+source "arch/arm/soc/unisoc_uwp/uwp5/Kconfig.defconfig.uwp566x"
+
+config SOC_SERIES
+	string
+	default "uwp5"
+
+endif # SOC_SERIES_UWP5
