@@ -99,7 +99,7 @@ struct wifi_status {
 typedef void (*scan_result_cb_t)(struct net_if *iface, int status,
 				 struct wifi_scan_result *entry);
 
-struct net_wifi_mgmt_offload {
+struct net_wifi_mgmt_api{
 	/**
 	 * Mandatory to get in first position.
 	 * A network device should indeed provide a pointer on such
