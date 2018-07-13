@@ -1,0 +1,11 @@
+menuconfig WIFI_UWP
+	bool "Unisoc uwp wifi driver support"
+	default y
+	select WIFI_OFFLOAD
+	select NET_L2_WIFI_MGMT
+
+if WIFI_UWP
+config WIFI_UWP_NAME
+	string "Driver name"
+	default "UWP_WIFI"
+endif
