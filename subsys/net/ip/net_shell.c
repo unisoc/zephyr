@@ -2070,8 +2070,9 @@ static int _ping_ipv4(char *host)
 	ret = net_icmpv4_send_echo_request(
 		net_if_ipv4_select_src_iface(&ipv4_target),
 		&ipv4_target,
-		sys_rand32_get(),
-		sys_rand32_get());
+		1, 2);
+		//sys_rand32_get(),
+		//sys_rand32_get());
 	if (ret) {
 		_remove_ipv4_ping_handler();
 	} else {

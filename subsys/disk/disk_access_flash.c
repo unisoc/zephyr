@@ -14,7 +14,8 @@
 #include <device.h>
 #include <flash.h>
 
-#define SECTOR_SIZE 512
+//#define SECTOR_SIZE 512
+#define SECTOR_SIZE 4096
 
 static struct device *flash_dev;
 

@@ -84,7 +84,6 @@ struct device *device_get_binding(const char *name)
 	return NULL;
 }
 
-#ifdef CONFIG_DEVICE_POWER_MANAGEMENT
 int device_pm_control_nop(struct device *unused_device,
 		       u32_t unused_ctrl_command, void *unused_context)
 {
@@ -98,7 +97,7 @@ void device_list_get(struct device **device_list, int *device_count)
 	*device_count = __device_init_end - __device_init_start;
 }
 
-
+#ifdef CONFIG_DEVICE_POWER_MANAGEMENT
 int device_any_busy_check(void)
 {
 	int i = 0;

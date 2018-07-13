@@ -187,7 +187,8 @@ void net_if_queue_tx(struct net_if *iface, struct net_pkt *pkt)
 	u8_t prio = net_pkt_priority(pkt);
 	u8_t tc = net_tx_priority2tc(prio);
 
-	k_work_init(net_pkt_work(pkt), process_tx_packet);
+	//k_work_init(net_pkt_work(pkt), process_tx_packet);
+	net_if_tx(net_pkt_iface(pkt), pkt);
 
 #if defined(CONFIG_NET_STATISTICS)
 	pkt->total_pkt_len = net_pkt_get_len(pkt);

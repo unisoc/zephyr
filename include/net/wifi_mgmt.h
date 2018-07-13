@@ -107,6 +107,7 @@ struct net_wifi_mgmt_api{
 	 * that can be casted to a net_if_api structure pointer.
 	 */
 	struct net_if_api iface_api;
+	enum ethernet_hw_caps (*get_capabilities)(struct device *dev);
 
 	/* cb parameter is the cb that should be called for each
 	 * result by the driver. The wifi mgmt part will take care of

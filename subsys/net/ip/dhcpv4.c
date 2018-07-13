@@ -1131,7 +1131,8 @@ void net_dhcpv4_start(struct net_if *iface)
 		/* We need entropy for both an XID and a random delay
 		 * before sending the initial discover message.
 		 */
-		entropy = sys_rand32_get();
+		//entropy = sys_rand32_get();
+		entropy = 0x2234;
 
 		/* A DHCP client MUST choose xid's in such a way as to
 		 * minimize the change of using and xid identical to
