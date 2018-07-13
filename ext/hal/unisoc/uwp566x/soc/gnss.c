@@ -5,6 +5,7 @@
  */
 
 #include <zephyr.h>
+#include <logging/sys_log.h>
 #include <uwp_hal.h>
 
 #define APB_GLB_REG_BASE    0x40BC8000
@@ -692,12 +693,12 @@ void M4_CLK_CFG(void)
 
 void GNSS_Start(void)
 {
-    printk("gnss init start\n");
+    SYS_LOG_DBG("gnss init start\n");
     RF_CFG();
 
     M4_CLK_CFG();
 	sci_reg_or(GNSS_BB_EN, BIT(4) | BIT(6) | BIT(7));
 	sci_reg_or(BB_DBG_CLK_CTRL, BIT(0));
     sci_write32(DATA2RAM_CONF0_ADDR,0x04000002);
-    printk("gnss init done\n");
+    SYS_LOG_DBG("gnss init done\n");
 }

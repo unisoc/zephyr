@@ -1,0 +1,5 @@
+config SIPC 
+        bool "UNISOC sipc lib"
+        default n
+        help
+		  enbale sipc feature

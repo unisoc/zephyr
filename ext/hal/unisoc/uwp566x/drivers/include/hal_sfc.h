@@ -131,7 +131,9 @@ extern "C" {
 		const struct spi_flash_params *params;
 	};
 
-	int sprd_spi_flash_init(struct spi_flash *flash,
+	void uwp_spi_xip_init(void);
+
+	int uwp_spi_flash_init(struct spi_flash *flash,
 			struct spi_flash_params **params);
 	void spi_flash_free(struct spi_flash *flash);
 

@@ -4,4 +4,5 @@
 #
 
 add_subdirectory_ifdef(CONFIG_OPENAMP open-amp)
+add_subdirectory_ifdef(CONFIG_SIPC sipc)
 

@@ -19,7 +19,7 @@
 #define CONFIG_CP_SECTOR4_LEN 249856
 
 
-#define CP_START_ADDR (0x020C0000 + 16)
+#define CP_START_ADDR (0x02100000 + 16)
 #define CP_RUNNING_CHECK_CR 0x40a80000
 #define CP_RUNNING_BIT	0
 #define CP_WIFI_RUNNING_BIT	1
@@ -34,10 +34,10 @@ int move_cp(char *src,char *dst,uint32_t size)
 	char *from_8,*to_8;
 
 	if(src == NULL || dst == NULL ||size == 0){
-		printk("invalid parameter,src=%p,dst=%p,size=%d\n",src,dst,size);
+		SYS_LOG_ERR("invalid parameter,src=%p,dst=%p,size=%d",src,dst,size);
 		return -1;
 	}else {
-		printk("copy %u byte from %p to %p\n",size,src,dst);
+		SYS_LOG_DBG("copy %u byte from %p to %p",size,src,dst);
 	}
 	from = (int *)src;
 	to = (int *)dst;
@@ -57,7 +57,7 @@ int move_cp(char *src,char *dst,uint32_t size)
 		from_8++;
 		len --;
 	}
-	printk("sector load done,from =%p to =%p\n",from_8,to_8);
+	SYS_LOG_DBG("sector load done,from =%p to =%p",from_8,to_8);
 	return 0;	
 }
 
@@ -67,7 +67,7 @@ int load_fw(void)
 	char *src = NULL;
 	uint32_t offset = 0;
 		
-	printk("load cp firmware start\n");
+	SYS_LOG_DBG("load cp firmware start");
 	//load sector1
 	src = (char *)(CP_START_ADDR);
 	ret = move_cp(src,(char *)CONFIG_CP_SECTOR1_LOAD_BASE,(uint32_t)CONFIG_CP_SECTOR1_LEN);
@@ -85,10 +85,10 @@ int load_fw(void)
 	//move_cp(src,(char *)CONFIG_CP_SECTOR4_LOAD_BASE,(uint32_t)CONFIG_CP_SECTOR4_LEN);
 	
 	if (ret < 0){
-		printk("something wrong,move cp return -1\n");
+		SYS_LOG_ERR("something wrong,move cp return -1");
 		return -1;
 	}else{
-		printk("cp firmware copy done\n");
+		SYS_LOG_DBG("cp firmware copy done");
 	}
 
 	return 0;
@@ -98,7 +98,7 @@ int cp_mcu_pull_reset(void)
 {
 	int i = 0;
 
-	printk("gnss mcu hold start\n");
+	SYS_LOG_DBG("gnss mcu hold start");
 	//dap sel
 	sci_reg_or(0x4083c064, BIT(0) | BIT(1));
 	//dap rst
@@ -110,7 +110,7 @@ int cp_mcu_pull_reset(void)
 		i++;
 	}
 	if (sci_read32(0x408600fc) != 0x24770011){
-		printk("check dap is ok fail\n");
+		SYS_LOG_ERR("check dap is ok fail");
 	}
 	// hold gnss core
 	sci_write32(0x40860000, 0x22000012);
@@ -121,7 +121,7 @@ int cp_mcu_pull_reset(void)
 	//remap gnss RAM to 0x0000_0000 address as boot from RAM
 	sci_reg_or(0x40bc800c, BIT(0) | BIT(1));
 
-	printk("gnss mcu hold done\n");
+	SYS_LOG_DBG("gnss mcu hold done");
 
 	return 0;
 }
@@ -130,20 +130,20 @@ int cp_mcu_release_reset(void)
 {
 	unsigned int value =0;
 
-	printk("gnss mcu release start. \n");
+	SYS_LOG_DBG("gnss mcu release start. ");
 	// reset the gnss CM4 core,and CM4 will run from IRAM(which is remapped to 0x0000_0000)
 	value = sci_read32(0x40bc8004);
 	value |=0x1;
 	sci_write32(0x40bc8004, value);
 
-	printk("gnss mcu release done. \n");
+	SYS_LOG_DBG("gnss mcu release done. ");
 
 	return 0;
 }
 void  cp_check_bit_clear(void)
 {
 	sci_write32(CP_RUNNING_CHECK_CR, 0);
-	printk("cp running check bit cleared\n");
+	SYS_LOG_DBG("cp running check bit cleared");
 	
 	return ;
 }
@@ -153,18 +153,18 @@ int cp_check_running(void)
 	int value;
 	int cnt = 100;
 
-	printk("check if cp is running\n");
+	SYS_LOG_DBG("check if cp is running");
 	
 	do{
 		value = sci_read32(CP_RUNNING_CHECK_CR);
 		if (value &(1 << CP_RUNNING_BIT) ){
-			printk("CP FW is running !!!\n");
+			SYS_LOG_DBG("CP FW is running !!!");
 			return 0;
 		}
 		k_sleep(60);
 	}while(cnt-- > 0);
 
-	printk("CP FW running fail,Something must be wrong\n");
+	SYS_LOG_ERR("CP FW running fail,Something must be wrong");
 	return -1;
 }
 
@@ -173,18 +173,18 @@ int cp_check_wifi_running(void)
 	int value;
 	int cnt = 100;
 
-	printk("check if cp wifi is running\n");
+	SYS_LOG_DBG("check if cp wifi is running");
 	do{
 		value = sci_read32(CP_RUNNING_CHECK_CR);
 		if (value &(1 << CP_WIFI_RUNNING_BIT) ){
-			printk("CP wifi is running !!! %d\n", cnt);
+			SYS_LOG_DBG("CP wifi is running !!! %d", cnt);
 
 			while(1) ;
 			return 0;
 		}
 	}while(cnt-- > 0);
 
-	printk("CP wifi running fail,Something must be wrong\n");
+	SYS_LOG_ERR("CP wifi running fail,Something must be wrong");
 	return -1;
 }
 
@@ -193,33 +193,36 @@ int cp_check_wifi_running(void)
 int cp_mcu_init(void)
 {
 	int ret = 0;
+	int count = 3000000;
 
-	SYS_LOG_INF("aon eb: 0x%x.", sci_read32(REG_AON_GLB_EB));
+	//SYS_LOG_INF("aon eb: 0x%x.", sci_read32(REG_AON_GLB_EB));
 	GNSS_Start();
 	ret = cp_mcu_pull_reset();
 	if (ret <0 ){
-		printk("reset CP MCU fail\n");
+		SYS_LOG_ERR("reset CP MCU fail");
 		return -1;
 	}
 	ret = load_fw();
 	if (ret < 0 ){
-		printk("load fw fail\n");
+		SYS_LOG_ERR("load fw fail");
 		return -1 ;
 	}
 	cp_check_bit_clear();
 	ret = cp_mcu_release_reset();//cp start to run
 	if (ret < 0){
-		printk("release reset fail\n");
+		SYS_LOG_ERR("release reset fail");
 		return -1;
 	}
+
+	while(count--);
 
 	ret = cp_check_running();
 	if (ret < 0){
-		printk("cp fw is not running,something must be wrong\n");
+		SYS_LOG_ERR("cp fw is not running,something must be wrong");
 		return -1;
 	}
-	SYS_LOG_INF("aon eb: 0x%x.", sci_read32(REG_AON_GLB_EB));
+	//SYS_LOG_INF("aon eb: 0x%x.", sci_read32(REG_AON_GLB_EB));
 
-	printk("CP Init done,and CP fw is running!!!\n");
+	SYS_LOG_DBG("CP Init done,and CP fw is running!!!");
 	return 0;
 }

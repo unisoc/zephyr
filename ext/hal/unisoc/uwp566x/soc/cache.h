@@ -284,7 +284,7 @@ extern "C" {
 		CACHE_32K = 0x3,
 	} CACHE_SIZE_SEL_E;
 
-	void enable_caches(void);
+	void uwp_cache_init(void);
 	void icache_dcache_enable_block_hal(void);
 	void icache_dcache_disable_block_hal(void);
 

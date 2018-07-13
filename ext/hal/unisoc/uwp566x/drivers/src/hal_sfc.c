@@ -1461,7 +1461,32 @@ static int spiflash_set_qpi(struct spi_flash *flash, u32_t op)
 	}
 }
 
-int sprd_spi_flash_init(struct spi_flash *flash,
+#define SFC_CLK_OUT_DIV_1			(0x0)
+#define SFC_CLK_OUT_DIV_2			BIT(0)
+#define SFC_CLK_OUT_DIV_4			BIT(1)
+#define SFC_CLK_SAMPLE_DELAY_SEL    BIT(2)
+#define SFC_CLK_2X_EN				BIT(10)
+#define SFC_CLK_OUT_2X_EN			BIT(9)
+#define SFC_CLK_SAMPLE_2X_PHASE     BIT(8)
+#define SFC_CLK_SAMPLE_2X_EN        BIT(7)
+
+void uwp_spi_xip_init(void)
+{
+	SFCDRV_ClkCfg(SFC_CLK_OUT_DIV_2 | SFC_CLK_OUT_2X_EN |
+			SFC_CLK_2X_EN | SFC_CLK_SAMPLE_2X_PHASE |
+			SFC_CLK_SAMPLE_2X_EN);
+
+	/*
+	 * cgm_sfc_1x_div: clk_sfc_1x = clk_src/(bit 9:8 + 1)
+	 * */
+	sci_write32(REG_AON_CLK_RF_CGM_SFC_1X_CFG, 0x100);
+	/* 0: xtal MHz 1: 133MHz 2: 139MHz 3: 160MHz 4: 208MHz
+	 * cgm_sfc_2x_sel: clk_sfc_1x source (bit 2:1:0)
+	 * */
+	sci_write32(REG_AON_CLK_RF_CGM_SFC_2X_CFG, 0x4);
+}
+
+int uwp_spi_flash_init(struct spi_flash *flash,
 		struct spi_flash_params **params)
 {
 	struct spi_flash_params *p;

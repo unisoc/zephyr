@@ -1,0 +1,5 @@
+zephyr_include_directories(.)
+zephyr_sources_ifdef(CONFIG_ENGPC engpc_main.c)
+zephyr_sources_ifdef(CONFIG_ENGPC eng_diag.c)
+zephyr_sources_ifdef(CONFIG_ENGPC eng_cmd4linuxhdlr.c)
+zephyr_sources_ifdef(CONFIG_ENGPC wifi_eut_sprd.c)

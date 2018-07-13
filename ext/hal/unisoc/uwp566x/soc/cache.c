@@ -491,7 +491,7 @@ void icache_dcache_disable_block_hal(void)
 	dcache_disable_block(BLOCK_1);
 }
 
-void enable_caches(void)
+void uwp_cache_init(void)
 {
 	icache_phy_init(CACHE_32K);
 	dcache_phy_init(CACHE_32K);

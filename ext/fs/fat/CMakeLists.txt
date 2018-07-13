@@ -1,4 +1,5 @@
 add_library(ELMFAT INTERFACE)
+zephyr_include_directories(include)
 
 target_include_directories(ELMFAT INTERFACE include)
 
