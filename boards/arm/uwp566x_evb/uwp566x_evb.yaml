@@ -1,0 +1,7 @@
+identifier: uwp566x_evb
+name: UNISOC uwp566x evb board
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gccarmemb

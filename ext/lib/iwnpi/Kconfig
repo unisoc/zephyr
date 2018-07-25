@@ -1,0 +1,5 @@
+config IWNPI
+        bool "iwnpi tool for wifi npi test"
+        default n
+        help
+          Enable the iwnpi tool for wifi npi test

@@ -1,0 +1,15 @@
+-include $(TOPDIR)/Make.defs
+APPNAME = iwnpi
+PRIORITY = SCHED_PRIORITY_DEFAULT
+STACKSIZE = 2048
+
+ASRCS =
+
+CSRCS =
+
+MAINSRC = wlnpi.c cmd2355.c
+
+EXAMPLES_IWNPI_PROGNAME ?= iwnpi$(EXEEXT)
+PROGNAME = $(EXAMPLES_IWNPI_PROGNAME)
+
+include $(APPDIR)/Application.mk

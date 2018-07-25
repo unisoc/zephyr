@@ -1,0 +1,3 @@
+ifeq ($(CONFIG_SYSTEM_IWNPI),y)
+CONFIGURED_APPS += system/iwnpi
+endif
