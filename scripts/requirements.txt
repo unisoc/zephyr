@@ -12,4 +12,4 @@ pyelftools==0.24
 pyserial
 pykwalify
 # "win32" is used for 64-bit Windows as well
-windows-curses; sys_platform == "win32"
+# windows-curses; sys_platform == "win32"
