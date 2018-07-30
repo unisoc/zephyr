@@ -1,0 +1,15 @@
+sample:
+  description: Wi-Fi Repeater, based on UWP566X
+    application
+  name: repeater
+  platforms: all
+common:
+    tags: samples
+    harness: console
+    harness_config:
+      type: one_line
+      regex:
+        - "Wi-Fi Repeater! (.*)"
+tests:
+  sample.helloworld.multithread:
+    tags: samples
