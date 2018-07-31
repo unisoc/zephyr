@@ -7,7 +7,7 @@
 ARCH		:= arm
 BOARD		?= uwp566x_evb
 BOOT		:= mcuboot
-KERNEL		:= zephyr
+KERNEL		:= kernel
 
 # Directories and Files
 ################################################################
