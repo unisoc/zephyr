@@ -8,6 +8,8 @@ ARCH		:= arm
 BOARD		?= uwp566x_evb
 BOOT		:= mcuboot
 KERNEL		:= kernel
+XIP_BOOT	:= xip_mcuboot
+XIP_KERNEL	:= xip_kernel
 
 # Directories and Files
 ################################################################
@@ -22,11 +24,17 @@ fdl_DIR		:= $(PRJDIR)/fdl
 kernel_DIR	:= $(PRJDIR)/$(KERNEL)
 toolchain_DIR	:= $(PRJDIR)/toolchain
 
+SIGNING_KEY ?= $(boot_DIR)/root-rsa-2048.pem
+BOOT_HEADER_LEN = 0x200
+FLASH_ALIGNMENT = 8
+
 IMGTOOL = $(boot_DIR)/scripts/imgtool.py
 ASSEMBLE = $(boot_DIR)/scripts/assemble.py
 
 kernel_BUILD_DIR	:= $(build_DIR)/$(KERNEL)
 boot_BUILD_DIR	:= $(build_DIR)/$(BOOT)
+xip_kernel_BUILD_DIR	:= $(build_DIR)/$(XIP_KERNEL)
+xip_boot_BUILD_DIR	:= $(build_DIR)/$(XIP_BOOT)
 
 cmake_FILE	:= $(toolchain_DIR)/cmake-3.8.2-Linux-x86_64.sh
 cmake_DIR	:= $(basename $(cmake_FILE))
@@ -39,12 +47,16 @@ export ZEPHYR_SDK_INSTALL_DIR	:= $(sdk_DIR)
 
 # Targets
 ################################################################
-DEFAULT_TARGETS		:= cmake sdk kernel
+DEFAULT_TARGETS		:= cmake sdk kernel boot
+XIP_TARGETS			:= cmake sdk xip_kernel xip_boot
 CLEAN_TARGETS		:= $(addsuffix -clean,$(DEFAULT_TARGETS))
 DISTCLEAN_TARGETS	:= $(addsuffix -distclean,$(DEFAULT_TARGETS))
 
 .PHONY: all
 all: $(DEFAULT_TARGETS)
+
+.PHONY: xip
+xip: $(XIP_TARGETS)
 
 .PHONY: clean
 clean: $(CLEAN_TARGETS)
@@ -110,9 +122,7 @@ kernel:
 	echo $($@_BUILD_DIR)
 	@ if [ ! -d $($@_BUILD_DIR) ]; then mkdir -p $($@_BUILD_DIR); fi
 	(source $($@_DIR)/zephyr-env.sh && cd $($@_BUILD_DIR) && \
-	printenv ZEPHYR_BASE && \
 	cmake -DBOARD=$(BOARD) $($@_DIR)/samples/repeater/ && \
-	printenv ZEPHYR_BASE && \
 	make \
 	)
 
@@ -121,8 +131,32 @@ boot:
 	echo $($@_BUILD_DIR)
 	@ if [ ! -d $($@_BUILD_DIR) ]; then mkdir -p $($@_BUILD_DIR); fi
 	(source $(kernel_DIR)/zephyr-env.sh && cd $($@_BUILD_DIR) && \
-	printenv ZEPHYR_BASE && \
 	cmake -DBOARD=$(BOARD) $(boot_DIR)/boot/zephyr/ && \
-	printenv ZEPHYR_BASE && \
+	make \
+	)
+
+.PHONY: xip_kernel
+xip_kernel:
+	echo $($@_BUILD_DIR)
+	@ if [ ! -d $($@_BUILD_DIR) ]; then mkdir -p $($@_BUILD_DIR); fi
+	(source $(kernel_DIR)/zephyr-env.sh && cd $($@_BUILD_DIR) && \
+	cmake -DBOARD=$(BOARD) -DCONF_FILE=prj_xip.conf $(kernel_DIR)/samples/repeater/ && \
+	make \
+	)
+	$(IMGTOOL) sign \
+		--key $(SIGNING_KEY) \
+		--header-size $(BOOT_HEADER_LEN) \
+		--align $(FLASH_ALIGNMENT) \
+		--version 1.2 \
+		--included-header \
+		$($@_BUILD_DIR)/zephyr/zephyr.bin \
+		signed-kernel.bin
+
+.PHONY: xip_boot
+xip_boot:
+	echo $($@_BUILD_DIR)
+	@ if [ ! -d $($@_BUILD_DIR) ]; then mkdir -p $($@_BUILD_DIR); fi
+	(source $(kernel_DIR)/zephyr-env.sh && cd $($@_BUILD_DIR) && \
+	cmake -DBOARD=$(BOARD) -DCONF_FILE=prj_xip.conf $(boot_DIR)/boot/zephyr/ && \
 	make \
 	)
