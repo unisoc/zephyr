@@ -22,7 +22,11 @@ fdl_DIR		:= $(PRJDIR)/fdl
 kernel_DIR	:= $(PRJDIR)/$(KERNEL)
 toolchain_DIR	:= $(PRJDIR)/toolchain
 
+IMGTOOL = $(boot_DIR)/scripts/imgtool.py
+ASSEMBLE = $(boot_DIR)/scripts/assemble.py
+
 kernel_BUILD_DIR	:= $(build_DIR)/$(KERNEL)
+boot_BUILD_DIR	:= $(build_DIR)/$(BOOT)
 
 cmake_FILE	:= $(toolchain_DIR)/cmake-3.8.2-Linux-x86_64.sh
 cmake_DIR	:= $(basename $(cmake_FILE))
@@ -108,6 +112,17 @@ kernel:
 	(source $($@_DIR)/zephyr-env.sh && cd $($@_BUILD_DIR) && \
 	printenv ZEPHYR_BASE && \
 	cmake -DBOARD=$(BOARD) $($@_DIR)/samples/repeater/ && \
+	printenv ZEPHYR_BASE && \
+	make \
+	)
+
+.PHONY: boot
+boot:
+	echo $($@_BUILD_DIR)
+	@ if [ ! -d $($@_BUILD_DIR) ]; then mkdir -p $($@_BUILD_DIR); fi
+	(source $(kernel_DIR)/zephyr-env.sh && cd $($@_BUILD_DIR) && \
+	printenv ZEPHYR_BASE && \
+	cmake -DBOARD=$(BOARD) $(boot_DIR)/boot/zephyr/ && \
 	printenv ZEPHYR_BASE && \
 	make \
 	)
