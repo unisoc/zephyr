@@ -122,7 +122,9 @@ kernel:
 	echo $($@_BUILD_DIR)
 	@ if [ ! -d $($@_BUILD_DIR) ]; then mkdir -p $($@_BUILD_DIR); fi
 	(source $($@_DIR)/zephyr-env.sh && cd $($@_BUILD_DIR) && \
-	cmake -DBOARD=$(BOARD) $($@_DIR)/samples/repeater/ && \
+	if [ ! -f ./Makefile ] ; then \
+	cmake -DBOARD=$(BOARD) $($@_DIR)/samples/repeater/ ;\
+	fi &&\
 	make \
 	)
 
@@ -131,7 +133,9 @@ boot:
 	echo $($@_BUILD_DIR)
 	@ if [ ! -d $($@_BUILD_DIR) ]; then mkdir -p $($@_BUILD_DIR); fi
 	(source $(kernel_DIR)/zephyr-env.sh && cd $($@_BUILD_DIR) && \
-	cmake -DBOARD=$(BOARD) $(boot_DIR)/boot/zephyr/ && \
+	if [ ! -f ./Makefile ] ; then \
+	cmake -DBOARD=$(BOARD) $(boot_DIR)/boot/zephyr/ ; \
+	fi &&\
 	make \
 	)
 
@@ -140,7 +144,9 @@ xip_kernel:
 	echo $($@_BUILD_DIR)
 	@ if [ ! -d $($@_BUILD_DIR) ]; then mkdir -p $($@_BUILD_DIR); fi
 	(source $(kernel_DIR)/zephyr-env.sh && cd $($@_BUILD_DIR) && \
-	cmake -DBOARD=$(BOARD) -DCONF_FILE=prj_xip.conf $(kernel_DIR)/samples/repeater/ && \
+	if [ ! -f ./Makefile ] ; then \
+	cmake -DBOARD=$(BOARD) -DCONF_FILE=prj_xip.conf $(kernel_DIR)/samples/repeater/ ; \
+	fi &&\
 	make \
 	)
 	$(IMGTOOL) sign \
@@ -157,6 +163,19 @@ xip_boot:
 	echo $($@_BUILD_DIR)
 	@ if [ ! -d $($@_BUILD_DIR) ]; then mkdir -p $($@_BUILD_DIR); fi
 	(source $(kernel_DIR)/zephyr-env.sh && cd $($@_BUILD_DIR) && \
-	cmake -DBOARD=$(BOARD) -DCONF_FILE=prj_xip.conf $(boot_DIR)/boot/zephyr/ && \
+	if [ ! -f ./Makefile ] ; then \
+	cmake -DBOARD=$(BOARD) -DCONF_FILE=prj_xip.conf $(boot_DIR)/boot/zephyr/ ; \
+	fi &&\
 	make \
 	)
+
+.PHONY: debug
+debug: check kernel
+	@killall JLinkGDBServer || true
+	JLinkGDBServer -device Cortex-M4 -endian little -if SWD -speed 8000 -jlinkscriptfile /opt/SEGGER/JLink/Samples/JLink/Scripts/SPRD_SC2355.JLinkScript &
+	${ZEPHYR_SDK_INSTALL_DIR}/sysroots/x86_64-pokysdk-linux/usr/bin/arm-zephyr-eabi/arm-zephyr-eabi-gdb $(kernel_BUILD_DIR)/zephyr/zephyr.elf
+
+check:
+	@if [ -z "$$ZEPHYR_BASE" ]; then echo "Zephyr environment not set up"; false; fi
+	@if [ -z "$$ZEPHYR_SDK_INSTALL_DIR" ]; then echo "Zephyr environment not set up"; false; fi
+	@if [ -z "$(BOARD)" ]; then echo "You must specify BOARD=<board>"; false; fi
