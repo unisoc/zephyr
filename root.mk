@@ -59,12 +59,15 @@ all: $(DEFAULT_TARGETS)
 xip: $(XIP_TARGETS)
 
 .PHONY: clean
-clean: $(CLEAN_TARGETS)
+clean:
+	if [ -d $(kernel_BUILD_DIR) ]; then make clean -C $(kernel_BUILD_DIR); fi
+	if [ -d $(boot_BUILD_DIR) ]; then make clean -C $(boot_BUILD_DIR); fi
+	if [ -d $(xip_kernel_BUILD_DIR) ]; then make clean -C $(xip_kernel_BUILD_DIR); fi
+	if [ -d $(xip_boot_BUILD_DIR) ]; then make clean -C $(xip_boot_BUILD_DIR); fi
 
 .PHONY: distclean
-distclean: $(DISTCLEAN_TARGETS)
-	@ if [ -h $(fdl_DIR) ]; then rm -f $(fdl_DIR); fi
-	if [ -d $(DIST_DIR) ]; then rm -rf $(DIST_DIR); fi
+distclean:
+	if [ -d $(build_DIR) ]; then rm -rf $(build_DIR); fi
 
 # Macros
 ################################################################
