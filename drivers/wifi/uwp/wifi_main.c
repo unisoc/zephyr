@@ -44,12 +44,12 @@ int wifi_get_mac(u8_t *mac,int idx)
 	//2 copy to mac
 	// if idx == 0,get sta mac,
 	// if idx == 1,get ap mac
-	mac[0]=0x00;
-	mac[1]=0x0c;
-	mac[2]=0x43;
-	mac[3]=0x34;
-	mac[4]=0x76;
-	mac[5]=0x28;
+	mac[0]=0x46;
+	mac[1]=0xd1;
+	mac[2]=0xf9;
+	mac[3]=0x44;
+	mac[4]=0x73;
+	mac[5]=0x2c;
 
 	return 0;
 }
@@ -1036,19 +1036,21 @@ static void uwp_iface_init(struct net_if *iface)
 	net_if_set_link_addr(iface, priv->mac, sizeof(priv->mac),
 			NET_LINK_ETHERNET);
 
-	//iface->if_dev->offload = &uwp_offload;
-
 	priv->iface = iface;
+
+	wifi_tx_empty_buf(MAX_EMPTY_BUF_COUNT);
 }
 
 int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
 		struct net_pkt *pkt, u8_t type, u8_t offset)
 {
 	u32_t addr = 0;
+	u32_t reserve_len = net_pkt_ll_reserve(pkt);
 	struct tx_msdu_dscr *dscr = NULL;
 
 	net_pkt_set_ll_reserve(pkt,
 			sizeof(struct tx_msdu_dscr) + net_pkt_ll_reserve(pkt));
+	SYS_LOG_ERR("size msdu: %d", sizeof(struct tx_msdu_dscr));
 
 	dscr = (struct tx_msdu_dscr *)net_pkt_ll(pkt);
 	memset(dscr, 0x00, sizeof(struct tx_msdu_dscr));
@@ -1065,7 +1067,7 @@ int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
 
 	dscr->common.interface = 0;
 
-	dscr->pkt_len = net_pkt_get_len(pkt);
+	dscr->pkt_len = reserve_len + net_pkt_get_len(pkt);
 	dscr->offset = 11;
 	/*TODO*/
 	dscr->tx_ctrl.sw_rate = (type == SPRDWL_TYPE_DATA_SPECIAL ? 1 : 0);
@@ -1094,6 +1096,7 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 	u8_t *data_ptr;
 	u16_t data_len;
 	u16_t total_len;
+	u32_t *pkt_ptr;
 
 	wifi_tx_fill_msdu_dscr(priv, pkt, SPRDWL_TYPE_DATA, 0);
 
@@ -1113,12 +1116,15 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 			data_len = frag->len;
 
 		}
+		/* FIXME Save pkt addr before payload. */
+		uwp_save_addr_before_payload((u32_t)data_ptr, (void *)pkt);
+		SYS_LOG_ERR("pkt addr: 0x%x", pkt);
+
 		read8_cmd_exe((u32_t)data_ptr, data_len);
 		SPRD_AP_TO_CP_ADDR(data_ptr);
 		wifi_tx_data(data_ptr, data_len);
 	}
 
-	net_pkt_unref(pkt);
 	return 0;
 }
 
@@ -1151,8 +1157,6 @@ static int uwp_init(struct device *dev)
 	priv->connecting = false;
 	priv->connected = false;
 	priv->opened = false;
-
-	wifi_get_mac(priv->mac, 0);
 
 	ret = cp_mcu_init();
 	if (ret) {

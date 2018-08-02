@@ -11,8 +11,8 @@
 #define __SIZE_M(x) (x * 1024 * 1024)
 
 #if defined(CONFIG_SOC_UWP566x)
-#define DT_SRAM_START		0x180000
-#define DT_SRAM_SIZE		__SIZE_K(512)
+#define DT_SRAM_START		0x100000
+#define DT_SRAM_SIZE		__SIZE_K(412)
 #define DT_UART0_START		0x40038000
 #define DT_UART1_START		0x40040000
 #define DT_UART2_START		0x40838000

@@ -3,7 +3,7 @@
 
 #define SPRD_AP_CP_DRAM_MAP_BASE 0x40400000
 
-#define SPRD_AP_DRAM_BEGIN 0x00180000
+#define SPRD_AP_DRAM_BEGIN 0x00100000
 #define SPRD_AP_DRAM_END 0x001FFFFF
 
 #define SPRD_CP_DRAM_BEGIN (SPRD_AP_DRAM_BEGIN + SPRD_AP_CP_DRAM_MAP_BASE)
@@ -220,12 +220,11 @@ struct tx_msdu_dscr {
 } __attribute__ ((packed));
 
 struct txc_addr_buff {
-	struct sprdwl_common_hdr common;
-	/*addr offset from common*/
 	unsigned char offset;
 	struct  tx_ctrl tx_ctrl;
 	unsigned short number;
 	unsigned short rsvd;
+	unsigned char data[0];
 } __attribute__ ((packed));
 
 struct rx_empty_buff {
@@ -236,7 +235,8 @@ struct rx_empty_buff {
 #define SPRDWL_FLUSH_BUFFER 3
 	unsigned char type;
 	unsigned char num;
-	unsigned char addr[0];
+#define MAX_EMPTY_BUF_COUNT		(20)
+	unsigned char addr[MAX_EMPTY_BUF_COUNT][5];
 }__attribute__ ((packed));
 
 /* 0 for cmd, 1 for event, 2 for data, 3 for mh data */
@@ -244,8 +244,8 @@ enum sprdwl_head_type {
 	SPRDWL_TYPE_CMD = 0,
 	SPRDWL_TYPE_EVENT,
 	SPRDWL_TYPE_DATA,
+	SPRDWL_TYPE_DATA_HIGH_SPEED,
 	SPRDWL_TYPE_DATA_SPECIAL,
-	SPRDWL_TYPE_DATA_PCIE_ADDR,
 	SPRDWL_TYPE_PKT_LOG,
 };
 

@@ -35,6 +35,21 @@ struct wifi_priv {
 	struct wifi_conf_t conf;
 };
 
+static inline void uwp_save_addr_before_payload(u32_t payload, void *addr)
+{
+	u32_t *pkt_ptr;
+
+	pkt_ptr = (u32_t *)(payload - 4);
+	*pkt_ptr = (u32_t)addr;
+}
+
+static inline u32_t uwp_get_addr_from_payload(u32_t payload)
+{
+	u32_t * ptr;
+	ptr = (u32_t *)(payload - 4);
+
+	return *ptr;
+}
 //extern struct adapter wifi_pAd;
 
 //int wifi_ifnet_sta_init(struct adapter *pAd);

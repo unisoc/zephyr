@@ -286,7 +286,7 @@ int wifi_cmd_start_sta(struct wifi_priv *priv)
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.mode = WIFI_MODE_STA;
-	wifi_get_mac((u8_t *)cmd.mac, 0);
+	memcpy(cmd.mac, priv->mac, 6);
 	ret = wifi_cmd_send(WIFI_CMD_OPEN, (char *)&cmd, sizeof(cmd),
 			NULL, NULL);
 	if (ret < 0){

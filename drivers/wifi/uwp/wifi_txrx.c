@@ -10,11 +10,34 @@ static unsigned char rx_buf[RX_BUF_SIZE];
 
 int wifi_rx_complete_handle(void *data,int len)
 {
+	SYS_LOG_ERR("wifi rx complete.");
 	return 0;
 }
 
 int wifi_tx_complete_handle(void * data,int len)
 {
+	struct txc_addr_buff *txc_addr = (struct txc_addr_buff *)data;
+	u16_t payload_num;
+	u32_t payload_addr;
+	int i;
+	struct net_pkt *pkt;
+
+	SYS_LOG_ERR("wifi tx complete.");
+
+	payload_num = txc_addr->number;
+
+	for (i = 0; i < payload_num; i++) {
+		/* we use only 4 byte addr */
+		memcpy(&payload_addr, txc_addr->data + (i * SPRDWL_PHYS_LEN), 4);
+
+		payload_addr -= sizeof(struct tx_msdu_dscr);
+		SPRD_CP_TO_AP_ADDR(payload_addr);
+		pkt = (struct net_pkt *)uwp_get_addr_from_payload(payload_addr);
+
+		SYS_LOG_ERR("pkt addr: 0x%x.", pkt);
+		net_pkt_unref(pkt);
+	}
+
 	return 0;
 }
 
@@ -28,41 +51,26 @@ int wifi_tx_cmd(void *data, int len)
 	return ret;
 }
 
-#if 0
-int wifi_rx_data(int channel,void *data,int len)
+int wifi_data_process(struct wifi_priv *priv, char *data, int len)
 {
 	struct sprdwl_common_hdr *common_hdr = (struct sprdwl_common_hdr *)data;
-
-	if (channel > SMSG_CH_WIFI_DATA_SPEC || data == NULL ||len ==0){
-		SYS_LOG_ERR("invalid parameter,channel=%d data=%p,len=%d\n",channel,data,len);
-		return -1;
-	}
-	if (channel == SMSG_CH_WIFI_DATA_SPEC) {
-		SYS_LOG_INF("rx spicial data\n");
-	} else if (channel ==SMSG_CH_WIFI_DATA_NOR) {
-		SYS_LOG_INF("rx data\n");
-	} else {
-		SYS_LOG_ERR("should not be here[channel = %d]\n",channel);
-		return -1;
-	}
-
-	switch (common_hdr->type){
-		case SPRDWL_TYPE_DATA_PCIE_ADDR:
-			if (common_hdr->direction_ind) /* direction_ind=1, rx data */
-				wifi_rx_complete_handle(data,len);
+	data += sizeof(struct sprdwl_common_hdr);
+	switch (common_hdr->type) {
+		case SPRDWL_TYPE_DATA_SPECIAL:
+			if (common_hdr->direction_ind)  /* direction_ind=1, rx data */
+				wifi_rx_complete_handle(data, len);
 			else
-				wifi_tx_complete_handle(data,len); /* direction_ind=0, tx complete */
+				wifi_tx_complete_handle(data, len); /* direction_ind=0, tx complete */
 			break;
 		case SPRDWL_TYPE_DATA:
-		case SPRDWL_TYPE_DATA_SPECIAL:
+		case SPRDWL_TYPE_DATA_HIGH_SPEED:
 			break;
-		default :
-			SYS_LOG_INF("unknown type :%d\n",common_hdr->type);			
+		default:
+			SYS_LOG_ERR("unknown type :%d\n", common_hdr->type);
 	}
-
 	return 0;
 }
-#endif
+
 
 #define TXRX_STACK_SIZE		(1024)
 K_THREAD_STACK_MEMBER(txrx_stack, TXRX_STACK_SIZE);
@@ -83,15 +91,24 @@ static void txrx_thread(void *p1)
 		while (1) {
 			memset(addr, RX_BUF_SIZE, 0);
 			ret = wifi_ipc_recv(SMSG_CH_WIFI_CTRL, addr, &len, 0);
-			if (ret != 0) {
-				SYS_LOG_INF("Recieve none data.");
+			if (ret == 0) {
+				SYS_LOG_INF("Recieve cmd/evt %p len %i", addr, len);
+
+				wifi_cmdevt_process(priv, addr, len);
+			} else {
 				break;
 			}
+		}
 
-			SYS_LOG_INF("Recieve data %p len %i", addr, len);
-
-			/* process data here */
-			wifi_cmdevt_process(priv, addr, len);
+		while (1) {
+			ret = wifi_ipc_recv(SMSG_CH_WIFI_DATA_NOR, addr, &len, 0);
+			if (ret == 0) {
+				SYS_LOG_ERR("Recieve data %p len %i", addr, len);
+				read8_cmd_exe((u32_t)addr, len);
+				wifi_data_process(priv, addr, len);
+			} else {
+				break;
+			}
 		}
 
 	}
@@ -110,7 +127,7 @@ int wifi_tx_data(void *data, int len)
 
 	memset(&addr_buf, 0, sizeof(struct hw_addr_buff_t));
 	addr_buf.common.interface = 0;
-	addr_buf.common.type = SPRDWL_TYPE_DATA_PCIE_ADDR;
+	addr_buf.common.type = SPRDWL_TYPE_DATA_SPECIAL;
 	addr_buf.common.direction_ind = 0;
 	addr_buf.common.buffer_type = 1;
 	addr_buf.number = 1;
@@ -138,6 +155,54 @@ static void wifi_rx_data(int ch)
 		SYS_LOG_ERR("Invalid data channel: %d.", ch);
 
 	SYS_LOG_ERR("wifi rx data.");
+	k_sem_give(&event_sem);
+}
+
+int wifi_tx_empty_buf(int num)
+{
+	int i;
+	struct net_buf	*pkt_buf;
+	static struct rx_empty_buff buf;
+	int ret;
+	struct hw_addr_buff_t addr_buf;
+	u32_t data_ptr;
+
+	memset(&buf, 0, sizeof(buf));
+
+	for (i = 0; i < num; i++) {
+		pkt_buf = net_pkt_get_frag(0, K_NO_WAIT);
+		if(pkt_buf == NULL) {
+			SYS_LOG_ERR("Could not allocate rx packet");
+			break;
+		}
+		data_ptr = (u32_t)pkt_buf->data;
+		uwp_save_addr_before_payload((u32_t)data_ptr,
+				(void *)pkt_buf);
+
+		SPRD_AP_TO_CP_ADDR(data_ptr);
+		memcpy(&(buf.addr[i][0]), &data_ptr, 4);
+	}
+
+	if (i == 0) {
+		SYS_LOG_ERR("Nonue rx packet buffer can be used.");
+		return -1;
+	}
+
+	buf.type = EMPTY_DDR_BUFF;
+	buf.num = i;
+	buf.common.type = SPRDWL_TYPE_DATA_SPECIAL;
+	buf.common.direction_ind = TRANS_FOR_RX_PATH;
+
+	ret = wifi_ipc_send(SMSG_CH_WIFI_DATA_NOR, QUEUE_PRIO_NORMAL,
+			(void *)&buf,
+			i * SPRDWL_PHYS_LEN + 3,
+			WIFI_DATA_NOR_MSG_OFFSET);
+	if (ret < 0) {
+		SYS_LOG_ERR("sprd_wifi_send fail\n");
+		return ret;
+	}
+
+	return 0;
 }
 
 int wifi_txrx_init(struct wifi_priv *priv)
