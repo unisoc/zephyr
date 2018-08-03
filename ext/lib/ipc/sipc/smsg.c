@@ -19,7 +19,7 @@ K_THREAD_STACK_MEMBER(smsg_stack, SMSG_STACK_SIZE);
 static struct smsg_ipc smsg_ipcs[SIPC_ID_NR];
 
 #define SMSG_IRQ_TXBUF_ADDR         (0)
-#define SMSG_IRQ_TXBUF_SIZE		    (0x100)
+#define SMSG_IRQ_TXBUF_SIZE		    (0x200)
 #define SMSG_IRQ_RXBUF_ADDR		    (SMSG_IRQ_TXBUF_ADDR + SMSG_IRQ_TXBUF_SIZE)
 #define SMSG_IRQ_RXBUF_SIZE		    (0x100)
 
