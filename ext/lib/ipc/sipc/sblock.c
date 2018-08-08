@@ -19,7 +19,8 @@ uint8_t cmd_hdr1[] =
 
 int sblock_get(uint8_t dst, uint8_t channel, struct sblock *blk, int timeout);
 int sblock_send(uint8_t dst, uint8_t channel,uint8_t prio, struct sblock *blk);
-
+extern void sprd_wifi_irq_enable(void);
+extern int sprd_bt_irq_init(void);
 static int sblock_recover(uint8_t dst, uint8_t channel)
 {
 	struct sblock_mgr *sblock = &sblocks[dst][channel];
@@ -147,8 +148,8 @@ static void sblock_thread(void *p1, void *p2, void *p3)
 			sblock->state = SBLOCK_STATE_READY;
 			recovery = 1;
 			ipc_debug("ap cp create %d channel success!",sblock->channel);
-			if (sblock->channel == SMSG_CH_BT) {
-                //sprd_bt_irq_init();
+ 			if (sblock->channel == SMSG_CH_BT) {
+                sprd_bt_irq_init();
             }
 
 /* 			sprd_wifi_send(sblock->channel,prio,cmd_hdr1,sizeof(cmd_hdr1));
@@ -260,7 +261,7 @@ int sblock_create(uint8_t dst, uint8_t channel,
 			break;
 	}
 	sblock->smem_addr = block_addr;
-	ipc_debug( "smem_addr 0x%x record_share_addr 0x%x",sblock->smem_addr,block_addr);
+	ipc_debug( "smem_addr 0x%x record_share_addr 0x%x channel %d\n",sblock->smem_addr,block_addr,channel);
 
 	ring = &sblock->ring;
 	ring->header =(struct sblock_header *)sblock->smem_addr;
@@ -338,7 +339,7 @@ int sblock_create(uint8_t dst, uint8_t channel,
 		return -1;
 	}
 
-	ipc_error("sblock[%d] thread: 0x%x", channel, sblock->pid);
+	ipc_error("sblock %d thread: 0x%x", channel, sblock->pid);
 
 	return 0;
 }

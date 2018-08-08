@@ -142,7 +142,7 @@ int smsg_msg_dispatch_thread(int argc, char *argv[])
 		//ipc_debug("wait for ipc message.");
 		k_sem_take(&ipc->irq_sem, K_FOREVER);
 
-		for(prio = QUEUE_PRIO_HIGH; prio < QUEUE_PRIO_MAX; prio++) {
+		for(prio = QUEUE_PRIO_IRQ; prio < QUEUE_PRIO_MAX; prio++) {
 			rx_buf = &(ipc->queue[prio].rx_buf);
 			/*ipc_debug("prio: %d, wrptr: %d, rdptr: %d", prio,
 					sys_read32(rx_buf->wrptr),
@@ -170,7 +170,16 @@ int smsg_msg_dispatch_thread(int argc, char *argv[])
 						msg->channel, msg->type);
 				continue;
 			}
-
+			if(msg->type == SMSG_TYPE_WIFI_IRQ){
+				if (SMSG_WIFI_IRQ_OPEN == msg->flag) {
+				   sprd_wifi_irq_enable_num(msg->value);
+				   ipc_info("wifi irq open\n");
+				} else 	if (SMSG_WIFI_IRQ_CLOSE == msg->flag) {
+				   sprd_wifi_irq_disable_num(msg->value);
+				   ipc_info("wifi irq close\n");
+				}
+				continue;
+			}
 			ch = &ipc->channels[msg->channel];
 
 			if((ch->wrptr - ch->rdptr) 
@@ -304,9 +313,9 @@ int smsg_send_irq(u8_t dst, struct smsg *msg)
 
 	if (sys_read32(tx_buf->wrptr) - sys_read32(tx_buf->rdptr)
 			>= tx_buf->size) {
-		ipc_warn("smsg irq txbuf is full! %d %d\n",
+		ipc_warn("smsg irq txbuf is full! %d %d %d\n",
 				sys_read32(tx_buf->wrptr),
-				sys_read32(tx_buf->rdptr));
+				sys_read32(tx_buf->rdptr),msg->value);
 		ret = -EBUSY;
 		goto send_failed;
 	}
@@ -320,6 +329,7 @@ int smsg_send_irq(u8_t dst, struct smsg *msg)
 
 	/* update wrptr */
 	sys_write32(sys_read32(tx_buf->wrptr) + 1, tx_buf->wrptr);
+	uwp_ipi_irq_trigger();
 //	ipi_phy_trig_int_irq();
 
 send_failed:

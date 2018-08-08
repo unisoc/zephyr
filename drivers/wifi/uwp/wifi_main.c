@@ -1162,6 +1162,7 @@ static int uwp_init(struct device *dev)
 
 	wifi_cmdevt_init();
 	wifi_txrx_init(priv);
+	wifi_irq_init();
 
 	SYS_LOG_DBG("UWP WIFI driver Initialized");
 

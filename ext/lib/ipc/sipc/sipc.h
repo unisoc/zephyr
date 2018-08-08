@@ -43,10 +43,10 @@ extern "C" {
 	enum {
 		SMSG_CH_CTRL = 0,	/* some emergency control */
 		SMSG_CH_COMM,		/* general communication channel */
-		SMSG_CH_BT,
 		SMSG_CH_WIFI_CTRL=12,
 		SMSG_CH_WIFI_DATA_NOR,
 		SMSG_CH_WIFI_DATA_SPEC,
+		SMSG_CH_BT,
 		SMSG_CH_TTY,		/* virtual serial for telephony */
 		SMSG_CH_PBUF_EVENT,
 		SMSG_CH_PBUF_DATA,
@@ -72,6 +72,7 @@ extern "C" {
 		SMSG_TYPE_FUNC_CALL,	/* RPC func, value=addr */
 		SMSG_TYPE_FUNC_RETURN,	/* return of RPC func */
 		SMSG_TYPE_DIE,
+		SMSG_TYPE_WIFI_IRQ,
 		SMSG_TYPE_DFS,
 		SMSG_TYPE_DFS_RSP,
 		SMSG_TYPE_ASS_TRG,
@@ -81,6 +82,9 @@ extern "C" {
 	/* flag for OPEN/CLOSE msg type */
 #define	SMSG_OPEN_MAGIC		0xBEEE
 #define	SMSG_CLOSE_MAGIC	0xEDDD
+
+#define SMSG_WIFI_IRQ_OPEN    1
+#define SMSG_WIFI_IRQ_CLOSE   2
 
 #ifndef SZ_1K
 #define SZ_1K                               0x400
@@ -94,6 +98,9 @@ extern "C" {
 #define ipc_info(format, ...)     SYS_LOG_INF(format,  ##__VA_ARGS__)
 #define ipc_debug(format, ...)     SYS_LOG_DBG(format,  ##__VA_ARGS__)
 
+int wifi_irq_init(void);
+void sprd_wifi_irq_disable_num(uint32_t num);
+void sprd_wifi_irq_enable_num(uint32_t num);
 	/**
 	 * smsg_ch_open -- open a channel for smsg
 	 *
