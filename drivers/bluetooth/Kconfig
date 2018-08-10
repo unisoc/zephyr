@@ -33,4 +33,10 @@ config BT_NRF51_PM
 
 endmenu
 
+config BT_UNISOC
+	bool "Unisoc bluetooth chip"
+if BT_UNISOC
+source "drivers/bluetooth/unisoc/Kconfig"
+endif
+
 endif # BT && ! BT_CTLR

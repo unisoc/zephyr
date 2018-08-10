@@ -54,6 +54,11 @@ config BT_USERCHAN
 	  The Bluetooth adapter must be powered off in order for Zephyr to
 	  be able to use it.
 
+config BT_SIPC
+	bool "BT SIPC"
+	help
+	  Supports Bluetooth ICs using SIPC as the communication protocol.
+
 config BT_NO_DRIVER
 	bool "No default HCI driver"
 	help

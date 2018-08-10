@@ -1,0 +1,12 @@
+# Kconfig - Bluetooth drivers configuration options
+
+#
+# Copyright (c) 2018
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+comment "Unisoc Bluetooth HCI Driver Options"
+
+config BT_UNISOC_UWP56XX
+	bool "UWP56XX"
