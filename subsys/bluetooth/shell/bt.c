@@ -33,8 +33,6 @@
 #include "gatt.h"
 #include "ll.h"
 
-#include <sipc.h>
-#include <sblock.h>
 
 #define DEVICE_NAME		CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN		(sizeof(DEVICE_NAME) - 1)
@@ -541,80 +539,11 @@ static int cmd_init(int argc, char *argv[])
 	return 0;
 }
 
-#define SPRD_DP_RW_REG_SHIFT_BYTE 14
-#define SPRD_DP_DMA_READ_BUFFER_BASE_ADDR 0x40280000
-#define SPRD_DP_DMA_UARD_SDIO_BUFFER_BASE_ADDR (SPRD_DP_DMA_READ_BUFFER_BASE_ADDR + (1 << SPRD_DP_RW_REG_SHIFT_BYTE))
-#define WORD_ALIGN 4
-
-static inline int unisoc_bt_write_word(unsigned int word)
-{
-  unsigned int *hwdec_addr = (unsigned int *)SPRD_DP_DMA_UARD_SDIO_BUFFER_BASE_ADDR;
-  *hwdec_addr = word;
-  printk("WORD: 0x%08X\n", word);
-  return WORD_ALIGN;
-}
-
-int unisoc_bt_write(unsigned char *data, int len)
-{
-  unsigned int *align_p, value;
-  unsigned char *p;
-  int i, word_num, remain_num;
-
-  if (len <= 0)
-    return len;
-
-  word_num = len / WORD_ALIGN;
-  remain_num = len % WORD_ALIGN;
-
-  if (word_num) {
-    for (i = 0, align_p = (unsigned int *)data; i < word_num; i++) {
-    value = *align_p++;
-    unisoc_bt_write_word(value);
-    }
-  }
-
-  if (remain_num) {
-    value = 0;
-    p = (unsigned char *) &value;
-    for (i = len - remain_num; i < len; i++) {
-      *p++ = *(data + i);
-    }
-    unisoc_bt_write_word(value);
-  }
-
-  return len;
-}
-
-static int recv_callback(int ch, void *data,int len)
-{
-	int i;
-	unsigned char *p = data;
-	printk("channle: %d, len: %d\n", ch, len);
-	for (i = 0; i < len; i++)
-		printk("0x%02x ", p[i]);
-	printk("\n");
-  return 0;
-}
-
+extern void sipc_test();
 static int cmd_reset(int argc, char *argv[])
 {
-	static int registed = 0;
-
 	printk("Bluetooth send hci reset cmd\n");
-
-	if (!registed) {
-		if (0 != sblock_create(0, SMSG_CH_BT,BT_TX_BLOCK_NUM, BT_TX_BLOCK_SIZE,
-			BT_RX_BLOCK_NUM, BT_RX_BLOCK_SIZE)) {
-			printk("bt channel is error\n");
-			return -1;
-		}
-		sblock_register_callback(SMSG_CH_BT, recv_callback);
-		registed = 1;
-	}
-
-	unsigned char buf[] = {0x01, 0x03, 0x0c, 0x00};
-	unisoc_bt_write(buf, sizeof(buf));
-
+	sipc_test();
 	return 0;
 }
 

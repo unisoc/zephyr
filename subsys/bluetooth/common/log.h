@@ -26,6 +26,8 @@ extern "C" {
 #define BT_DBG_ENABLED 1
 #endif
 
+#define BTD(fmt, ...) printk(fmt"\n", ##__VA_ARGS__)
+
 #if defined(CONFIG_BT_DEBUG_MONITOR)
 #include <stdio.h>
 

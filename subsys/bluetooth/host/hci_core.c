@@ -128,6 +128,9 @@ NET_BUF_POOL_DEFINE(hci_cmd_pool, CONFIG_BT_HCI_CMD_COUNT,
 NET_BUF_POOL_DEFINE(hci_rx_pool, CONFIG_BT_RX_BUF_COUNT,
 		    BT_BUF_RX_SIZE, BT_BUF_USER_DATA_MIN, NULL);
 
+
+extern void uwp56xx_vendor_init();
+
 #if defined(CONFIG_BT_HCI_ACL_FLOW_CONTROL)
 static void report_completed_packet(struct net_buf *buf)
 {
@@ -2930,7 +2933,7 @@ static void hci_reset_complete(struct net_buf *buf)
 
 static void hci_cmd_done(u16_t opcode, u8_t status, struct net_buf *buf)
 {
-	BT_DBG("opcode 0x%04x status 0x%02x buf %p", opcode, status, buf);
+	BTD("opcode 0x%04x status 0x%02x buf %p", opcode, status, buf);
 
 	if (net_buf_pool_get(buf->pool_id) != &hci_cmd_pool) {
 		BT_WARN("opcode 0x%04x pool id %u pool %p != &hci_cmd_pool %p",
@@ -4330,6 +4333,8 @@ static int hci_init(void)
 {
 	int err;
 
+	uwp56xx_vendor_init();
+
 	err = common_init();
 	if (err) {
 		return err;
@@ -4430,6 +4435,8 @@ int bt_recv_prio(struct net_buf *buf)
 	BT_ASSERT(bt_hci_evt_is_prio(hdr->evt));
 
 	net_buf_pull(buf, sizeof(*hdr));
+
+    BTD("%s, 0x%02x", __func__, hdr->evt);
 
 	switch (hdr->evt) {
 	case BT_HCI_EVT_CMD_COMPLETE:

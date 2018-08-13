@@ -1,0 +1,1 @@
+zephyr_sources_ifdef(CONFIG_BT_UNISOC_UWP56XX uwp56xx.c)
