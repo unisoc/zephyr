@@ -18,6 +18,7 @@ CROSS_COMPILE	:= $(TARGET)-
 SHELL		:= /bin/bash
 PWD		:= $(shell pwd)
 PRJDIR		:= $(PWD)
+HWCONFIG_DIR	:= $(PRJDIR)/hwconfig
 
 app_DIR		:= $(PRJDIR)/app
 boot_DIR	:= $(PRJDIR)/$(BOOT)
