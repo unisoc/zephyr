@@ -132,7 +132,7 @@ FLASH_ALIGNMENT	:= 8
 # $(1): input file
 # $(2): output file
 define SIGN_KERNEL_IMAGE
-	$(IMGTOOL) sign \
+	@ $(IMGTOOL) sign \
 		--key $(SIGNING_KEY) \
 		--header-size $(BOOT_HEADER_LEN) \
 		--align $(FLASH_ALIGNMENT) \
@@ -164,8 +164,8 @@ CLEAN_TARGETS		:= $(addsuffix -clean,$(ALL_TARGETS))
 .PHONY: all
 all: $(DEFAULT_TARGETS)
 	@ if [ ! -d $(DIST_DIR) ]; then install -d $(DIST_DIR); fi
-	install $(FDL_BIN) $(FDL_DIST_BIN)
-	install $(BOOT_BIN) $(BOOT_DIST_BIN)
+	@ install $(FDL_BIN) $(FDL_DIST_BIN)
+	@ install $(BOOT_BIN) $(BOOT_DIST_BIN)
 	$(call SIGN_KERNEL_IMAGE,$(KERNEL_BIN),$(KERNEL_DIST_BIN))
 	$(call GEN_CONFIG_IMAGE,$(CONFIG_DIST_BIN),wifi_board_config.ini,bt_configure_pskey.ini,bt_configure_rf.ini)
 
@@ -197,11 +197,13 @@ $(eval $(call MAKE_TARGET,boot,debug,$(boot_DIR)/boot/zephyr))
 
 $(eval $(call MAKE_TARGET,kernel,debug,$(kernel_DIR)/samples/repeater))
 
-.PHONY: fdl
-fdl:
+$(FDL_BIN):
 	@ $(call MESSAGE,"Building fdl")
-	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $($@_DIR) $(BOARD)_fdl_defconfig
-	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $($@_DIR)
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(fdl_DIR) $(BOARD)_fdl_defconfig
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(fdl_DIR)
+
+.PHONY: fdl
+fdl: $(FDL_BIN)
 
 # Clean Targets
 $(foreach target,$(ALL_TARGETS),$(eval $(call CLEAN_TARGET,$(target),clean)))
