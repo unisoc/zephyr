@@ -418,12 +418,14 @@ int wifi_evt_scan_done(struct wifi_priv *priv)
 	return 0;
 }
 
+extern void dhcp_client(void);
 int wifi_evt_connect(struct wifi_priv *priv, char *data, int len)
 {
 	struct event_connect *event = 
 		(struct event_connect *)data;
 
 	wifi_mgmt_raise_connect_result_event(priv->iface, event->status);
+	dhcp_client();
 
 	return 0;
 }

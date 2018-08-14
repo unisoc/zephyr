@@ -3,14 +3,67 @@
 #include <string.h>
 #include <sipc.h>
 #include <sblock.h>
+#include <net/net_pkt.h>
 
 #include "wifi_main.h"
 #define RX_BUF_SIZE	(128)
 static unsigned char rx_buf[RX_BUF_SIZE];
 
-int wifi_rx_complete_handle(void *data,int len)
+int wifi_rx_complete_handle(struct wifi_priv *priv, void *data,int len)
 {
-	SYS_LOG_ERR("wifi rx complete.");
+	//struct rxc *rx_complete_buf = (struct rxc *)data;
+	struct rxc_ddr_addr_trans_t *rxc_addr =
+		(struct rxc_ddr_addr_trans_t *)data;
+	struct rx_msdu_desc *rx_msdu = NULL;
+	u32_t payload = 0;
+
+	struct net_pkt *pkt;
+	struct net_buf *pkt_buf;
+	struct net_buf *last_buf = NULL;
+	int ctx_id = 0;
+	int i = 0;
+	u32_t data_len;
+	int ret;
+
+	SYS_LOG_ERR("wifi rx complete %d.", rxc_addr->num);
+	pkt = net_pkt_get_reserve_rx(0, K_NO_WAIT);
+	if (!pkt) {
+		SYS_LOG_ERR("Could not allocate rx packet");
+		return -1;
+	}
+
+	for (i = 0; i < rxc_addr->num; i++) {
+		memcpy(&payload, rxc_addr->addr_addr[i], 4);
+		SPRD_CP_TO_AP_ADDR(payload);
+		pkt_buf = (struct net_buf *)uwp_get_addr_from_payload(payload);
+
+		rx_msdu =
+			(struct rx_msdu_desc *)(pkt_buf->data +
+					sizeof(struct rx_mh_desc));
+		ctx_id = rx_msdu->ctx_id;
+		SYS_LOG_ERR("rx pkt buf: 0x%x, buf len: %d, msdu_offset: %d, msdu_len: %d",
+				pkt_buf, pkt_buf->len, rx_msdu->msdu_offset, rx_msdu->msdu_len);
+		data_len = rx_msdu->msdu_len + rx_msdu->msdu_offset;
+		read8_cmd_exe((u32_t)pkt_buf->data, data_len);
+
+		net_buf_add(pkt_buf, data_len);
+		SYS_LOG_ERR("buf: 0x%x, buf len: %d.", pkt_buf->data, pkt_buf->len);
+		net_buf_pull(pkt_buf, rx_msdu->msdu_offset);
+		SYS_LOG_ERR("buf: 0x%x, buf len: %d.", pkt_buf->data, pkt_buf->len);
+
+		if (!last_buf) {
+			net_pkt_frag_insert(pkt, pkt_buf);
+		} else {
+			net_buf_frag_insert(last_buf, pkt_buf);
+		}
+
+		last_buf = pkt_buf;
+
+	}
+	net_recv_data(priv->iface, pkt);
+
+	/* allocate new empty buffer to cp */
+	ret = wifi_tx_empty_buf(i);
 	return 0;
 }
 
@@ -58,7 +111,7 @@ int wifi_data_process(struct wifi_priv *priv, char *data, int len)
 	switch (common_hdr->type) {
 		case SPRDWL_TYPE_DATA_SPECIAL:
 			if (common_hdr->direction_ind)  /* direction_ind=1, rx data */
-				wifi_rx_complete_handle(data, len);
+				wifi_rx_complete_handle(priv, data, len);
 			else
 				wifi_tx_complete_handle(data, len); /* direction_ind=0, tx complete */
 			break;

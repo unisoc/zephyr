@@ -994,6 +994,8 @@ static int uwp_mgmt_scan(struct device *dev, scan_result_cb_t cb)
 	if (!priv->opened) {
 		wifi_cmd_start_sta(priv);
 		priv->opened = true;
+
+		wifi_tx_empty_buf(MAX_EMPTY_BUF_COUNT);
 	}
 
 	priv->scan_cb = cb;
@@ -1028,6 +1030,8 @@ static void uwp_iface_init(struct net_if *iface)
 
 	wifi_cmd_get_cp_info(priv);
 
+	wifi_get_mac(priv->mac, 0);
+
 	SYS_LOG_WRN("eth_init:net_if_set_link_addr:"
 			"MAC Address %02X:%02X:%02X:%02X:%02X:%02X",
 			priv->mac[0], priv->mac[1], priv->mac[2],
@@ -1037,8 +1041,6 @@ static void uwp_iface_init(struct net_if *iface)
 			NET_LINK_ETHERNET);
 
 	priv->iface = iface;
-
-	wifi_tx_empty_buf(MAX_EMPTY_BUF_COUNT);
 }
 
 int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,

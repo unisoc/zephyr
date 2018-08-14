@@ -318,7 +318,8 @@ static void net_queue_rx(struct net_if *iface, struct net_pkt *pkt)
 	u8_t prio = net_pkt_priority(pkt);
 	u8_t tc = net_rx_priority2tc(prio);
 
-	k_work_init(net_pkt_work(pkt), process_rx_packet);
+	//k_work_init(net_pkt_work(pkt), process_rx_packet);
+	net_rx(net_pkt_iface(pkt), pkt);
 
 #if defined(CONFIG_NET_STATISTICS)
 	pkt->total_pkt_len = net_pkt_get_len(pkt);
@@ -332,7 +333,7 @@ static void net_queue_rx(struct net_if *iface, struct net_pkt *pkt)
 	NET_DBG("TC %d with prio %d pkt %p", tc, prio, pkt);
 #endif
 
-	net_tc_submit_to_rx_queue(tc, pkt);
+	//net_tc_submit_to_rx_queue(tc, pkt);
 }
 
 /* Called by driver when an IP packet has been received */
