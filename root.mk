@@ -5,9 +5,13 @@
 # Basic Definitions
 ################################################################
 ARCH		:= arm
+ABI		:= eabi
 BOARD		?= uwp566x_evb
 BOOT		:= mcuboot
 KERNEL		:= zephyr
+
+TARGET		:= $(ARCH)-zephyr-$(ABI)
+CROSS_COMPILE	:= $(TARGET)-
 
 # Directories and Files
 ################################################################
@@ -17,30 +21,34 @@ PRJDIR		:= $(PWD)
 
 app_DIR		:= $(PRJDIR)/app
 boot_DIR	:= $(PRJDIR)/$(BOOT)
-fdl_DIR		:= $(PRJDIR)/fdl
+fdl_DIR		:= $(PRJDIR)/u-boot
 kernel_DIR	:= $(PRJDIR)/$(KERNEL)
 toolchain_DIR	:= $(PRJDIR)/toolchain
 
 BUILD_DIR		:= $(PRJDIR)/build
 boot_BUILD_DIR		:= $(BUILD_DIR)/$(BOOT)
+fdl_BUILD_DIR		:= $(fdl_DIR)
 kernel_BUILD_DIR	:= $(BUILD_DIR)/$(KERNEL)
 boot_debug_BUILD_DIR	:= $(BUILD_DIR)/$(BOOT)_debug
 kernel_debug_BUILD_DIR	:= $(BUILD_DIR)/$(KERNEL)_debug
 
 BOOT_BIN	:= $(boot_BUILD_DIR)/$(KERNEL)/$(KERNEL).bin
 KERNEL_BIN	:= $(kernel_BUILD_DIR)/$(KERNEL)/$(KERNEL).bin
+FDL_BIN		:= $(fdl_DIR)/u-boot.bin
 
 DIST_DIR	:= $(PRJDIR)/build/images
 BOOT_DIST_BIN	:= $(DIST_DIR)/$(BOOT)-pubkey.bin
 KERNEL_DIST_BIN	:= $(DIST_DIR)/$(KERNEL)-signed-ota.bin
+FDL_DIST_BIN	:= $(DIST_DIR)/fdl.bin
 CONFIG_DIST_BIN	:= $(DIST_DIR)/config.fat
 
 cmake_FILE	:= $(toolchain_DIR)/cmake-3.8.2-Linux-x86_64.sh
 cmake_DIR	:= $(basename $(cmake_FILE))
-export PATH	:=$(cmake_DIR)/bin:$(PATH)
+export PATH	:= $(cmake_DIR)/bin:$(PATH)
 
 sdk_FILE	:= $(toolchain_DIR)/zephyr-sdk-0.9.3-setup.run
 sdk_DIR		:= $(basename $(sdk_FILE))
+export PATH	:= $(sdk_DIR)/sysroots/x86_64-pokysdk-linux/usr/bin/$(TARGET):$(PATH)
 
 export ZEPHYR_TOOLCHAIN_VARIANT	:= zephyr
 export ZEPHYR_SDK_INSTALL_DIR	:= $(sdk_DIR)
@@ -147,7 +155,7 @@ endef
 # Targets
 ################################################################
 ENV_TARGETS		:= cmake sdk
-DEFAULT_TARGETS		:= boot kernel
+DEFAULT_TARGETS		:= boot kernel fdl
 DEBUG_TARGETS		:= boot-debug kernel-debug
 ALL_TARGETS		:= $(DEFAULT_TARGETS) $(DEBUG_TARGETS)
 CLEAN_TARGETS		:= $(addsuffix -clean,$(ALL_TARGETS))
@@ -155,6 +163,7 @@ CLEAN_TARGETS		:= $(addsuffix -clean,$(ALL_TARGETS))
 .PHONY: all
 all: $(DEFAULT_TARGETS)
 	@ if [ ! -d $(DIST_DIR) ]; then install -d $(DIST_DIR); fi
+	install $(FDL_BIN) $(FDL_DIST_BIN)
 	install $(BOOT_BIN) $(BOOT_DIST_BIN)
 	$(call SIGN_KERNEL_IMAGE,$(KERNEL_BIN),$(KERNEL_DIST_BIN))
 	$(call GEN_CONFIG_IMAGE,$(CONFIG_DIST_BIN),wifi_board_config.ini,bt_configure_pskey.ini,bt_configure_rf.ini)
@@ -171,6 +180,7 @@ clean: $(CLEAN_TARGETS)
 .PHONY: distclean
 distclean:
 	@ if [ -d $(BUILD_DIR) ]; then rm -rf $(BUILD_DIR); fi
+	@ $(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(fdl_DIR) $@
 
 # Respective Targets
 ################################################################
@@ -185,6 +195,12 @@ $(eval $(call MAKE_TARGET,kernel,,$(kernel_DIR)/samples/repeater))
 $(eval $(call MAKE_TARGET,boot,debug,$(boot_DIR)/boot/zephyr))
 
 $(eval $(call MAKE_TARGET,kernel,debug,$(kernel_DIR)/samples/repeater))
+
+.PHONY: fdl
+fdl:
+	@ $(call MESSAGE,"Building fdl")
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $($@_DIR) $(BOARD)_fdl_defconfig
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $($@_DIR)
 
 # Clean Targets
 $(foreach target,$(ALL_TARGETS),$(eval $(call CLEAN_TARGET,$(target),clean)))
