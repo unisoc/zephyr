@@ -73,27 +73,27 @@ static void handler(struct net_mgmt_event_callback *cb,
 			continue;
 		}
 
-		NET_INFO("Your address: %s",
+		SYS_LOG_WRN("Your address: %s",
 			 net_addr_ntop(AF_INET,
 			    &iface->config.ip.ipv4->unicast[i].address.in_addr,
 				       buf, sizeof(buf)));
-		NET_INFO("Lease time: %u seconds",
+		SYS_LOG_WRN("Lease time: %u seconds",
 			 iface->config.dhcpv4.lease_time);
-		NET_INFO("Subnet: %s",
+		SYS_LOG_WRN("Subnet: %s",
 			 net_addr_ntop(AF_INET,
 				       &iface->config.ip.ipv4->netmask,
 				       buf, sizeof(buf)));
-		NET_INFO("Router: %s",
+		SYS_LOG_WRN("Router: %s",
 			 net_addr_ntop(AF_INET, &iface->config.ip.ipv4->gw,
 				       buf, sizeof(buf)));
 	}
 }
 
-void dhcp_client(void)
+int dhcp_client(int argc, char **argv)
 {
 	struct net_if *iface;
 
-	NET_INFO("Run dhcpv4 client");
+	SYS_LOG_WRN("Run dhcpv4 client");
 
 	net_mgmt_init_event_callback(&mgmt_cb, handler,
 				     NET_EVENT_IPV4_ADDR_ADD);
@@ -102,6 +102,8 @@ void dhcp_client(void)
 	iface = net_if_get_default();
 
 	net_dhcpv4_start(iface);
+
+	return 0;
 }
 void led_switch(struct device *dev)
 
@@ -120,7 +122,6 @@ static void gpio_callback(struct device *dev,
 {
 	SYS_LOG_INF("main gpio int.\n");
 }
-#endif
 
 void timer_expiry(struct k_timer *timer)
 {
@@ -133,6 +134,7 @@ void timer_stop(struct k_timer *timer)
 	static int c = 0;
 	SYS_LOG_INF("timer_stop %d.", c++);
 }
+#endif
 
 void print_devices(void)
 {
@@ -141,7 +143,7 @@ void print_devices(void)
 
 	static struct device *device_list;
 
-	//device_list_get(&device_list, &count);
+	device_list_get(&device_list, &count);
 
 	SYS_LOG_INF("device list(%d):", count);
 	for(i = 0; i < count; i++) {
@@ -165,7 +167,6 @@ void wdt_example_cb(struct device *dev, int channel_id)
 
 void wdg_init(void)
 {
-	int ret;
 	struct wdt_timeout_cfg wdt_cfg;
 	struct wdt_config wr_cfg;
 	struct wdt_config cfg;
@@ -370,15 +371,15 @@ static int dev_cmd(int argc, char **argv)
 {
 	struct device *devices;
 	int count;
-	int i,j = 1;
+	int i;
 
 	device_list_get(&devices, &count);
 
-	SYS_LOG_INF("System device lists:");
+	SYS_LOG_WRN("System device lists:");
 	for (i = 0; i < count; i++, devices++) {
 		if(strcmp(devices->config->name, "") == 0)
 			continue;
-		SYS_LOG_INF("%d: %s.", j++, devices->config->name);
+		SYS_LOG_WRN("%d: %s.", i, devices->config->name);
 	}
 
 	return 0;
@@ -559,6 +560,7 @@ static int flash_cmd(int argc, char **argv)
 }
 #endif
 
+extern int dhcp_client(int argc, char **argv);
 
 static const struct shell_cmd zephyr_cmds[] = {
 	{ "info", info_cmd, "" },
@@ -569,10 +571,9 @@ static const struct shell_cmd zephyr_cmds[] = {
 	{ "read32", read32_cmd, "adress len" },
 	{ "write32", write_cmd, "adress value" },
 	{ "dhcp_client", dhcp_client, "" },
-
+	{ NULL, NULL }
 	//{ "iwnpi", iwnpi_cmd, "adress value" },
 	//	{ "flash", flash_cmd, "mount|read|write address value" },
-	{ NULL, NULL }
 };
 
 void gpio_init(void)
@@ -617,7 +618,6 @@ static struct fs_mount_t fatfs_mnt = {
 void download_wifi_ini(void)
 {
 	int ret;
-
 	ret = fs_mount(&fatfs_mnt);
 	if (ret < 0) {
 		SYS_LOG_ERR("Error mounting fs [%d]\n", ret);
@@ -629,13 +629,12 @@ void download_wifi_ini(void)
 		SYS_LOG_ERR("Download wifi ini failed.");
 		return;
 	}
-
 }
 #endif
 
 void main(void)
 {
-	int ret;
+	//int ret;
 	//struct k_timer timer;
 	SYS_LOG_WRN("Unisoc Wi-Fi Repeater.");
 

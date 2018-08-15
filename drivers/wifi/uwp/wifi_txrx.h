@@ -300,5 +300,7 @@ int wifi_rx_buffer_init(int num);
 //int wifi_tx_packet(struct netif *netif,struct pbuf *p);
 extern int wifi_tx_cmd(void *data, int len);
 extern int wifi_txrx_init(struct wifi_priv *priv);
+extern int wifi_tx_empty_buf(int num);
+extern int wifi_tx_data(void *data, int len);
 
 #endif /* __WIFI_TXRX_H__ */

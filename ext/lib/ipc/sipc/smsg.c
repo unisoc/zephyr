@@ -226,7 +226,7 @@ int smsg_ch_open(u8_t dst, u8_t channel,int prio, int timeout)
 {
 	struct smsg_ipc *ipc = &smsg_ipcs[dst];
 	struct smsg_channel *ch;
-	struct smsg mopen, mrecv;
+	struct smsg mopen;
 
 	int ret = 0;
 

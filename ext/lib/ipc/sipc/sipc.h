@@ -185,7 +185,8 @@ void sprd_wifi_irq_enable_num(uint32_t num);
 #define	SBLOCK_NOTIFY_OPEN	0x08
 #define	SBLOCK_NOTIFY_CLOSE	0x10
 
-	int sipc_probe(void);
+extern int sipc_probe(void);
+extern int wifi_irq_init(void);
 
 #ifdef __cplusplus
 }

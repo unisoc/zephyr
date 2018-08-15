@@ -219,9 +219,7 @@ int sblock_create(uint8_t dst, uint8_t channel,
 	struct sblock_ring *ring = NULL;
 	u32_t hsize;
 	u32_t block_addr;
-	int prio;
 	int i;
-	int ret;
 
 	sblock = &sblocks[dst][channel];
 
@@ -338,8 +336,6 @@ int sblock_create(uint8_t dst, uint8_t channel,
 		ipc_warn("Failed to create kthread: sblock-%d-%d", dst, channel);
 		return -1;
 	}
-
-	ipc_error("sblock %d thread: 0x%x", channel, sblock->pid);
 
 	return 0;
 }

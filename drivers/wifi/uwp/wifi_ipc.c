@@ -6,8 +6,6 @@
 
 #include "wifi_main.h"
 
-extern void read8_cmd_exe(u32_t addr, u32_t len);
-
 int wifi_ipc_create_channel(int ch, void (*callback)(int ch))
 {
 	int ret = 0;
@@ -58,8 +56,7 @@ int wifi_ipc_send(int ch,int prio,void *data,int len, int offset)
 		SYS_LOG_ERR("get block error: %d", ch);
 		return -1;
 	}
-	SYS_LOG_WRN("IPC Channel %d Send data:", ch);
-	read8_cmd_exe((u32_t)data, len);
+	SYS_LOG_DBG("IPC Channel %d Send data:", ch);
 	memcpy(blk.addr+BLOCK_HEADROOM_SIZE+offset,data,len);
 
 	blk.length = len + offset;
@@ -81,8 +78,7 @@ int wifi_ipc_recv(int ch, u8_t *data,int *len, int offset)
 	memcpy(data, blk.addr, blk.length);
 	*len = blk.length;
 	
-	SYS_LOG_INF("IPC Channel %d Get data:", ch);
-	//read8_cmd_exe((u32_t)data, *len);
+	SYS_LOG_DBG("IPC Channel %d Get data:", ch);
 
 	sblock_release(0, ch, &blk);
 

@@ -25,7 +25,6 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data,int len)
 	u32_t data_len;
 	int ret;
 
-	SYS_LOG_ERR("wifi rx complete %d.", rxc_addr->num);
 	pkt = net_pkt_get_reserve_rx(0, K_NO_WAIT);
 	if (!pkt) {
 		SYS_LOG_ERR("Could not allocate rx packet");
@@ -41,15 +40,10 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data,int len)
 			(struct rx_msdu_desc *)(pkt_buf->data +
 					sizeof(struct rx_mh_desc));
 		ctx_id = rx_msdu->ctx_id;
-		SYS_LOG_ERR("rx pkt buf: 0x%x, buf len: %d, msdu_offset: %d, msdu_len: %d",
-				pkt_buf, pkt_buf->len, rx_msdu->msdu_offset, rx_msdu->msdu_len);
 		data_len = rx_msdu->msdu_len + rx_msdu->msdu_offset;
-		read8_cmd_exe((u32_t)pkt_buf->data, data_len);
 
 		net_buf_add(pkt_buf, data_len);
-		SYS_LOG_ERR("buf: 0x%x, buf len: %d.", pkt_buf->data, pkt_buf->len);
 		net_buf_pull(pkt_buf, rx_msdu->msdu_offset);
-		SYS_LOG_ERR("buf: 0x%x, buf len: %d.", pkt_buf->data, pkt_buf->len);
 
 		if (!last_buf) {
 			net_pkt_frag_insert(pkt, pkt_buf);
@@ -75,8 +69,6 @@ int wifi_tx_complete_handle(void * data,int len)
 	int i;
 	struct net_pkt *pkt;
 
-	SYS_LOG_ERR("wifi tx complete.");
-
 	payload_num = txc_addr->number;
 
 	for (i = 0; i < payload_num; i++) {
@@ -87,7 +79,6 @@ int wifi_tx_complete_handle(void * data,int len)
 		SPRD_CP_TO_AP_ADDR(payload_addr);
 		pkt = (struct net_pkt *)uwp_get_addr_from_payload(payload_addr);
 
-		SYS_LOG_ERR("pkt addr: 0x%x.", pkt);
 		net_pkt_unref(pkt);
 	}
 
@@ -156,8 +147,7 @@ static void txrx_thread(void *p1)
 		while (1) {
 			ret = wifi_ipc_recv(SMSG_CH_WIFI_DATA_NOR, addr, &len, 0);
 			if (ret == 0) {
-				SYS_LOG_ERR("Recieve data %p len %i", addr, len);
-				read8_cmd_exe((u32_t)addr, len);
+				SYS_LOG_DBG("Recieve data %p len %i", addr, len);
 				wifi_data_process(priv, addr, len);
 			} else {
 				break;
@@ -207,7 +197,6 @@ static void wifi_rx_data(int ch)
 	if(ch != SMSG_CH_WIFI_DATA_NOR)
 		SYS_LOG_ERR("Invalid data channel: %d.", ch);
 
-	SYS_LOG_ERR("wifi rx data.");
 	k_sem_give(&event_sem);
 }
 
@@ -217,7 +206,6 @@ int wifi_tx_empty_buf(int num)
 	struct net_buf	*pkt_buf;
 	static struct rx_empty_buff buf;
 	int ret;
-	struct hw_addr_buff_t addr_buf;
 	u32_t data_ptr;
 
 	memset(&buf, 0, sizeof(buf));

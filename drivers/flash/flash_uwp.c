@@ -71,9 +71,9 @@ static int flash_uwp_write_protection(struct device *dev, bool enable)
 static int flash_uwp_read(struct device *dev, off_t offset, void *data,
 			    size_t len)
 {
-	int ret;
-	struct flash_uwp_config *cfg = DEV_CFG(dev);
-	struct spi_flash *flash = &(cfg->flash);
+	int ret = 0;
+	//struct flash_uwp_config *cfg = DEV_CFG(dev);
+	//struct spi_flash *flash = &(cfg->flash);
 
 	if (!len) {
 		return 0;
