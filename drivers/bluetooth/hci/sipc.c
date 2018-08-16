@@ -102,7 +102,7 @@ static inline int hwdec_write_word(unsigned int word)
 {
   unsigned int *hwdec_addr = (unsigned int *)SPRD_DP_DMA_UARD_SDIO_BUFFER_BASE_ADDR;
   *hwdec_addr = word;
-  printk("WORD: 0x%08X\n", word);
+  //printk("WORD: 0x%08X\n", word);
   return WORD_ALIGN;
 }
 
@@ -180,10 +180,9 @@ static void rx_thread(void *p1, void *p2, void *p3)
 
 		hex_dump_block("HCI<-: ", blk.addr, blk.length);
         if (test_cmd) {
-			sblock_release(0, SMSG_CH_BT, &blk);
 			test_cmd = 0;
 			printk("test cmd\n");
-			continue;
+			goto rx_continue;
 		}
 		rxmsg = (unsigned char*)blk.addr;
 		switch (rxmsg[PACKET_TYPE]) {
@@ -192,7 +191,7 @@ static void rx_thread(void *p1, void *p2, void *p3)
 			case BT_HCI_EVT_VENDOR:
 				/* Vendor events are currently unsupported */
 				bt_spi_handle_vendor_evt(rxmsg);
-				continue;
+				goto rx_continue;
 			case BT_HCI_EVT_CMD_COMPLETE:
 			case BT_HCI_EVT_CMD_STATUS:
 				buf = bt_buf_get_cmd_complete(K_FOREVER);
@@ -214,7 +213,7 @@ static void rx_thread(void *p1, void *p2, void *p3)
 			break;
 		default:
 			BT_ERR("Unknown BT buf type %d", rxmsg[0]);
-			continue;
+			goto rx_continue;
 		}
 
 		if (rxmsg[PACKET_TYPE] == HCI_EVT &&
@@ -223,12 +222,14 @@ static void rx_thread(void *p1, void *p2, void *p3)
 		} else {
 			bt_recv(buf);
 		}
+rx_continue:;
 		sblock_release(0, SMSG_CH_BT, &blk);
 	}
 }
 
 static int sipc_send(struct net_buf *buf)
 {
+    int ret = 0;
 	BT_DBG("buf %p type %u len %u", buf, bt_buf_get_type(buf), buf->len);
 
 	switch (bt_buf_get_type(buf)) {
@@ -244,10 +245,11 @@ static int sipc_send(struct net_buf *buf)
 		break;
 	default:
 		BT_ERR("Unknown packet type %u", bt_buf_get_type(buf));
-		return -1;
+		ret = -1;
 	}
 
-	return 0;
+	net_buf_unref(buf);
+	return ret;
 }
 
 

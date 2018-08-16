@@ -481,19 +481,26 @@ void uwp56xx_vendor_init()
 	int err, size;
 	char data[256] = {0};
 
+    printk("send pskey\n");
     size = get_pskey_buf(data);
 	buf = bt_hci_cmd_create(BT_HCI_OP_PSKEY, size);
 	net_buf_add_mem(buf, data, size);
-	bt_hci_cmd_send_sync(BT_HCI_OP_PSKEY, buf, NULL);
+	bt_hci_cmd_send_sync(BT_HCI_OP_PSKEY, buf, &rsp);
+	net_buf_unref(rsp);
 
+    printk("send rfkey\n");
 	size = marlin3_rf_preload(data);
 	buf = bt_hci_cmd_create(BT_HCI_OP_RF, size);
 	net_buf_add_mem(buf, data, size);
-	bt_hci_cmd_send_sync(BT_HCI_OP_RF, buf, NULL);
+	bt_hci_cmd_send_sync(BT_HCI_OP_RF, buf, &rsp);
+	net_buf_unref(rsp);
 
+    printk("send enable\n");
 	size = get_enable_buf(data);
 	buf = bt_hci_cmd_create(BT_HCI_OP_ENABLE_CMD, size);
 	net_buf_add_mem(buf, data, size);
-	bt_hci_cmd_send_sync(BT_HCI_OP_ENABLE_CMD, buf, NULL);
+	bt_hci_cmd_send_sync(BT_HCI_OP_ENABLE_CMD, buf, &rsp);
+	net_buf_unref(rsp);
+
 }
 
