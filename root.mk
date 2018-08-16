@@ -100,15 +100,14 @@ endef
 
 # Macro of Building Targets
 # $(1): Target
-# $(2): Target suffix
-# $(3): Dir of main
+# $(2): Dir of main
 define MAKE_TARGET
-.PHONY: $(if $(2),$(1)-$(2),$(1))
-$(if $(2),$(1)-$(2),$(1)): $(ENV_TARGETS)
+.PHONY: $(1)
+$(1): $(ENV_TARGETS)
 	@ $(call MESSAGE,"Building $(1)")
-	@ if [ ! -d $($(if $(2),$(1)_$(2),$(1))_BUILD_DIR) ]; then mkdir -p $($(if $(2),$(1)_$(2),$(1))_BUILD_DIR); fi
-	(source $(kernel_DIR)/zephyr-env.sh && cd $($(if $(2),$(1)_$(2),$(1))_BUILD_DIR) && \
-	if [ ! -f Makefile ] ; then cmake -DBOARD=$(BOARD) $(if $(2),,-DCONF_FILE=prj_xip.conf) $(3); fi && \
+	@ if [ ! -d $($(1)_BUILD_DIR) ]; then mkdir -p $($(1)_BUILD_DIR); fi
+	(source $(kernel_DIR)/zephyr-env.sh && cd $($(1)_BUILD_DIR) && \
+	if [ ! -f Makefile ] ; then cmake -DBOARD=$(BOARD) -DCONF_FILE=prj$(findstring _debug,$(1)).conf $(2); fi && \
 	make \
 	)
 endef
@@ -156,13 +155,14 @@ endef
 # Targets
 ################################################################
 ENV_TARGETS		:= cmake sdk
-DEFAULT_TARGETS		:= boot kernel fdl
-DEBUG_TARGETS		:= boot-debug kernel-debug
+DEFAULT_TARGETS		:= boot kernel
+DIST_TARGETS		:= $(DEFAULT_TARGETS) fdl
+DEBUG_TARGETS		:= $(addsuffix _debug,$(DEFAULT_TARGETS))
 ALL_TARGETS		:= $(DEFAULT_TARGETS) $(DEBUG_TARGETS)
 CLEAN_TARGETS		:= $(addsuffix -clean,$(ALL_TARGETS))
 
-.PHONY: all
-all: $(DEFAULT_TARGETS)
+.PHONY: dist
+dist: $(DIST_TARGETS)
 	@ if [ ! -d $(DIST_DIR) ]; then install -d $(DIST_DIR); fi
 	@ install $(FDL_BIN) $(FDL_DIST_BIN)
 	@ install $(BOOT_BIN) $(BOOT_DIST_BIN)
@@ -189,13 +189,13 @@ distclean:
 $(foreach target,$(ENV_TARGETS),$(eval $(call MAKE_ENV,$(target))))
 
 # Build Targets
-$(eval $(call MAKE_TARGET,boot,,$(boot_DIR)/boot/zephyr))
+$(eval $(call MAKE_TARGET,boot,$(boot_DIR)/boot/zephyr))
 
-$(eval $(call MAKE_TARGET,kernel,,$(kernel_DIR)/samples/repeater))
+$(eval $(call MAKE_TARGET,kernel,$(kernel_DIR)/samples/repeater))
 
-$(eval $(call MAKE_TARGET,boot,debug,$(boot_DIR)/boot/zephyr))
+$(eval $(call MAKE_TARGET,boot_debug,$(boot_DIR)/boot/zephyr))
 
-$(eval $(call MAKE_TARGET,kernel,debug,$(kernel_DIR)/samples/repeater))
+$(eval $(call MAKE_TARGET,kernel_debug,$(kernel_DIR)/samples/repeater))
 
 $(FDL_BIN):
 	@ $(call MESSAGE,"Building fdl")
@@ -203,7 +203,7 @@ $(FDL_BIN):
 	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(fdl_DIR)
 
 .PHONY: fdl
-fdl: $(FDL_BIN)
+fdl: $(ENV_TARGETS) $(FDL_BIN)
 
 # Clean Targets
 $(foreach target,$(ALL_TARGETS),$(eval $(call CLEAN_TARGET,$(target),clean)))
