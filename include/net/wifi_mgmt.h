@@ -25,10 +25,27 @@
 #define _NET_WIFI_EVENT	(_NET_WIFI_BASE | NET_MGMT_EVENT_BIT)
 
 enum net_request_wifi_cmd {
-	NET_REQUEST_WIFI_CMD_SCAN = 1,
+	NET_REQUEST_WIFI_CMD_OPEN = 1,
+	NET_REQUEST_WIFI_CMD_CLOSE,
+	NET_REQUEST_WIFI_CMD_SCAN,
 	NET_REQUEST_WIFI_CMD_CONNECT,
 	NET_REQUEST_WIFI_CMD_DISCONNECT,
+	NET_REQUEST_WIFI_CMD_GET_STATION,
+	NET_REQUEST_WIFI_CMD_START_AP,
+	NET_REQUEST_WIFI_CMD_STOP_AP,
+	NET_REQUEST_WIFI_CMD_DEL_STATION,
+	NET_REQUEST_WIFI_CMD_NPI,
 };
+
+#define NET_REQUEST_WIFI_OPEN					\
+	(_NET_WIFI_BASE | NET_REQUEST_WIFI_CMD_OPEN)
+
+NET_MGMT_DEFINE_REQUEST_HANDLER(NET_REQUEST_WIFI_OPEN);
+
+#define NET_REQUEST_WIFI_CLOSE					\
+	(_NET_WIFI_BASE | NET_REQUEST_WIFI_CMD_CLOSE)
+
+NET_MGMT_DEFINE_REQUEST_HANDLER(NET_REQUEST_WIFI_CLOSE);
 
 #define NET_REQUEST_WIFI_SCAN					\
 	(_NET_WIFI_BASE | NET_REQUEST_WIFI_CMD_SCAN)
@@ -45,11 +62,37 @@ NET_MGMT_DEFINE_REQUEST_HANDLER(NET_REQUEST_WIFI_CONNECT);
 
 NET_MGMT_DEFINE_REQUEST_HANDLER(NET_REQUEST_WIFI_DISCONNECT);
 
+#define NET_REQUEST_WIFI_GET_STATION				\
+	(_NET_WIFI_BASE | NET_REQUEST_WIFI_CMD_GET_STATION)
+
+NET_MGMT_DEFINE_REQUEST_HANDLER(NET_REQUEST_WIFI_GET_STATION);
+
+#define NET_REQUEST_WIFI_START_AP				\
+	(_NET_WIFI_BASE | NET_REQUEST_WIFI_CMD_START_AP)
+
+NET_MGMT_DEFINE_REQUEST_HANDLER(NET_REQUEST_WIFI_START_AP);
+
+#define NET_REQUEST_WIFI_STOP_AP				\
+	(_NET_WIFI_BASE | NET_REQUEST_WIFI_CMD_STOP_AP)
+
+NET_MGMT_DEFINE_REQUEST_HANDLER(NET_REQUEST_WIFI_STOP_AP);
+
+#define NET_REQUEST_WIFI_DEL_STATION				\
+	(_NET_WIFI_BASE | NET_REQUEST_WIFI_CMD_DEL_STATION)
+
+NET_MGMT_DEFINE_REQUEST_HANDLER(NET_REQUEST_WIFI_DEL_STATION);
+
+#define NET_REQUEST_WIFI_NPI				\
+	(_NET_WIFI_BASE | NET_REQUEST_WIFI_CMD_NPI)
+
+NET_MGMT_DEFINE_REQUEST_HANDLER(NET_REQUEST_WIFI_NPI);
+
 enum net_event_wifi_cmd {
 	NET_EVENT_WIFI_CMD_SCAN_RESULT = 1,
 	NET_EVENT_WIFI_CMD_SCAN_DONE,
 	NET_EVENT_WIFI_CMD_CONNECT_RESULT,
 	NET_EVENT_WIFI_CMD_DISCONNECT_RESULT,
+	NET_EVENT_WIFI_CMD_NEW_STATION,
 };
 
 #define NET_EVENT_WIFI_SCAN_RESULT				\
@@ -64,11 +107,15 @@ enum net_event_wifi_cmd {
 #define NET_EVENT_WIFI_DISCONNECT_RESULT			\
 	(_NET_WIFI_EVENT | NET_EVENT_WIFI_CMD_DISCONNECT_RESULT)
 
+#define NET_EVENT_WIFI_NEW_STATION			\
+	(_NET_WIFI_EVENT | NET_EVENT_WIFI_CMD_NEW_STATION)
+
 
 /* Each result is provided to the net_mgmt_event_callback
  * via its info attribute (see net_mgmt.h)
  */
 struct wifi_scan_result {
+	u8_t bssid[NET_LINK_ADDR_MAX_LENGTH];
 	u8_t ssid[WIFI_SSID_MAX_LEN];
 	u8_t ssid_length;
 
@@ -86,6 +133,31 @@ struct wifi_connect_req_params {
 
 	u8_t channel;
 	enum wifi_security_type security;
+};
+
+struct wifi_start_ap_req_params {
+	u8_t *ssid;
+	u8_t ssid_length; /* Max 32 */
+
+	u8_t *psk;
+	u8_t psk_length; /* Min 8 - Max 64 */
+
+	u8_t channel;
+	enum wifi_security_type security;
+};
+
+struct wifi_npi_req_params {
+	int ictx_id;
+
+	u8_t *tx_buf;
+	u32_t tx_len;
+	u8_t *rx_buf;
+	u32_t rx_len;
+};
+
+struct wifi_new_station_params {
+	u8_t status;
+	u8_t mac[NET_LINK_ADDR_MAX_LENGTH];
 };
 
 struct wifi_status {
@@ -113,14 +185,25 @@ struct net_wifi_mgmt_api{
 	 * result by the driver. The wifi mgmt part will take care of
 	 * raising the necessary event etc...
 	 */
+	int (*open)(struct device *dev);
+	int (*close)(struct device *dev);
 	int (*scan)(struct device *dev, scan_result_cb_t cb);
 	int (*connect)(struct device *dev,
 		       struct wifi_connect_req_params *params);
 	int (*disconnect)(struct device *dev);
+	int (*get_station)(struct device *dev, u8_t *signal);
+	int (*start_ap)(struct device *dev,
+			struct wifi_start_ap_req_params *params);
+	int (*stop_ap)(struct device *dev);
+	int (*del_station)(struct device *dev, u8_t *mac);
+	int (*npi_send)(struct device *dev,
+			struct wifi_npi_req_params);
 };
 
 void wifi_mgmt_raise_connect_result_event(struct net_if *iface, int status);
 void wifi_mgmt_raise_disconnect_result_event(struct net_if *iface, int status);
+void wifi_mgmt_raise_new_station_event(struct net_if *iface,
+		struct wifi_new_station_params *params);
 
 #endif /* CONFIG_WIFI_OFFLOAD */
 
