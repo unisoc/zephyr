@@ -55,21 +55,41 @@ int wifi_get_mac(u8_t *mac,int idx)
 	return 0;
 }
 
+static int uwp_mgmt_open(struct device *dev)
+{
+	struct wifi_priv *priv=DEV_DATA(dev);
+
+	if (priv->opened)
+		return -EAGAIN;
+
+	wifi_cmd_start_sta(priv);
+	priv->opened = true;
+
+	wifi_tx_empty_buf(MAX_EMPTY_BUF_COUNT);
+
+	return 0;
+}
+
+static int uwp_mgmt_close(struct device *dev)
+{
+	struct wifi_priv *priv=DEV_DATA(dev);
+
+	if (!priv->opened)
+		return -EAGAIN;
+
+	wifi_cmd_stop_sta(priv);
+	priv->opened = false;
+
+	/*FIXME need to release all buffer which has been sent to CP. */
+
+	return 0;
+}
 static int uwp_mgmt_scan(struct device *dev, scan_result_cb_t cb)
 {
 	struct wifi_priv *priv=DEV_DATA(dev);
 
-	SYS_LOG_INF("%s %d.\n", __func__, __LINE__);
 	if (priv->scan_cb) {
 		return -EALREADY;
-	}
-
-	if (!priv->opened) {
-		wifi_cmd_start_sta(priv);
-		priv->opened = true;
-
-		wifi_tx_empty_buf(MAX_EMPTY_BUF_COUNT);
-		k_sleep(50);
 	}
 
 	priv->scan_cb = cb;
@@ -82,20 +102,25 @@ static int uwp_mgmt_scan(struct device *dev, scan_result_cb_t cb)
 	return 0;
 }
 
+static int uwp_mgmt_get_station(struct device *dev,
+		struct wifi_get_sta_req_params *params)
+{
+	return 0;
+}
+
 static int uwp_mgmt_connect(struct device *dev,
 		struct wifi_connect_req_params *params)
 {
 	struct wifi_priv *priv=DEV_DATA(dev);
-	SYS_LOG_INF("%s %d.\n", __func__, __LINE__);
 
 	return wifi_cmd_connect(priv, params);
 }
 
-static int uwp_mgmt_disconnect(struct device *device)
+static int uwp_mgmt_disconnect(struct device *dev)
 {
-	SYS_LOG_ERR("%s %d.\n", __func__, __LINE__);
+	struct wifi_priv *priv=DEV_DATA(dev);
 
-	return 0;
+	return wifi_cmd_disconnect(priv);
 }
 
 static void uwp_iface_init(struct net_if *iface)
@@ -215,9 +240,12 @@ static const struct net_wifi_mgmt_api uwp_api = {
 	.iface_api.init = uwp_iface_init,
 	.iface_api.send = uwp_iface_tx,
 	.get_capabilities = uwp_iface_get_capabilities,
-	.scan		= uwp_mgmt_scan,
-	.connect	= uwp_mgmt_connect,
-	.disconnect	= uwp_mgmt_disconnect,
+	.open			= uwp_mgmt_open,
+	.close			= uwp_mgmt_close,
+	.scan			= uwp_mgmt_scan,
+	.get_station	= uwp_mgmt_get_station,
+	.connect		= uwp_mgmt_connect,
+	.disconnect		= uwp_mgmt_disconnect,
 };
 
 #define SEC1    1

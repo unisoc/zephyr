@@ -136,12 +136,12 @@ extern int wifi_cmd_set_sta_connect_info(u8_t *pAd,char *ssid,char *key);
 extern int wifi_cmd_start_apsta(u8_t *pAd);
 extern int wifi_cmd_get_cp_info(struct wifi_priv *priv);
 extern int wifi_cmd_start_sta(struct wifi_priv *priv);
+extern int wifi_cmd_stop_sta(struct wifi_priv *priv);
 extern int wifi_cmd_scan(struct wifi_priv *priv);
-extern int wifi_cmd_connect(struct wifi_priv *priv, 
+extern int wifi_cmd_connect(struct wifi_priv *priv,
 		struct wifi_connect_req_params *params);
+extern int wifi_cmd_disconnect(struct wifi_priv *priv);
 extern int wifi_cmd_start_ap(u8_t *pAd);
-//extern int wifi_cmd_config_sta(u8_t *pAd,struct apinfo *config);
-//extern int wifi_cmd_config_ap(u8_t *pAd,struct apinfo *config);
 extern int wifi_cmd_npi_send(int ictx_id,char * t_buf,u32_t t_len,char *r_buf,u32_t *r_len);
 extern int wifi_cmd_npi_get_mac(int ictx_id,char * buf);
 

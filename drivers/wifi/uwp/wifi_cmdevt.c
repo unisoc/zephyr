@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sipc.h>
 #include <sblock.h>
+#include <net/wifi_drv_iface.h>
 
 #include "wifi_main.h"
 
@@ -175,30 +176,13 @@ int wifi_cmd_load_ini(u8_t * data, uint32_t len, u8_t sec_num)
 	return 0;
 }
 
-#define TEST_SSID	"test_ssid"
-void result_test(struct wifi_priv *priv)
-{
-	static struct wifi_scan_result result;
-	memset(&result, 0, sizeof(result));
-
-	result.security = WIFI_SECURITY_TYPE_NONE;
-	memcpy(result.ssid, TEST_SSID, MAX_SSID_LEN);
-	result.ssid_length = strlen(result.ssid);
-	result.channel = 1;
-	result.rssi = 0xb8;
-
-	if (priv->scan_cb) {
-		priv->scan_cb(priv->iface, 0, &result);
-	}
-}
-
 int wifi_cmd_scan(struct wifi_priv *priv)
 {
 	int ret = 0;
 	struct cmd_scan cmd;
 
 	memset(&cmd,0,sizeof(cmd));
-	cmd.channels = 0x1;
+	cmd.channels = 0x3FFF;
 
 	ret = wifi_cmd_send(WIFI_CMD_SCAN, (char *)&cmd,
 			sizeof(cmd), NULL, NULL);
@@ -206,8 +190,6 @@ int wifi_cmd_scan(struct wifi_priv *priv)
 		SYS_LOG_ERR("scan cmd fail");
 		return -1;
 	}
-	
-	result_test(priv);
 
 	return 0;
 }
@@ -297,6 +279,24 @@ int wifi_cmd_start_sta(struct wifi_priv *priv)
 	return 0;
 }
 
+int wifi_cmd_stop_sta(struct wifi_priv *priv)
+{
+	struct cmd_stop cmd;
+	int ret = 0;
+
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.mode = WIFI_MODE_STA;
+	memcpy(cmd.mac, priv->mac, 6);
+	ret = wifi_cmd_send(WIFI_CMD_CLOSE, (char *)&cmd, sizeof(cmd),
+			NULL, NULL);
+	if (ret < 0){
+		SYS_LOG_ERR("sta stop fail");
+		return -1;
+	}
+
+	return 0;
+}
+
 int wifi_cmd_start_apsta(u8_t *pAd)
 {
 	struct cmd_start data;
@@ -313,40 +313,6 @@ int wifi_cmd_start_apsta(u8_t *pAd)
 
 	return 0;
 }
-
-#if 0
-int wifi_cmd_config_sta(u8_t *pAd,struct apinfo *config)
-{
-	int ret = 0;
-	struct cmd_sta_set_rootap_info data;
-
-	memset(&data,0,sizeof(data));
-	memcpy(&data.rootap, config, sizeof(*config));
-	ret = wifi_cmd_send(CMD_STA_SET_ROOTAPINFO,(char *)&data,sizeof(data),NULL,NULL);
-	if (ret < 0){
-		SYS_LOG_ERR("config sta fail");
-		return -1;
-	}
-
-	return 0;
-}
-
-int wifi_cmd_config_ap(u8_t *pAd,struct apinfo *config)
-{
-	int ret = 0;
-	struct cmd_ap_set_ap_info data;
-
-	memset(&data,0,sizeof(data));
-	memcpy(&data.apinfo, config, sizeof(*config));
-	ret = wifi_cmd_send(CMD_AP_SET_APINFO,(char *)&data,sizeof(data),NULL,NULL);
-	if (ret < 0){
-		SYS_LOG_ERR("config ap fail");
-		return -1;
-	}
-
-	return 0;
-}
-#endif
 
 /*
  * return value is the real len sent to upper layer or -1 while error.
@@ -412,31 +378,29 @@ int wifi_evt_scan_done(struct wifi_priv *priv)
 		return 0;
 	}
 
-	priv->scan_cb(priv->iface, 0, 0);
+	wifi_drv_iface_scan_done_cb(priv->iface, 0);
 	priv->scan_cb = NULL;
 
 	return 0;
 }
 
-extern void dhcp_client(void);
 int wifi_evt_connect(struct wifi_priv *priv, char *data, int len)
 {
-	struct event_connect *event = 
+	struct event_connect *event =
 		(struct event_connect *)data;
-
-	wifi_mgmt_raise_connect_result_event(priv->iface, event->status);
-	dhcp_client();
+	wifi_drv_iface_connect_cb(priv->iface, event->status);
 
 	return 0;
 }
 
 int wifi_evt_disconnect(struct wifi_priv *priv, char *data, int len)
 {
-	struct event_disconnect *event = 
+	struct event_disconnect *event =
 		(struct event_disconnect *)data;
 
-	wifi_mgmt_raise_connect_result_event(priv->iface,
+	wifi_drv_iface_disconnect_cb(priv->iface,
 			event->reason_code ? -EIO: 0);
+
 
 	return 0;
 }
