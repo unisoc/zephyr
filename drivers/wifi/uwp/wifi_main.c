@@ -69,6 +69,7 @@ static int uwp_mgmt_scan(struct device *dev, scan_result_cb_t cb)
 		priv->opened = true;
 
 		wifi_tx_empty_buf(MAX_EMPTY_BUF_COUNT);
+		k_sleep(50);
 	}
 
 	priv->scan_cb = cb;
@@ -101,6 +102,7 @@ static void uwp_iface_init(struct net_if *iface)
 {
 	struct wifi_priv *priv=DEV_DATA(iface->if_dev->dev);
 
+	k_sleep(50);
 	wifi_cmd_get_cp_info(priv);
 
 	wifi_get_mac(priv->mac, 0);
@@ -125,7 +127,7 @@ int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
 
 	net_pkt_set_ll_reserve(pkt,
 			sizeof(struct tx_msdu_dscr) + net_pkt_ll_reserve(pkt));
-	SYS_LOG_ERR("size msdu: %d", sizeof(struct tx_msdu_dscr));
+	SYS_LOG_INF("size msdu: %d", sizeof(struct tx_msdu_dscr));
 
 	dscr = (struct tx_msdu_dscr *)net_pkt_ll(pkt);
 	memset(dscr, 0x00, sizeof(struct tx_msdu_dscr));

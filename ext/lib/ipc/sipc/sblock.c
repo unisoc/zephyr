@@ -99,7 +99,7 @@ static void sblock_thread(void *p1, void *p2, void *p3)
 			break;
     }
 
-	ret = smsg_ch_open(sblock->dst, sblock->channel,prio, 3000); 
+	ret = smsg_ch_open(sblock->dst, sblock->channel,prio, K_FOREVER);
 	if (ret != 0) {
 		ipc_error("Failed to open channel %d", sblock->channel);
 		//return ret;
