@@ -149,7 +149,7 @@ void sipc_test()
 {
 	unsigned char buf[] = {0x01, 0x03, 0x0c, 0x00};
 	test_cmd = 1;
-	hex_dump_block("HCI->: ", buf, sizeof(buf));
+	hex_dump_block("-> ", buf, sizeof(buf));
 	hwdec_write_align(buf, sizeof(buf));
 }
 
@@ -178,7 +178,7 @@ static void rx_thread(void *p1, void *p2, void *p3)
 			continue;
 		}
 
-		hex_dump_block("HCI<-: ", blk.addr, blk.length);
+		hex_dump_block("<- ", blk.addr, blk.length);
         if (test_cmd) {
 			test_cmd = 0;
 			printk("test cmd\n");
@@ -235,12 +235,12 @@ static int sipc_send(struct net_buf *buf)
 	switch (bt_buf_get_type(buf)) {
 	case BT_BUF_CMD:
 		net_buf_push_u8(buf, HCI_CMD);
-		hex_dump_block("Send Cmd: ", buf->data, buf->len);
+		hex_dump_block("-> ", buf->data, buf->len);
 		hwdec_write_align(buf->data, buf->len);
 		break;
 	case HCI_ACL:
 		net_buf_push_u8(buf, HCI_ACL);
-		hex_dump_block("Send Acl: ", buf->data, buf->len);
+		hex_dump_block("-> ", buf->data, buf->len);
 		hwdec_write_align(buf->data, buf->len);
 		break;
 	default:
