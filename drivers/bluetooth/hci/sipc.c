@@ -238,7 +238,7 @@ static int sipc_send(struct net_buf *buf)
 		hex_dump_block("-> ", buf->data, buf->len);
 		hwdec_write_align(buf->data, buf->len);
 		break;
-	case HCI_ACL:
+	case BT_BUF_ACL_OUT:
 		net_buf_push_u8(buf, HCI_ACL);
 		hex_dump_block("-> ", buf->data, buf->len);
 		hwdec_write_align(buf->data, buf->len);
