@@ -13,6 +13,8 @@ extern "C" {
 
 #include "uwp_hal.h"
 
+#define REG_AON_CLK_PRE_DIV_PLL_WAIT_SEL0_CFG	(BASE_AON_CLK_BASE + 0x24)
+
 #define REG_AON_CLK_RF_CGM_ARM_CFG           (BASE_AON_CLK_RF +0x0020)
 #define REG_AON_CLK_RF_CGM_BTWF_MTX_CFG      (BASE_AON_CLK_RF +0x0024)
 #define REG_AON_CLK_RF_CGM_AHB_BT_CFG        (BASE_AON_CLK_RF +0x0028)
