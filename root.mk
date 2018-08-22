@@ -161,6 +161,45 @@ DEBUG_TARGETS		:= $(addsuffix _debug,$(DEFAULT_TARGETS))
 ALL_TARGETS		:= $(DEFAULT_TARGETS) $(DEBUG_TARGETS)
 CLEAN_TARGETS		:= $(addsuffix -clean,$(ALL_TARGETS))
 
+# Macro of Signing Boot Image
+# $(1): Source binary
+# $(2): Destination binary
+define SIGN_BOOT_IMAGE
+	@ MAGIC_NR=0x5a5a6ec0; \
+	IMAGE_SIZE=$$(stat -c "%s" $(1)); \
+	printf "0: %.8x" "$$MAGIC_NR" | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 |tee $$MAGIC_NR.bin 1>/dev/null; \
+	printf "0: %.8x" $$IMAGE_SIZE | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 |tee $$IMAGE_SIZE.bin 1>/dev/null; \
+	cat $$MAGIC_NR.bin $$IMAGE_SIZE.bin $(1) > $(2); \
+	rm $$MAGIC_NR.bin $$IMAGE_SIZE.bin
+endef
+
+uboot_DIR	:= $(PRJDIR)/u-boot
+KEY_DIR		:= $(uboot_DIR)/rsa-keypair
+KEY_NAME	:= dev
+KEY_DTB		:= $(uboot_DIR)/u-boot-pubkey.dtb
+ITB		:= $(uboot_DIR)/fit-$(BOARD).itb
+
+FLASH_BASE		:= 0x02000000
+KERNEL_PARTTION_OFFSET	:= 0x00040000
+KERNEL_BOOT_ADDR	:= 0x$(shell printf "%08x" $(shell echo $$(( $(FLASH_BASE) + $(KERNEL_PARTTION_OFFSET) ))))
+FIT_HEADER_SIZE		:= 0x1000
+KERNEL_LOAD_ADDR	:= 0x$(shell printf "%08x" $(shell echo $$(( $(KERNEL_BOOT_ADDR) + $(FIT_HEADER_SIZE) ))))
+KERNEL_ENTRY_ADDR	:= 0x$(shell printf "%08x" $(shell echo $$(( $(KERNEL_LOAD_ADDR) + 0x4 ))))
+
+# Macro of Signing OS Image
+# $(1): Compression type
+# $(2): Load address
+# $(3): Entry point
+# $(4): Key dir
+# $(5): Key name
+define SIGN_OS_IMAGE
+	ITS=$(uboot_DIR)/fit-$(BOARD).its; \
+	cp -f $(uboot_DIR)/dts/dt.dtb $(KEY_DTB); \
+	$(uboot_DIR)/scripts/mkits.sh \
+		-D $(BOARD) -o $$ITS -k $(KERNEL_BIN) -C $(1) -a $(2) -e $(3) -A $(ARCH) -K $(KERNEL) $(if $(5),-s $(5)); \
+	PATH=$(uboot_DIR)/tools:$(uboot_DIR)/scripts/dtc:$(PATH) mkimage -f $$ITS -K $(KEY_DTB) $(if $(4),-k $(4)) -r -E -p $(FIT_HEADER_SIZE) $(ITB)
+endef
+
 .PHONY: dist
 dist: $(DIST_TARGETS)
 	@ if [ ! -d $(DIST_DIR) ]; then install -d $(DIST_DIR); fi
@@ -168,6 +207,21 @@ dist: $(DIST_TARGETS)
 	@ install $(BOOT_BIN) $(BOOT_DIST_BIN)
 	$(call SIGN_KERNEL_IMAGE,$(KERNEL_BIN),$(KERNEL_DIST_BIN))
 	$(call GEN_CONFIG_IMAGE,$(CONFIG_DIST_BIN),wifi_board_config.ini,bt_configure_pskey.ini,bt_configure_rf.ini)
+#	building u-boot temporarily
+	@ if [ ! -f $(DIST_DIR)/u-boot-pubkey-dtb.bin ]; then \
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(uboot_DIR) distclean; \
+	sed -i 's/bootm 0x......../bootm $(KERNEL_BOOT_ADDR)/' $(uboot_DIR)/include/configs/$(BOARD).h; \
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(uboot_DIR) $(BOARD)_defconfig; \
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(uboot_DIR); \
+	fi
+#	sign kernel for u-boot loading
+	mv $(KERNEL_BIN) $(KERNEL_BIN).orig
+	dd if=$(KERNEL_BIN).orig of=$(KERNEL_BIN) bs=4K skip=1
+	$(call SIGN_OS_IMAGE,none,$(KERNEL_LOAD_ADDR),$(KERNEL_ENTRY_ADDR),$(KEY_DIR),$(KEY_NAME))
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(uboot_DIR) EXT_DTB=$(KEY_DTB)
+#	sign boot for ROM loading
+	$(call SIGN_BOOT_IMAGE,$(uboot_DIR)/u-boot.bin,$(DIST_DIR)/u-boot-pubkey-dtb.bin)
+	install $(ITB) $(DIST_DIR)/zephyr-signed-fit-uImage-ota.itb
 
 .PHONY: debug
 debug: $(DEBUG_TARGETS)
