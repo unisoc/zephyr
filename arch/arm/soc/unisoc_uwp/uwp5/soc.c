@@ -18,9 +18,11 @@ static int unisoc_uwp_init(struct device *arg)
 {
 	ARG_UNUSED(arg);
 
+#ifndef CONFIG_XIP
 	uwp_glb_init();
 	uwp_cache_init();
 	uwp_spi_xip_init();
+#endif
 
 	return 0;
 }
