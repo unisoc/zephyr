@@ -171,9 +171,10 @@ dist: $(DIST_TARGETS)
 
 .PHONY: debug
 debug: $(DEBUG_TARGETS)
-	@killall JLinkGDBServer || true
-	JLinkGDBServer -device Cortex-M4 -endian little -if SWD -speed 8000 -jlinkscriptfile /opt/SEGGER/JLink/Samples/JLink/Scripts/SPRD_SC2355.JLinkScript &
-	${ZEPHYR_SDK_INSTALL_DIR}/sysroots/x86_64-pokysdk-linux/usr/bin/arm-zephyr-eabi/arm-zephyr-eabi-gdb $(kernel_BUILD_DIR)/zephyr/zephyr.elf
+
+#@killall JLinkGDBServer || true
+#JLinkGDBServer -device Cortex-M4 -endian little -if SWD -speed 8000 -jlinkscriptfile /opt/SEGGER/JLink/Samples/JLink/Scripts/SPRD_SC2355.JLinkScript &
+#${ZEPHYR_SDK_INSTALL_DIR}/sysroots/x86_64-pokysdk-linux/usr/bin/arm-zephyr-eabi/arm-zephyr-eabi-gdb $(kernel_BUILD_DIR)/zephyr/zephyr.elf
 
 .PHONY: clean
 clean: $(CLEAN_TARGETS)
