@@ -178,5 +178,6 @@ int sblock_register_notifier(u8_t dst, u8_t channel,
 		void (*handler)(int event, void *data), void *data);
 int sblock_register_callback(u8_t channel,
 		void (*callback)(int ch));
+int sblock_unregister_callback(uint8_t channel);
 int sblock_state(u8_t channel);
 #endif

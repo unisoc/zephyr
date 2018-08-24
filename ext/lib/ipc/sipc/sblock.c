@@ -240,7 +240,7 @@ int sblock_create(uint8_t dst, uint8_t channel,
 		txblocknum * txblocksize + rxblocknum * rxblocksize + 		/* for blks */
 		(txblocknum + rxblocknum) * sizeof(struct sblock_blks) + 	/* for ring*/
 		(txblocknum + rxblocknum) * sizeof(struct sblock_blks); 	/* for pool*/
-	//这里分配共享内存 在NuttX里面sblock的共享内存怎么来确定
+	//这里分配共享内存
 	switch(channel) {
 		case SMSG_CH_WIFI_CTRL:
 			block_addr = CTRLPATH_SBLOCK_SMEM_ADDR;
@@ -259,7 +259,7 @@ int sblock_create(uint8_t dst, uint8_t channel,
 			break;
 	}
 	sblock->smem_addr = block_addr;
-	ipc_debug( "smem_addr 0x%x record_share_addr 0x%x channel %d\n",sblock->smem_addr,block_addr,channel);
+	ipc_debug( "smem_addr 0x%x record_share_addr 0x%x channel %d",sblock->smem_addr,block_addr,channel);
 
 	ring = &sblock->ring;
 	ring->header =(struct sblock_header *)sblock->smem_addr;
@@ -382,6 +382,17 @@ void sblock_destroy(uint8_t dst, uint8_t channel)
 
     //smem_free(sblock->smem_addr, sblock->smem_size);
 
+}
+
+int sblock_unregister_callback(uint8_t channel)
+{
+	int dst=0;
+	struct sblock_mgr *sblock = &sblocks[dst][channel];
+    ipc_debug("%d channel=%d ", dst, channel);
+
+	sblock->callback = NULL;
+
+	return 0;
 }
 
 int sblock_register_callback(uint8_t channel,
@@ -720,11 +731,24 @@ int sblock_release(uint8_t dst, uint8_t channel, struct sblock *blk)
 	struct smsg mevt;
 	int rxpos;
 	int index;
+	int prio;
 
 	if (sblock->state != SBLOCK_STATE_READY) {
 		ipc_warn( "sblock-%d-%d not ready!", dst, channel);
 		return -ENODEV;
 	}
+
+
+
+	switch(sblock->channel) {
+		case SMSG_CH_BT:
+        case SMSG_CH_WIFI_CTRL:
+            prio = QUEUE_PRIO_HIGH;
+            break;
+        default :
+			prio = QUEUE_PRIO_NORMAL;
+			break;
+    }
 
 	ipc_debug("sblock_release: dst=%d, channel=%d, addr=%p, len=%d",
 			dst, channel, blk->addr, blk->length);
@@ -744,7 +768,7 @@ int sblock_release(uint8_t dst, uint8_t channel, struct sblock *blk)
 			sblock->state == SBLOCK_STATE_READY) {
 		/* send smsg to notify the peer side */
 		smsg_set(&mevt, channel, SMSG_TYPE_EVENT, SMSG_EVENT_SBLOCK_RELEASE, 0);
-		smsg_send(dst,QUEUE_PRIO_NORMAL, &mevt, -1);
+		smsg_send(dst,prio, &mevt, -1);
 	}
 
 	index = sblock_get_index((blk->addr - ring->rxblk_virt), sblock->rxblksz);
