@@ -219,6 +219,7 @@ dist: $(DIST_TARGETS)
 	dd if=$(KERNEL_BIN).orig of=$(KERNEL_BIN) bs=4K skip=1
 	$(call SIGN_OS_IMAGE,none,$(KERNEL_LOAD_ADDR),$(KERNEL_ENTRY_ADDR),$(KEY_DIR),$(KEY_NAME))
 	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(uboot_DIR) EXT_DTB=$(KEY_DTB)
+	mv $(KERNEL_BIN).orig $(KERNEL_BIN)
 #	sign boot for ROM loading
 	$(call SIGN_BOOT_IMAGE,$(uboot_DIR)/u-boot.bin,$(DIST_DIR)/u-boot-pubkey-dtb.bin)
 	install $(ITB) $(DIST_DIR)/zephyr-signed-fit-uImage-ota.itb
