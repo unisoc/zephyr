@@ -9,12 +9,6 @@
 
 #define CMD_SET_CONF    0x01
 
-#if 1
-#define BTD(fmt, ...) {printk(fmt"\n", ##__VA_ARGS__);}
-#else
-#define BTD(fmt, ...) do {}while(0)
-#endif
-
 typedef struct {
     char ssid[MAX_SSID_LEN];
     char bssid[BSSID_LEN];

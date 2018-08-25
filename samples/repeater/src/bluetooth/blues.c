@@ -13,6 +13,7 @@
 #include <misc/printk.h>
 #include <misc/byteorder.h>
 #include <zephyr.h>
+#include <shell/shell.h>
 
 
 #include <bluetooth/bluetooth.h>
@@ -24,6 +25,7 @@
 
 #include "throughput.h"
 #include "wifi_manager_service.h"
+#include "../../../../drivers/bluetooth/unisoc/uki_utlis.h"
 
 #define DEVICE_NAME		CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN		(sizeof(DEVICE_NAME) - 1)
@@ -67,3 +69,31 @@ void blues_init(void)
 		return;
 	}
 }
+
+static int cmd_init(int argc, char *argv[])
+{
+	blues_init();
+	return 0;
+}
+
+static int cmd_log(int argc, char *argv[])
+{
+	if (argc < 2) {
+		printk("%s, argc: %d", __func__, argc);
+		return -1;
+	}
+	int level = strtoul(argv[1], NULL, 0);
+	set_uki_log_level(level);
+	return 0;
+}
+
+
+static const struct shell_cmd blues_commands[] = {
+	{ "init", cmd_init, NULL },
+	{ "log", cmd_log, NULL },
+
+	{ NULL, NULL, NULL}
+};
+
+SHELL_REGISTER("blues", blues_commands);
+

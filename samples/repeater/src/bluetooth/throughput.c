@@ -23,6 +23,7 @@
 #include <bluetooth/gatt.h>
 
 #include "throughput.h"
+#include "../../../../drivers/bluetooth/unisoc/uki_utlis.h"
 
 static struct bt_uuid_128 throughput_service_uuid = BT_UUID_INIT_128(
     0xfb, 0x34, 0x9b, 0x5f, 0x80, 0x00, 0x00, 0x80,

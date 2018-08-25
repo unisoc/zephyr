@@ -1,12 +1,6 @@
 #ifndef __BLUETOOTH_THROUGHPUT_H__
 #define __BLUETOOTH_THROUGHPUT_H__
 
-#if 1
-#define BTD(fmt, ...) {printk(fmt"\n", ##__VA_ARGS__);}
-#else
-#define BTD(fmt, ...) do {}while(0)
-#endif
-
 #define BLE_TRANS_IDLE                  0
 #define BLE_TRANS_DEVICE_2_HOST         1
 #define BLE_TRANS_DEVICE_2_HOST_END     2

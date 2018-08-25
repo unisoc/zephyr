@@ -50,7 +50,6 @@ extern void uwp_intc_unset_irq_callback(int channel);
 extern void uwp_aon_intc_set_irq_callback(int channel,
 		uwp_intc_callback_t cb, void *arg);
 extern void uwp_aon_intc_unset_irq_callback(int channel);
-extern void blues_init(void);
 
 void device_list_get(struct device **device_list, int *device_count);
 
@@ -507,22 +506,6 @@ static int write_cmd(int argc, char **argv)
 	return 0;
 }
 
-static int blues_cmd(int argc, char *argv[])
-{
-	if (argc < 2) {
-		printf("blues_cmd miss arg\n");
-		return -EINVAL;
-	}
-
-	if (!strcmp(argv[1], "enable")) {
-		blues_init();
-	} else {
-		printk("Incorrect value: %s\n", argv[1]);
-		return -EINVAL;
-	}
-	return 0;
-}
-
 #if 0
 extern int iwnpi_main(int argc, char **argv);
 static int iwnpi_cmd(int argc, char **argv)
@@ -588,9 +571,6 @@ static const struct shell_cmd zephyr_cmds[] = {
 	{ "read32", read32_cmd, "adress len" },
 	{ "write32", write_cmd, "adress value" },
 	{ "dhcp_client", dhcp_client, "" },
-#if defined(CONFIG_BT)
-	{ "blues", blues_cmd, "enable" },
-#endif
 	{ NULL, NULL }
 	//{ "iwnpi", iwnpi_cmd, "adress value" },
 	//	{ "flash", flash_cmd, "mount|read|write address value" },

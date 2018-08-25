@@ -31,6 +31,8 @@
 #include "common/log.h"
 
 #include "../util.h"
+#include "../unisoc/uki_utlis.h"
+
 
 #include <sipc.h>
 #include <sblock.h>
@@ -61,48 +63,10 @@ static BT_STACK_NOINIT(rx_thread_stack, CONFIG_BT_RX_STACK_SIZE);
 static struct k_thread rx_thread_data;
 static struct k_sem	event_sem;
 
-static void hexdump(char *tag, unsigned char *bin, size_t binsz)
-{
-  char str[500], hex_str[]= "0123456789ABCDEF";
-  size_t i;
-
-  for (i = 0; i < binsz; i++) {
-      str[(i * 3) + 0] = hex_str[(bin[i] >> 4) & 0x0F];
-      str[(i * 3) + 1] = hex_str[(bin[i]     ) & 0x0F];
-      str[(i * 3) + 2] = ' ';
-  }
-  str[(binsz * 3) - 1] = 0x00;
-  if (tag)
-	  printk("%s %s\n", tag, str);
-  else
-	  printk("%s\n", str);
-}
-
-void hex_dump_block(char *tag, unsigned char *bin, size_t binsz)
-{
-#define HEX_DUMP_BLOCK_SIZE 20
-	int loop = binsz / HEX_DUMP_BLOCK_SIZE;
-	int tail = binsz % HEX_DUMP_BLOCK_SIZE;
-	int i;
-
-	if (!loop) {
-		hexdump(tag, bin, binsz);
-		return;
-	}
-
-	for (i = 0; i < loop; i++) {
-		hexdump(tag, bin + i * HEX_DUMP_BLOCK_SIZE, HEX_DUMP_BLOCK_SIZE);
-	}
-
-	if (tail)
-		hexdump(tag, bin + i * HEX_DUMP_BLOCK_SIZE, tail);
-}
-
 static inline int hwdec_write_word(unsigned int word)
 {
   unsigned int *hwdec_addr = (unsigned int *)SPRD_DP_DMA_UARD_SDIO_BUFFER_BASE_ADDR;
   *hwdec_addr = word;
-  //printk("WORD: 0x%08X\n", word);
   return WORD_ALIGN;
 }
 
@@ -140,7 +104,7 @@ static int hwdec_write_align(unsigned char *data, int len)
 
 static void recv_callback(int ch)
 {
-	printk("recv_callback: %d\n", ch);
+	BTV("recv_callback: %d\n", ch);
 	if(ch == SMSG_CH_BT)
 		k_sem_give(&event_sem);
 }
@@ -149,7 +113,7 @@ void sipc_test()
 {
 	unsigned char buf[] = {0x01, 0x03, 0x0c, 0x00};
 	test_cmd = 1;
-	hex_dump_block("-> ", buf, sizeof(buf));
+	HCIDUMP("-> ", buf, sizeof(buf));
 	hwdec_write_align(buf, sizeof(buf));
 }
 
@@ -169,19 +133,19 @@ static void rx_thread(void *p1, void *p2, void *p3)
 	struct bt_hci_acl_hdr acl_hdr;
 
 	while (1) {
-		printk("wait for data\n");
+		BTV("wait for data\n");
 		k_sem_take(&event_sem, K_FOREVER);
 		struct sblock blk;
 		ret = sblock_receive(0, SMSG_CH_BT, &blk, 0);
 		if (ret < 0) {
-			printk("sblock recv error");
+			BTE("sblock recv error");
 			continue;
 		}
 
-		hex_dump_block("<- ", blk.addr, blk.length);
+		HCIDUMP("<- ", blk.addr, blk.length);
         if (test_cmd) {
 			test_cmd = 0;
-			printk("test cmd\n");
+			BTV("test cmd\n");
 			goto rx_continue;
 		}
 		rxmsg = (unsigned char*)blk.addr;
@@ -212,7 +176,7 @@ static void rx_thread(void *p1, void *p2, void *p3)
 					sys_le16_to_cpu(acl_hdr.len));
 			break;
 		default:
-			BT_ERR("Unknown BT buf type %d", rxmsg[0]);
+			BTE("Unknown BT buf type %d", rxmsg[0]);
 			goto rx_continue;
 		}
 
@@ -230,21 +194,21 @@ rx_continue:;
 static int sipc_send(struct net_buf *buf)
 {
     int ret = 0;
-	BT_DBG("buf %p type %u len %u", buf, bt_buf_get_type(buf), buf->len);
+	BTV("buf %p type %u len %u", buf, bt_buf_get_type(buf), buf->len);
 
 	switch (bt_buf_get_type(buf)) {
 	case BT_BUF_CMD:
 		net_buf_push_u8(buf, HCI_CMD);
-		hex_dump_block("-> ", buf->data, buf->len);
+		HCIDUMP("-> ", buf->data, buf->len);
 		hwdec_write_align(buf->data, buf->len);
 		break;
 	case BT_BUF_ACL_OUT:
 		net_buf_push_u8(buf, HCI_ACL);
-		hex_dump_block("-> ", buf->data, buf->len);
+		HCIDUMP("-> ", buf->data, buf->len);
 		hwdec_write_align(buf->data, buf->len);
 		break;
 	default:
-		BT_ERR("Unknown packet type %u", bt_buf_get_type(buf));
+		BTE("Unknown packet type %u", bt_buf_get_type(buf));
 		ret = -1;
 	}
 
@@ -255,7 +219,7 @@ static int sipc_send(struct net_buf *buf)
 
 static int sipc_open(void)
 {
-	BT_DBG("");
+	BTD("");
 	return 0;
 }
 
@@ -270,7 +234,7 @@ static int _bt_sipc_init(struct device *unused)
 {
 	ARG_UNUSED(unused);
 
-	printk("%s\n", __func__);
+	BTD("%s\n", __func__);
 
 	k_sem_init(&event_sem, 0, 1);
 

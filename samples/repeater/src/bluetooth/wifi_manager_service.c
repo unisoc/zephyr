@@ -14,6 +14,7 @@
 #include <bluetooth/gatt.h>
 
 #include "wifi_manager_service.h"
+#include "../../../../drivers/bluetooth/unisoc/uki_utlis.h"
 
 
 //#include "../../wireless/wifimgr/wifimgr_api.h"

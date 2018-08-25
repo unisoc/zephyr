@@ -12,6 +12,7 @@
 
 #include <bluetooth/bluetooth.h>
 #include "uwp56xx.h"
+#include "uki_utlis.h"
 
 #include "host/hci_core.h"
 
@@ -30,7 +31,7 @@
 static pskey_config_t marlin3_pskey = {
     .device_class = 0x001F00,
     .feature_set = {0xFF, 0xFF, 0x8D, 0xFE, 0xDB, 0x7D, 0x7B, 0x83, 0xFF, 0xA7, 0xFF, 0x7F, 0x00, 0xE0, 0xF7, 0x3E},
-    .device_addr = {0x01, 0x88, 0x66, 0xDA, 0x45, 0x40},
+    .device_addr = {0x88, 0x88, 0x66, 0xDA, 0x45, 0x40},
     .comp_id = 0x01EC,
     .g_sys_uart0_communication_supported = 1,
     .cp2_log_mode = 1,
@@ -175,7 +176,6 @@ int get_enable_buf(void *buf)
     uint8_t *p, msg_req[HCI_CMD_MAX_LEN];
     int size;
 
-    //BTD("%s", __FUNCTION__);
     p = msg_req;
 
     UINT16_TO_STREAM(p, DUAL_MODE);
@@ -266,7 +266,6 @@ int get_pskey_buf(void *buf)
     uint8_t *p, msg_req[HCI_CMD_MAX_LEN];
     int i, size;
 
-    //BTD("%s", __FUNCTION__);
     p = msg_req;
     UINT32_TO_STREAM(p, marlin3_pskey.device_class);
 
@@ -481,21 +480,21 @@ void uwp56xx_vendor_init()
 	int err, size;
 	char data[256] = {0};
 
-    printk("send pskey\n");
+    BTD("send pskey\n");
     size = get_pskey_buf(data);
 	buf = bt_hci_cmd_create(BT_HCI_OP_PSKEY, size);
 	net_buf_add_mem(buf, data, size);
 	bt_hci_cmd_send_sync(BT_HCI_OP_PSKEY, buf, &rsp);
 	net_buf_unref(rsp);
 
-    printk("send rfkey\n");
+    BTD("send rfkey\n");
 	size = marlin3_rf_preload(data);
 	buf = bt_hci_cmd_create(BT_HCI_OP_RF, size);
 	net_buf_add_mem(buf, data, size);
 	bt_hci_cmd_send_sync(BT_HCI_OP_RF, buf, &rsp);
 	net_buf_unref(rsp);
 
-    printk("send enable\n");
+    BTD("send enable\n");
 	size = get_enable_buf(data);
 	buf = bt_hci_cmd_create(BT_HCI_OP_ENABLE_CMD, size);
 	net_buf_add_mem(buf, data, size);
