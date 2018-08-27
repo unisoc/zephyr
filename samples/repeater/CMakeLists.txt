@@ -10,4 +10,5 @@ target_sources_ifdef(
   src/bluetooth/blues.c
   src/bluetooth/throughput.c
   src/bluetooth/wifi_manager_service.c
+  src/bluetooth/mesh.c
   )

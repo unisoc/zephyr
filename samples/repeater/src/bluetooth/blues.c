@@ -23,9 +23,10 @@
 #include <bluetooth/gatt.h>
 
 
+#include "../../../../drivers/bluetooth/unisoc/uki_utlis.h"
 #include "throughput.h"
 #include "wifi_manager_service.h"
-#include "../../../../drivers/bluetooth/unisoc/uki_utlis.h"
+#include "mesh.h"
 
 #define DEVICE_NAME		CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN		(sizeof(DEVICE_NAME) - 1)
@@ -91,6 +92,7 @@ static int cmd_log(int argc, char *argv[])
 static const struct shell_cmd blues_commands[] = {
 	{ "init", cmd_init, NULL },
 	{ "log", cmd_log, NULL },
+	{ "mesh", cmd_mesh, NULL },
 
 	{ NULL, NULL, NULL}
 };
