@@ -451,7 +451,7 @@ void sblock_put(uint8_t dst, uint8_t channel, struct sblock *blk)
     ring->r_txblks[txpos].addr = (uint32_t)blk->addr;
     ring->r_txblks[txpos].length = poolhd->txblk_size;
     poolhd->txblk_rdptr = poolhd->txblk_rdptr - 1;
-	ipc_debug("%d %d ",poolhd->txblk_rdptr,txpos);
+	ipc_debug("%d %d %d ",poolhd->txblk_rdptr,poolhd->txblk_wrptr,txpos);
     /*  在接收的那里需要从pool中获取blk的等待 这里进行了释放所以需要唤醒所有在这个信号量上等待的task*/
     if ((int)(poolhd->txblk_wrptr - poolhd->txblk_rdptr) == 1) {
 		wakeup_smsg_task_all(&(ring->getwait));
@@ -476,7 +476,7 @@ int sblock_get(uint8_t dst, uint8_t channel, struct sblock *blk, int timeout)
 	ring = &sblock->ring;
 	//ringhd = (volatile struct sblock_ring_header *)(&ring->header->ring);
 	poolhd = (volatile struct sblock_ring_header *)(&ring->header->pool);
-    ipc_debug("%d %d",poolhd->txblk_rdptr,poolhd->txblk_wrptr);
+    ipc_debug("%d %d ch=%d",poolhd->txblk_rdptr,poolhd->txblk_wrptr,channel);
 
 	if (poolhd->txblk_rdptr == poolhd->txblk_wrptr) {
 		ret = k_sem_take(&ring->getwait, timeout);
@@ -525,9 +525,6 @@ static int sblock_send_ex(uint8_t dst, uint8_t channel,uint8_t prio, struct sblo
 		return sblock ? -EIO : -ENODEV;
 	}
 
-	ipc_info("dst=%d, channel=%d, addr=%p, len=%d",
-			dst, channel, blk->addr, blk->length);
-
     ring = &sblock->ring;
 	ringhd = (volatile struct sblock_ring_header *)(&ring->header->ring);
 
@@ -537,7 +534,7 @@ static int sblock_send_ex(uint8_t dst, uint8_t channel,uint8_t prio, struct sblo
 	ring->r_txblks[txpos].length = blk->length;
     ringhd->txblk_wrptr++;
 
-	ipc_debug("txpos: %d, wrptr: 0x%x", txpos, ringhd->txblk_wrptr);
+	ipc_debug("addr:%d len:%dtxpos: %d, wrptr: 0x%x %d ", blk->addr, blk->length, txpos, ringhd->txblk_wrptr,channel);
 
 	//extern void read8_cmd_exe(u32_t addr, u32_t len);
 	//read8_cmd_exe((u32_t)blk->addr, blk->length + BLOCK_HEADROOM_SIZE);
@@ -590,7 +587,7 @@ int sblock_send_finish(uint8_t dst, uint8_t channel)
 	//ringhd = (volatile struct sblock_ring_header *)(&ring->header->ring);
 
 	if (ring->yell) {
-                ring->yell = 0;
+        ring->yell = 0;
 		smsg_set(&mevt, channel, SMSG_TYPE_EVENT, SMSG_EVENT_SBLOCK_SEND, 0);
 		ret = smsg_send(dst,QUEUE_PRIO_NORMAL, &mevt, 0);
 	}
@@ -613,8 +610,7 @@ int sblock_receive(uint8_t dst, uint8_t channel, struct sblock *blk, int timeout
 	ring = &sblock->ring;
 	ringhd = (volatile struct sblock_ring_header *)(&ring->header->ring);
 
-	ipc_debug("sblock_receive: dst=%d, channel=%d, timeout=%d",dst, channel, timeout);
-	ipc_debug("sblock_receive: channel=%d, wrptr=%d, rdptr=%d",channel, ringhd->rxblk_wrptr, ringhd->rxblk_rdptr);
+	ipc_debug("sblock_receive: channel=%d,%d, wrptr=%d, rdptr=%d",channel,timeout, ringhd->rxblk_wrptr, ringhd->rxblk_rdptr);
 
 	if (ringhd->rxblk_wrptr == ringhd->rxblk_rdptr) {
 		if (timeout == 0) {
@@ -732,26 +728,35 @@ int sblock_release(uint8_t dst, uint8_t channel, struct sblock *blk)
 	int rxpos;
 	int index;
 	int prio;
+	int rx_num;
 
 	if (sblock->state != SBLOCK_STATE_READY) {
 		ipc_warn( "sblock-%d-%d not ready!", dst, channel);
 		return -ENODEV;
 	}
 
-
-
 	switch(sblock->channel) {
 		case SMSG_CH_BT:
+		    rx_num = BT_RX_BLOCK_NUM;
+			prio = QUEUE_PRIO_HIGH;
+			break;
         case SMSG_CH_WIFI_CTRL:
+		    rx_num = CTRLPATH_RX_BLOCK_NUM;
             prio = QUEUE_PRIO_HIGH;
             break;
+		case SMSG_CH_WIFI_DATA_NOR:
+			rx_num = DATAPATH_NOR_RX_BLOCK_NUM;
+            prio = QUEUE_PRIO_NORMAL;
+            break;
+		case SMSG_CH_WIFI_DATA_SPEC:
+			rx_num = DATAPATH_SPEC_RX_BLOCK_NUM;
+            prio = QUEUE_PRIO_NORMAL;
+            break;
         default :
+		    rx_num = CTRLPATH_RX_BLOCK_NUM;
 			prio = QUEUE_PRIO_NORMAL;
 			break;
     }
-
-	ipc_debug("sblock_release: dst=%d, channel=%d, addr=%p, len=%d",
-			dst, channel, blk->addr, blk->length);
 
 	ring = &sblock->ring;
 	//ringhd = (volatile struct sblock_ring_header *)(&ring->header->ring);
@@ -762,11 +767,12 @@ int sblock_release(uint8_t dst, uint8_t channel, struct sblock *blk)
 	ring->p_rxblks[rxpos].addr = (uint32_t)blk->addr;
 	ring->p_rxblks[rxpos].length = poolhd->rxblk_size;
 	poolhd->rxblk_wrptr = poolhd->rxblk_wrptr + 1;
-	ipc_debug("sblock_release: addr=%x", ring->p_rxblks[rxpos].addr);
+	ipc_debug("sblock_release:ch=%d addr=%x %d %d",channel,ring->p_rxblks[rxpos].addr,poolhd->rxblk_wrptr,poolhd->rxblk_rdptr);
 
-	if((int)(poolhd->rxblk_wrptr - poolhd->rxblk_rdptr) == 1 &&
+	if((int)(poolhd->rxblk_wrptr - poolhd->rxblk_rdptr) >= (rx_num-2) &&
 			sblock->state == SBLOCK_STATE_READY) {
 		/* send smsg to notify the peer side */
+		ipc_debug("send release smsg");
 		smsg_set(&mevt, channel, SMSG_TYPE_EVENT, SMSG_EVENT_SBLOCK_RELEASE, 0);
 		smsg_send(dst,prio, &mevt, -1);
 	}
