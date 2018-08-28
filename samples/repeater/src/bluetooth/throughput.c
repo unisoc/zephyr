@@ -47,13 +47,13 @@ static u8_t throught_tx_data[] = "1234567890abcdefghijklmn";
 static void rx_ccc_cfg_changed(const struct bt_gatt_attr *attr,
                 u16_t value)
 {
-    BTD("%s", __func__);
+    BTD("%s\n", __func__);
     rx_is_enabled = (value == BT_GATT_CCC_NOTIFY) ? 1 : 0;
 }
 
 static void reset_trans_data(void)
 {
-    BTD("%s", __func__);
+    BTD("%s\n", __func__);
     memset(&ble_conn_dev.ble_trans.buf, 0x0, sizeof(ble_conn_dev.ble_trans.buf));
     ble_conn_dev.ble_trans.data_len = 0;
     ble_conn_dev.ble_trans.packet_total = 0;
@@ -64,7 +64,7 @@ static void data_device_to_host(struct k_work *work)
     u8_t data_type = 0x00;
     int data_length = 0;
     u8_t* my_buf = NULL;
-    BTD("%s", __func__);
+    BTD("%s\n", __func__);
 
     if (ble_conn_dev.ble_trans.packet_total >= ble_conn_dev.ble_trans.packets_num) {
         ble_conn_dev.ble_trans.buf[0] = BLE_CMD_HEADER;
@@ -85,7 +85,7 @@ static void data_device_to_host(struct k_work *work)
     } else {
         data_type = ble_conn_dev.ble_trans.data_type;
         data_length = ble_conn_dev.ble_trans.packets_len;
-        BTD("%s ,data_type = 0x%x ; data_length = %d ; MTU = %d", __func__, data_type, data_length,
+        BTD("%s ,data_type = 0x%x ; data_length = %d ; MTU = %d\n", __func__, data_type, data_length,
             ble_conn_dev.ble_trans.data_mtu);
         if ((data_length == 0)||(data_length > (ble_conn_dev.ble_trans.data_mtu - 3))) {
             data_length = ble_conn_dev.ble_trans.data_mtu -3;
@@ -134,7 +134,7 @@ static ssize_t throughput_read(struct bt_conn *conn, const struct bt_gatt_attr *
             void *buf, u16_t len, u16_t offset)
 {
     const char *value = attr->user_data;
-    BTD("%s", __func__);
+    BTD("%s\n", __func__);
     return bt_gatt_attr_read(conn, attr, buf, len, offset, value,
                 strlen(value));
 }
@@ -147,7 +147,7 @@ static ssize_t throughput_write(struct bt_conn *conn, const struct bt_gatt_attr 
     u8_t header = 0;
     u8_t op_code = 0;
 
-    BTD("%s, len = %d, offset = %d, flags = %d", __func__,len,offset,flags);
+    BTD("%s, len = %d, offset = %d, flags = %d\n", __func__,len,offset,flags);
 
     if (flags & BT_GATT_WRITE_FLAG_PREPARE) {
         return 0;
@@ -156,7 +156,7 @@ static ssize_t throughput_write(struct bt_conn *conn, const struct bt_gatt_attr 
     if(0 == offset){
         header = value[0];
         op_code = value[1];
-        BTD("%s,header=0x%x,op_code=0x%x", __func__,header,op_code);
+        BTD("%s,header=0x%x,op_code=0x%x\n", __func__,header,op_code);
         if (BLE_CMD_HEADER == header) {
             if (BLE_CMD_DATA_2_HOST == op_code) {
                 if (BLE_CMD_DATA_2_HOST_START == value[2]) {
@@ -199,7 +199,7 @@ static ssize_t throughput_write(struct bt_conn *conn, const struct bt_gatt_attr 
                 ble_conn_dev.ble_trans.buf[6] = 0;
                 ble_conn_dev.ble_trans.buf[7] = (u8_t)(BLE_PARAMETER_CONNECT_INTVL_US);
                 ble_conn_dev.ble_trans.buf[8] = (u8_t)(BLE_PARAMETER_CONNECT_INTVL_US >> 8);
-                BTD("%s,recieve packet_total = %d", __func__,ble_conn_dev.ble_trans.packet_total);
+                BTD("%s,recieve packet_total = %d\n", __func__,ble_conn_dev.ble_trans.packet_total);
                 ble_conn_dev.ble_trans.status = BLE_TRANS_IDLE;
 
                 throughput_notify(ble_conn_dev.ble_trans.buf, 9);
@@ -230,16 +230,16 @@ static struct bt_gatt_service throughput_svc = BT_GATT_SERVICE(attrs);
 
 void throughput_init(void)
 {
-    BTD("%s", __func__);
+    BTD("%s\n", __func__);
     bt_gatt_service_register(&throughput_svc);
     k_delayed_work_init(&ble_conn_dev.timer, data_device_to_host);
 }
 
 void throughput_notify(const void *data, u16_t len)
 {
-    BTD("%s, len = %d", __func__, len);
+    BTD("%s, len = %d\n", __func__, len);
     if (!rx_is_enabled) {
-        BTD("%s, rx is not enabled", __func__);
+        BTD("%s, rx is not enabled\n", __func__);
         return;
     }
 

@@ -37,13 +37,13 @@ static u8_t wifimgr_is_enabled;
 static void wifimgr_ccc_cfg_changed(const struct bt_gatt_attr *attr,
                 u16_t value)
 {
-    BTD("%s", __func__);
+    BTD("%s\n", __func__);
     wifimgr_is_enabled = (value == BT_GATT_CCC_NOTIFY) ? 1 : 0;
 }
 
 static void wifimgr_set_conf(const void *buf)
 {
-    BTD("%s", __func__);
+    BTD("%s\n", __func__);
     wifi_config_type conf;
     const u8_t *p = buf;
     u16_t vlen = 0;
@@ -51,23 +51,23 @@ static void wifimgr_set_conf(const void *buf)
     memset(&conf, 0, sizeof(conf));
     vlen = sys_get_le16(p);
     p += 2;
-    BTD("%s, AllDateLen = 0x%x", __func__, vlen);
+    BTD("%s, AllDateLen = 0x%x\n", __func__, vlen);
 
     vlen = sys_get_le16(p);
     p += 2;
-    BTD("%s, SsidDataLen = 0x%x", __func__, vlen);
+    BTD("%s, SsidDataLen = 0x%x\n", __func__, vlen);
 
     memcpy(conf.ssid,p,vlen);
     p+=vlen;
-    BTD("%s, ssid = %s", __func__, conf.ssid);
+    BTD("%s, ssid = %s\n", __func__, conf.ssid);
 
     vlen = sys_get_le16(p);
     p += 2;
-    BTD("%s, PsdDataLen = 0x%x", __func__, vlen);
+    BTD("%s, PsdDataLen = 0x%x\n", __func__, vlen);
 
     memcpy(conf.passwd,p,vlen);
     p+=vlen;
-    BTD("%s, passwd = %s", __func__, conf.passwd);
+    BTD("%s, passwd = %s\n", __func__, conf.passwd);
 #if 0
     if(wifimgr_get_ctrl_ops()->set_conf) {
         wifimgr_get_ctrl_ops()->set_conf(conf.ssid, conf.bssid, conf.passwd, conf.band, conf.channel);
@@ -85,7 +85,7 @@ static ssize_t wifi_manager_write(struct bt_conn *conn, const struct bt_gatt_att
     u8_t *value = attr->user_data;
     static u16_t total_len = 0;
 
-    BTD("%s, len = %d, offset = %d, flags = %d", __func__,len,offset,flags);
+    BTD("%s, len = %d, offset = %d, flags = %d\n", __func__,len,offset,flags);
 
     if (flags & BT_GATT_WRITE_FLAG_PREPARE) {
         return 0;
@@ -98,7 +98,7 @@ static ssize_t wifi_manager_write(struct bt_conn *conn, const struct bt_gatt_att
     if(0 == offset){
         memset(value, 0, sizeof(wifimgr_long_value));
         total_len = sys_get_le16(buf + OPCODE_BYTE) + OPCODE_BYTE +LEN_BYTE;
-        BTD("%s,total_len = %d", __func__,total_len);
+        BTD("%s,total_len = %d\n", __func__,total_len);
     }
     memcpy(value + offset, buf, len);
     total_len -= len;
@@ -107,13 +107,13 @@ static ssize_t wifi_manager_write(struct bt_conn *conn, const struct bt_gatt_att
         return len;
 
     op_code = (u8_t)(*(value));
-    BTD("%s,op_code=0x%x", __func__,op_code);
+    BTD("%s,op_code=0x%x\n", __func__,op_code);
     switch(op_code){
         case CMD_SET_CONF:
             wifimgr_set_conf(&value[1]);
         break;
         default:
-            BTD("%s,op_code=0x%x not found", __func__,op_code);
+            BTD("%s,op_code=0x%x not found\n", __func__,op_code);
         break;
     }
     return len;
@@ -132,15 +132,15 @@ static struct bt_gatt_service wifi_manager_svc = BT_GATT_SERVICE(attrs);
 
 void wifi_manager_service_init(void)
 {
-    BTD("%s", __func__);
+    BTD("%s\n", __func__);
     bt_gatt_service_register(&wifi_manager_svc);
 }
 
 void wifi_manager_notify(const void *data, u16_t len)
 {
-    BTD("%s, len = %d", __func__, len);
+    BTD("%s, len = %d\n", __func__, len);
     if (!wifimgr_is_enabled) {
-        BTD("%s, rx is not enabled", __func__);
+        BTD("%s, rx is not enabled\n", __func__);
         return;
     }
 
