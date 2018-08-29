@@ -249,7 +249,7 @@ static int uwp_init(struct device *dev)
 	return 0;
 }
 
-NET_DEVICE_INIT(uwp, CONFIG_WIFI_UWP_NAME,
+NET_DEVICE_INIT(uwp, CONFIG_WIFI_UWP_STA_NAME,
 		uwp_init, &uwp_wifi_priv, NULL,
 		CONFIG_WIFI_INIT_PRIORITY,
 		&uwp_api,

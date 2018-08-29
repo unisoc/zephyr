@@ -5,7 +5,7 @@ menuconfig WIFI_UWP
 	select NET_L2_WIFI_MGMT
 
 if WIFI_UWP
-config WIFI_UWP_NAME
-	string "Driver name"
-	default "UWP_WIFI"
+config WIFI_UWP_STA_NAME
+	string "STA deivce name"
+	default "UWP_STA"
 endif
