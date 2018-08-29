@@ -60,6 +60,45 @@ __printf_like(2, 3) void bt_log(int prio, const char *fmt, ...);
 #define SYS_LOG_LEVEL SYS_LOG_LEVEL_DEBUG
 #include <logging/sys_log.h>
 
+#ifdef CONFIG_BT_UNISOC
+#define LOG_LEVEL_NONE 0
+#define LOG_LEVEL_ERROR 1
+#define LOG_LEVEL_WARNING 2
+#define LOG_LEVEL_INFO 3
+#define LOG_LEVEL_DEBUG 4
+#define LOG_LEVEL_VERBOSE 5
+extern int stack_log_level;
+
+#define BT_ERR(fmt, ...) 						\
+	do { 										\
+		if (stack_log_level >= LOG_LEVEL_ERROR) { 	\
+			printk(fmt"\n", ##__VA_ARGS__); 	\
+		} 										\
+	}while(0);
+
+
+#define BT_WARN(fmt, ...) 						\
+	do {										\
+		if (stack_log_level >= LOG_LEVEL_WARNING) { 	\
+			printk(fmt"\n", ##__VA_ARGS__); 	\
+		}										\
+	}while(0);
+
+#define BT_INFO(fmt, ...) 						\
+	do {										\
+		if (stack_log_level >= LOG_LEVEL_INFO) {		\
+			printk(fmt"\n", ##__VA_ARGS__); 	\
+		}										\
+	}while(0);
+
+#define BT_DBG(fmt, ...) 						\
+	do {										\
+		if (stack_log_level >= LOG_LEVEL_DEBUG) {		\
+			printk(fmt"\n", ##__VA_ARGS__); 	\
+		}										\
+	}while(0);
+#else
+
 #define BT_DBG(fmt, ...) \
 	if (BT_DBG_ENABLED) { \
 		SYS_LOG_DBG("(%p) " fmt, k_current_get(), \
@@ -69,6 +108,8 @@ __printf_like(2, 3) void bt_log(int prio, const char *fmt, ...);
 #define BT_ERR(fmt, ...) SYS_LOG_ERR(fmt, ##__VA_ARGS__)
 #define BT_WARN(fmt, ...) SYS_LOG_WRN(fmt, ##__VA_ARGS__)
 #define BT_INFO(fmt, ...) SYS_LOG_INF(fmt, ##__VA_ARGS__)
+
+#endif
 
 /* Enabling debug increases stack size requirement considerably */
 #define BT_STACK_DEBUG_EXTRA	300

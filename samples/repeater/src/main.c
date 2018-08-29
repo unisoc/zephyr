@@ -154,15 +154,7 @@ void print_devices(void)
 /* WDT Requires a callback, there is no interrupt enable / disable. */
 void wdt_example_cb(struct device *dev, int channel_id)
 {
-	struct device *gpio;
 
-	gpio = device_get_binding(GPIO_PORT0);
-	if(gpio == NULL) {
-		SYS_LOG_ERR("Can not find device %s.", GPIO_PORT0);
-		return;
-	}
-
-	led_switch(gpio);
 }
 
 void wdg_init(void)

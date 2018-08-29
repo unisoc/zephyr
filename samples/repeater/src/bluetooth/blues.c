@@ -77,22 +77,35 @@ static int cmd_init(int argc, char *argv[])
 	return 0;
 }
 
-static int cmd_log(int argc, char *argv[])
+static int cmd_vlog(int argc, char *argv[])
 {
 	if (argc < 2) {
 		printk("%s, argc: %d", __func__, argc);
 		return -1;
 	}
 	int level = strtoul(argv[1], NULL, 0);
-	set_uki_log_level(level);
+	set_vendor_log_level(level);
+	return 0;
+}
+
+static int cmd_slog(int argc, char *argv[])
+{
+	if (argc < 2) {
+		printk("%s, argc: %d", __func__, argc);
+		return -1;
+	}
+	int level = strtoul(argv[1], NULL, 0);
+	set_stack_log_level(level);
 	return 0;
 }
 
 
 static const struct shell_cmd blues_commands[] = {
 	{ "init", cmd_init, NULL },
-	{ "log", cmd_log, NULL },
+	{ "vlog", cmd_vlog, NULL },
+	{ "slog", cmd_slog, NULL },
 	{ "mesh", cmd_mesh, NULL },
+	{ "led", cmd_led, NULL },
 
 	{ NULL, NULL, NULL}
 };

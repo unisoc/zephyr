@@ -27,16 +27,23 @@
 #define LOG_LEVEL_DEBUG 4
 #define LOG_LEVEL_VERBOSE 5
 
-extern int log_level;
-static inline void set_uki_log_level(int level) {
-	log_level = level;
-	printk("set_uki_log_level: %d, %d\n", level, log_level);
+extern int vendor_log_level;
+extern int stack_log_level;
+
+static inline void set_vendor_log_level(int level) {
+	vendor_log_level = level;
+	printk("%s: %d\n",__func__, vendor_log_level);
+}
+
+static inline void set_stack_log_level(int level) {
+	stack_log_level = level;
+	printk("%s: %d\n",__func__, stack_log_level);
 }
 
 
 #define BTE(fmt, ...) 							\
 	do { 										\
-		if (log_level >= LOG_LEVEL_ERROR) { 	\
+		if (vendor_log_level >= LOG_LEVEL_ERROR) { 	\
 			printk(fmt, ##__VA_ARGS__); 		\
 		} 										\
 	}while(0)
@@ -44,28 +51,28 @@ static inline void set_uki_log_level(int level) {
 
 #define BTW(fmt, ...) 							\
 	do {										\
-		if (log_level >= LOG_LEVEL_WARNING) { 	\
+		if (vendor_log_level >= LOG_LEVEL_WARNING) { 	\
 			printk(fmt, ##__VA_ARGS__); 		\
 		}										\
 	}while(0)
 
 #define BTI(fmt, ...) 							\
 	do {										\
-		if (log_level >= LOG_LEVEL_INFO) {		\
+		if (vendor_log_level >= LOG_LEVEL_INFO) {		\
 			printk(fmt, ##__VA_ARGS__); 		\
 		}										\
 	}while(0)
 
 #define BTD(fmt, ...) 							\
 	do {										\
-		if (log_level >= LOG_LEVEL_DEBUG) {		\
+		if (vendor_log_level >= LOG_LEVEL_DEBUG) {		\
 			printk(fmt, ##__VA_ARGS__); 		\
 		}										\
 	}while(0)
 
 #define BTV(fmt, ...) 							\
 	do {										\
-		if (log_level >= LOG_LEVEL_VERBOSE) { 	\
+		if (vendor_log_level >= LOG_LEVEL_VERBOSE) { 	\
 			printk(fmt, ##__VA_ARGS__); 		\
 		}										\
 	}while(0)
@@ -75,7 +82,7 @@ void uki_hex_dump_block(char *tag, unsigned char *bin, size_t binsz);
 
 #define HCIDUMP(tag, bin, binsz) 					\
 	do {											\
-		if (log_level >= LOG_LEVEL_DEBUG) { 		\
+		if (vendor_log_level >= LOG_LEVEL_DEBUG) { 		\
 			uki_hex_dump_block(tag, bin, binsz); 	\
 		}											\
 	}while(0)

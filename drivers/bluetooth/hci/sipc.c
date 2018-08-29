@@ -236,7 +236,7 @@ static int _bt_sipc_init(struct device *unused)
 
 	BTD("%s\n", __func__);
 
-	k_sem_init(&event_sem, 0, 1);
+	k_sem_init(&event_sem, 0, UINT_MAX);
 
 	sblock_create(0, SMSG_CH_BT,BT_TX_BLOCK_NUM, BT_TX_BLOCK_SIZE,
 				BT_RX_BLOCK_NUM, BT_RX_BLOCK_SIZE);

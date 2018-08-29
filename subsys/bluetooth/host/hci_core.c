@@ -3403,7 +3403,7 @@ static void hci_tx_thread(void *p1, void *p2, void *p3)
 						BT_EVENT_CMD_TX),
 	};
 
-	BT_DBG("Started");
+	BT_DBG("hci_tx_thread Started: 0x%x", k_current_get());
 
 	while (1) {
 		int ev_count, err;
@@ -4414,7 +4414,9 @@ int bt_recv(struct net_buf *buf)
 #if defined(CONFIG_BT_RECV_IS_RX_THREAD)
 		hci_event(buf);
 #else
+		BT_DBG("put rx_queue ++");
 		net_buf_put(&bt_dev.rx_queue, buf);
+		BT_DBG("put rx_queue --");
 #endif
 		return 0;
 	default:
