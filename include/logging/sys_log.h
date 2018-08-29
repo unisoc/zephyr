@@ -133,7 +133,7 @@ void syslog_hook_install(void (*hook)(const char *, ...));
  * @param ... A string optionally containing printk valid conversion specifier,
  * followed by as many values as specifiers.
  */
-#define SYS_LOG_ERR(...) { ; }
+#define SYS_LOG_ERR(...)
 #endif /* CONFIG_SYS_LOG */
 
 /* create dummy macros */
@@ -150,7 +150,7 @@ void syslog_hook_install(void (*hook)(const char *, ...));
  * @param ... A string optionally containing printk valid conversion specifier,
  * followed by as many values as specifiers.
  */
-#define SYS_LOG_WRN(...) { ; }
+#define SYS_LOG_WRN(...)
 #endif
 
 #if !defined(SYS_LOG_INF)
@@ -165,7 +165,7 @@ void syslog_hook_install(void (*hook)(const char *, ...));
  * @param ... A string optionally containing printk valid conversion specifier,
  * followed by as many values as specifiers.
  */
-#define SYS_LOG_INF(...) { ; }
+#define SYS_LOG_INF(...)
 #endif
 
 #if !defined(SYS_LOG_DBG)
@@ -180,7 +180,7 @@ void syslog_hook_install(void (*hook)(const char *, ...));
  * @param ... A string optionally containing printk valid conversion specifier,
  * followed by as many values as specifiers.
  */
-#define SYS_LOG_DBG(...) { ; }
+#define SYS_LOG_DBG(...)
 #endif
 /**
  * @}
