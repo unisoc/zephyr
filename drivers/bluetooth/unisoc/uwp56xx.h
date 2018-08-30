@@ -95,7 +95,8 @@ typedef struct {
     uint32_t modem_rfu_w[2];
     uint32_t BQB_BitMask_1;
     uint32_t BQB_BitMask_2;
-    uint32_t other_rfu_w[6];
+    uint16_t bt_coex_threshold[8];
+    uint32_t other_rfu_w[2];
 } pskey_config_t;
 
 typedef struct {

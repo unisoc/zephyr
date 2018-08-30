@@ -1,6 +1,7 @@
 #include <zephyr.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <atomic.h>
 #include <misc/util.h>
@@ -16,16 +17,29 @@
 
 #include "host/hci_core.h"
 
+#include <fs.h>
+#include <ff.h>
+#include <bluetooth/crypto.h>
 
-//#define BTD(param, ...) {printf(param"\n", ## __VA_ARGS__);}
-#define BT_CONFIG_PSKEY_FILE "/etc/bt_configure_pskey.ini"
-#define BT_CONFIG_RF_FILE "/etc/bt_configure_rf.ini"
+#define BT_CONFIG_PSKEY_FILE "/NAND:/BT_CON~1.INI"
+#define BT_CONFIG_RF_FILE "/NAND:/BT_CON~2.INI"
 
 #define CONF_COMMENT '#'
 #define CONF_DELIMITERS " =\n\r\t"
 #define CONF_VALUES_DELIMITERS "=\n\r\t#"
 #define CONF_VALUES_PARTITION " ,=\n\r\t#"
 #define CONF_MAX_LINE_LEN 255
+
+#define FATFS_MNTP "/NAND:"
+/* FatFs work area */
+static FATFS fat_fs;
+
+/* mounting info */
+static struct fs_mount_t fatfs_mnt = {
+    .type = FS_FATFS,
+    .mnt_point = FATFS_MNTP,
+    .fs_data = &fat_fs,
+};
 
 // pskey file structure default value
 static pskey_config_t marlin3_pskey = {
@@ -45,9 +59,9 @@ static pskey_config_t marlin3_pskey = {
     .lmp_rfu_w = {0x00000000, 0x000000000},
     .lc_rfu_w = {0x00000000, 0x000000000},
     .g_wbs_nv_117 = 0x004D,
-    .g_wbs_nv_118 = 0x0066,
+    .g_wbs_nv_118 = 0x0076,
     .g_nbv_nv_117 = 0x009B,
-    .g_nbv_nv_118 = 0x0066,
+    .g_nbv_nv_118 = 0x0A55,
     .g_sys_sco_transmit_mode = 0,
     .audio_rfu_b1 = 0,
     .audio_rfu_b2 = 0,
@@ -58,7 +72,7 @@ static pskey_config_t marlin3_pskey = {
     .g_sys_sleep_slave_supported = 1,
     .power_rfu_b1 = 0,
     .power_rfu_w = {0x00000000, 0x00000000},
-    .win_ext = 30,
+    .win_ext = 40,
     .edr_tx_edr_delay = 6,
     .edr_rx_edr_delay = 8,
     .tx_delay = 12,
@@ -71,7 +85,8 @@ static pskey_config_t marlin3_pskey = {
     .modem_rfu_w = {0x00000000, 0x00000000},
     .BQB_BitMask_1 = 0x00000000,
     .BQB_BitMask_2 = 0x00000000,
-    .other_rfu_w = {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+    .bt_coex_threshold = {0x04E2, 0x1F40, 0x0020, 0x00C8, 0x0006, 0x0000, 0x0000, 0x0000},
+    .other_rfu_w = {0x00000000, 0x00000000},
 };
 
 static const conf_entry_t marlin3_pksey_table[] = {
@@ -117,27 +132,28 @@ static const conf_entry_t marlin3_pksey_table[] = {
     CONF_ITEM_TABLE(modem_rfu_w, 0, marlin3_pskey, 2),
     CONF_ITEM_TABLE(BQB_BitMask_1, 0, marlin3_pskey, 1),
     CONF_ITEM_TABLE(BQB_BitMask_2, 0, marlin3_pskey, 1),
-    CONF_ITEM_TABLE(other_rfu_w, 0, marlin3_pskey, 6),
+    CONF_ITEM_TABLE(bt_coex_threshold, 0, marlin3_pskey, 8),
+    CONF_ITEM_TABLE(other_rfu_w, 0, marlin3_pskey, 2),
 
     {0, 0, 0, 0, 0}
 };
 
 static rf_config_t marlin3_rf_config = {
     .g_GainValue_A = {0xE000, 0xE000, 0xE000, 0xE000, 0xE000, 0xE000},
-    .g_ClassicPowerValue_A = {0x2C03, 0x2603, 0x2003, 0x1B03, 0x1603, 0x0F03, 0x0703, 0x0103, 0x0103, 0x0103},
-    .g_LEPowerValue_A = {0x3103, 0x3103, 0x3103, 0x3103, 0x3003, 0x2F03, 0x2E03, 0x2D03, 0x2C03, 0x2603, 0x2003, 0x1B03, 0x1603, 0x0F03, 0x0703, 0x0103},
-    .g_BRChannelpwrvalue_A = {0x0103, 0x0103, 0x0103, 0x0103, 0x0103, 0x0103, 0x0103, 0x0103},
-    .g_EDRChannelpwrvalue_A = {0x0103, 0x0103, 0x0103, 0x0103, 0x0103, 0x0103, 0x0103, 0x0103},
-    .g_LEChannelpwrvalue_A = {0x0103, 0x0103, 0x0103, 0x0103, 0x0103, 0x0103, 0x0103, 0x0103},
+    .g_ClassicPowerValue_A = {0x3203, 0x2C03, 0x2603, 0x2003, 0x1A03, 0x1403, 0x0E03, 0x0803, 0x0803, 0x0803},
+    .g_LEPowerValue_A = {0x3703, 0x3703, 0x3703, 0x3703, 0x3603, 0x3503, 0x3403, 0x3303, 0x3203, 0x2C03, 0x2603, 0x2003, 0x1A03, 0x1403, 0x0E03, 0x1603},
+    .g_BRChannelpwrvalue_A = {0x0803, 0x0803, 0x0803, 0x0803, 0x0803, 0x0803, 0x0803, 0x0803},
+    .g_EDRChannelpwrvalue_A = {0x0803, 0x0803, 0x0803, 0x0803, 0x0803, 0x0803, 0x0803, 0x0803},
+    .g_LEChannelpwrvalue_A = {0x1603, 0x1603, 0x1603, 0x1603, 0x1603, 0x1603, 0x1603, 0x1603},
     .g_GainValue_B = {0xE000, 0xE000, 0xE000, 0xE000, 0xE000, 0xE000},
-    .g_ClassicPowerValue_B = {0x3603, 0x2F03, 0x2903, 0x2303, 0x1E03, 0x1903, 0x1303, 0x0D03, 0x0D03, 0x0D03},
+    .g_ClassicPowerValue_B = {0x5CC4, 0x7C8C, 0x7CBC, 0x9C84, 0x9CAC, 0x9CEC, 0xBC9C, 0xBCCC, 0xBCCC, 0xBCCC},
     .g_LEPowerValue_B = {0x3703, 0x3703, 0x3703, 0x3703, 0x3703, 0x3703, 0x3703, 0x3703, 0x3603, 0x2F03, 0x2903, 0x2303, 0x1E03, 0x1903, 0x1303, 0x0D03},
-    .g_BRChannelpwrvalue_B = {0x0C03, 0x0C03, 0x0D03, 0x0D03, 0x0E03, 0x0E03, 0x0E03, 0x0E03},
-    .g_EDRChannelpwrvalue_B = {0x0C03, 0x0C03, 0x0D03, 0x0D03, 0x0E03, 0x0E03, 0x0E03, 0x0E03},
-    .g_LEChannelpwrvalue_B = {0x0C03, 0x0D03, 0x0E03, 0x0E03, 0x0E03, 0x0E03, 0x0E03, 0x0E03},
-    .LE_fix_powerword = 0xBCEC,
-    .Classic_pc_by_channel = 0x0,
-    .LE_pc_by_channel = 0x0,
+    .g_BRChannelpwrvalue_B = {0xBD14, 0xBCEC, 0xBCDC, 0xBCCC, 0xBCCC, 0xBCBC, 0xBCCC, 0xBCCC},
+    .g_EDRChannelpwrvalue_B = {0xBCEC, 0xBCDC, 0xBCCC, 0xBCBC, 0xBCBC,0xBCBC, 0xBCBC, 0xBCBC},
+    .g_LEChannelpwrvalue_B = {0xBC7C, 0x9CDC, 0x9CCC, 0x9CB4, 0x9CCC, 0x9CCC, 0x9CCC, 0x9CBC},
+    .LE_fix_powerword = 0xBC7C,
+    .Classic_pc_by_channel = 0xFF,
+    .LE_pc_by_channel = 0xFF,
     .RF_switch_mode = 0x02,
     .Data_Capture_Mode = 0x00,
     .Analog_IQ_Debug_Mode = 0x00,
@@ -349,7 +365,11 @@ int get_pskey_buf(void *buf)
     UINT32_TO_STREAM(p, marlin3_pskey.BQB_BitMask_1);
     UINT32_TO_STREAM(p, marlin3_pskey.BQB_BitMask_2);
 
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < 8; i++) {
+        UINT16_TO_STREAM(p, marlin3_pskey.bt_coex_threshold[i]);
+    }
+
+    for (i = 0; i < 2; i++) {
         UINT32_TO_STREAM(p, marlin3_pskey.other_rfu_w[i]);
     }
 
@@ -358,7 +378,6 @@ int get_pskey_buf(void *buf)
     return size;
 }
 
-#if 0
 void set_mac_address(uint8_t *addr)
 {
     uint8_t addr_t[6] = {0x01, 0x88, 0x66, 0xDA, 0x45, 0x40};
@@ -367,14 +386,101 @@ void set_mac_address(uint8_t *addr)
     memcpy(addr, addr_t, sizeof(addr_t));
 }
 
+char *uki_strtok_r(char *str, const char *delim, char **saveptr)
+{
+  char *pbegin;
+  char *pend = NULL;
+
+  /* Decide if we are starting a new string or continuing from
+   * the point we left off.
+   */
+
+  if (str)
+    {
+      pbegin = str;
+    }
+  else if (saveptr && *saveptr)
+    {
+      pbegin = *saveptr;
+    }
+  else
+    {
+      return NULL;
+    }
+
+  /* Find the beginning of the next token */
+
+  for (;
+       *pbegin && strchr(delim, *pbegin) != NULL;
+       pbegin++);
+
+  /* If we are at the end of the string with nothing
+   * but delimiters found, then return NULL.
+   */
+
+  if (!*pbegin)
+    {
+      return NULL;
+    }
+
+  /* Find the end of the token */
+
+  for (pend = pbegin + 1;
+       *pend && strchr(delim, *pend) == NULL;
+       pend++);
+
+
+  /* pend either points to the end of the string or to
+   * the first delimiter after the string.
+   */
+
+  if (*pend)
+    {
+      /* Turn the delimiter into a null terminator */
+
+      *pend++ = '\0';
+    }
+
+  /* Save the pointer where we left off and return the
+   * beginning of the token.
+   */
+
+  if (saveptr)
+    {
+      *saveptr = pend;
+    }
+  return pbegin;
+}
+
+char *uki_fgets(char *dst, int max, struct fs_file_t *file)
+{
+    char *p;
+    char  ch;
+    int len = 0;
+    /* get max bytes or upto a newline */
+
+    for (p = dst, max--; max > 0; max--) {
+        len = fs_read(file, &ch, 1);
+        if (len <= 0)
+            break;
+        *p++ = ch;
+        if (ch == '\n')
+            break;
+    }
+    *p = 0;
+    if (p == dst || len <= 0)
+        return NULL;
+    return (p);
+}
+
 static void parse_number(char *p_conf_name, char *p_conf_value, void *buf,
                          int len, int size)
 {
     uint8_t *dest = (uint8_t *)buf;
     char *sub_value, *p;
     uint32_t value;
-    UNUSED(p_conf_name);
-    sub_value = strtok_r(p_conf_value, CONF_VALUES_PARTITION, &p);
+    ARG_UNUSED(p_conf_name);
+    sub_value = uki_strtok_r(p_conf_value, CONF_VALUES_PARTITION, &p);
     do {
         if (sub_value == NULL) {
             break;
@@ -405,34 +511,34 @@ static void parse_number(char *p_conf_name, char *p_conf_value, void *buf,
         default:
             break;
         }
-        sub_value = strtok_r(NULL, CONF_VALUES_PARTITION, &p);
+        sub_value = uki_strtok_r(NULL, CONF_VALUES_PARTITION, &p);
     } while (--len);
 }
 
 static void vnd_load_configure(const char *p_path, const conf_entry_t *entry)
 {
-    FILE *p_file;
+    struct fs_file_t p_file;
     char *p_name, *p_value, *p;
     conf_entry_t *p_entry;
     char line[CONF_MAX_LINE_LEN + 1]; /* add 1 for \0 char */
 
-    BT_DBG("%s, Attempt to load conf from %s", __func__, p_path);
+    BTD("%s, Attempt to load conf from %s\n", __func__, p_path);
 
-    if ((p_file = fopen(p_path, "r")) != NULL) {
+    if (0 == fs_open(&p_file, p_path)) {
         /* read line by line */
-        while (fgets(line, CONF_MAX_LINE_LEN + 1, p_file) != NULL) {
+        while (uki_fgets(line, CONF_MAX_LINE_LEN + 1, &p_file) != NULL) {
             if (line[0] == CONF_COMMENT) continue;
 
-            p_name = strtok_r(line, CONF_DELIMITERS, &p);
+            p_name = uki_strtok_r(line, CONF_DELIMITERS, &p);
 
             if (NULL == p_name) {
                 continue;
             }
 
-            p_value = strtok_r(NULL, CONF_VALUES_DELIMITERS, &p);
+            p_value = uki_strtok_r(NULL, CONF_VALUES_DELIMITERS, &p);
 
             if (NULL == p_value) {
-                 BT_DBG("%s, vnd_load_conf: missing value for name: %s", __func__, p_name);
+                 BTD("%s, vnd_load_conf: missing value for name: %s\n", __func__, p_name);
                 continue;
             }
 
@@ -444,9 +550,9 @@ static void vnd_load_configure(const char *p_path, const conf_entry_t *entry)
                         p_entry->p_action(p_name, p_value, p_entry->buf, p_entry->len,
                                           p_entry->size);
                     } else {
-                        BT_DBG("%s, %s -> %s", __func__, p_name, p_value);
+                        BTD("%s, %s -> %s\n", __func__, p_name, p_value);
                         parse_number(p_name, p_value, p_entry->buf, p_entry->len,
-                                     p_entry->size);
+                                    p_entry->size);
                     }
                     break;
                 }
@@ -455,51 +561,59 @@ static void vnd_load_configure(const char *p_path, const conf_entry_t *entry)
             }
         }
 
-        fclose(p_file);
+        fs_close(&p_file);
     } else {
-        BT_DBG("%s, vnd_load_conf file >%s< not found", __func__, p_path);
+        BTD("%s, vnd_load_conf file >%s< not found\n", __func__, p_path);
     }
 }
 
 int marlin3_init(void) {
-    BT_DBG("%s", __func__);
+    BTD("%s\n", __func__);
+    int ret;
 
     memset(&marlin3_pskey, 0, sizeof(marlin3_pskey));
     memset(&marlin3_rf_config, 0, sizeof(marlin3_rf_config));
+
+    ret = fs_mount(&fatfs_mnt);
+    if (ret < 0 && ret!=-EBUSY) {
+        BTE("Error mounting fs [%d]\n", ret);
+        return -1;
+    }
+
     vnd_load_configure(BT_CONFIG_PSKEY_FILE, &marlin3_pksey_table[0]);
     vnd_load_configure(BT_CONFIG_RF_FILE, &marlin3_rf_table[0]);
     set_mac_address(marlin3_pskey.device_addr);
 
     return 0;
 }
-#endif
 
 void uwp56xx_vendor_init()
 {
-	struct net_buf *rsp, *buf;
-	int err, size;
-	char data[256] = {0};
+    struct net_buf *rsp, *buf;
+    int size;
+    char data[256] = {0};
+    marlin3_init();
 
     BTD("send pskey\n");
     size = get_pskey_buf(data);
-	buf = bt_hci_cmd_create(BT_HCI_OP_PSKEY, size);
-	net_buf_add_mem(buf, data, size);
-	bt_hci_cmd_send_sync(BT_HCI_OP_PSKEY, buf, &rsp);
-	net_buf_unref(rsp);
+    buf = bt_hci_cmd_create(BT_HCI_OP_PSKEY, size);
+    net_buf_add_mem(buf, data, size);
+    bt_hci_cmd_send_sync(BT_HCI_OP_PSKEY, buf, &rsp);
+    net_buf_unref(rsp);
 
     BTD("send rfkey\n");
-	size = marlin3_rf_preload(data);
-	buf = bt_hci_cmd_create(BT_HCI_OP_RF, size);
-	net_buf_add_mem(buf, data, size);
-	bt_hci_cmd_send_sync(BT_HCI_OP_RF, buf, &rsp);
-	net_buf_unref(rsp);
+    size = marlin3_rf_preload(data);
+    buf = bt_hci_cmd_create(BT_HCI_OP_RF, size);
+    net_buf_add_mem(buf, data, size);
+    bt_hci_cmd_send_sync(BT_HCI_OP_RF, buf, &rsp);
+    net_buf_unref(rsp);
 
     BTD("send enable\n");
-	size = get_enable_buf(data);
-	buf = bt_hci_cmd_create(BT_HCI_OP_ENABLE_CMD, size);
-	net_buf_add_mem(buf, data, size);
-	bt_hci_cmd_send_sync(BT_HCI_OP_ENABLE_CMD, buf, &rsp);
-	net_buf_unref(rsp);
+    size = get_enable_buf(data);
+    buf = bt_hci_cmd_create(BT_HCI_OP_ENABLE_CMD, size);
+    net_buf_add_mem(buf, data, size);
+    bt_hci_cmd_send_sync(BT_HCI_OP_ENABLE_CMD, buf, &rsp);
+    net_buf_unref(rsp);
 
 }
 
