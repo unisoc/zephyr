@@ -149,7 +149,8 @@ define GEN_CONFIG_IMAGE
 	@ (cd $(HWCONFIG_DIR) && \
 	if [ -f $(2) ]; then mcopy -i $(1) $(2) ::; fi && \
 	if [ -f $(3) ]; then mcopy -i $(1) $(3) ::; fi && \
-	if [ -f $(4) ]; then mcopy -i $(1) $(4) ::; fi)
+	if [ -f $(4) ]; then mcopy -i $(1) $(4) ::; fi && \
+	if [ -f $(5) ]; then mcopy -i $(1) $(5) ::; fi)
 endef
 
 # Targets
@@ -206,7 +207,7 @@ dist: $(DIST_TARGETS)
 	@ install $(FDL_BIN) $(FDL_DIST_BIN)
 	@ install $(BOOT_BIN) $(BOOT_DIST_BIN)
 	$(call SIGN_KERNEL_IMAGE,$(KERNEL_BIN),$(KERNEL_DIST_BIN))
-	$(call GEN_CONFIG_IMAGE,$(CONFIG_DIST_BIN),wifi_board_config.ini,bt_configure_pskey.ini,bt_configure_rf.ini)
+	$(call GEN_CONFIG_IMAGE,$(CONFIG_DIST_BIN),wifi_board_config.ini,bt_configure_pskey.ini,bt_configure_rf.ini,bt_info.ini)
 #	building u-boot temporarily
 	@ if [ ! -f $(DIST_DIR)/u-boot-pubkey-dtb.bin ]; then \
 	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(uboot_DIR) distclean; \

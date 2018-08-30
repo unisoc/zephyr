@@ -381,8 +381,10 @@ int get_pskey_buf(void *buf)
 void set_mac_address(uint8_t *addr)
 {
     uint8_t addr_t[6] = {0x01, 0x88, 0x66, 0xDA, 0x45, 0x40};
+    u32_t random;
 
-    bt_rand(addr_t, 3);
+    random =sys_rand32_get();
+    memcpy(addr_t, &random, 3);
     memcpy(addr, addr_t, sizeof(addr_t));
 }
 
