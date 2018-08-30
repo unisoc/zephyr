@@ -7,7 +7,7 @@
 #include <zephyr.h>
 #include <gpio.h>
 #include <logging/sys_log.h>
-
+#include <stdbool.h>
 
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
@@ -15,9 +15,11 @@
 #include <bluetooth/uuid.h>
 #include <bluetooth/gatt.h>
 #include <bluetooth/mesh.h>
+#include <tinycrypt/hmac_prng.h>
 
 #include "../../../../drivers/bluetooth/unisoc/uki_utlis.h"
 #include "mesh.h"
+#include "uwp_hal.h"
 
 #if !defined(NODE_ADDR)
 #define NODE_ADDR 0x0b0c
@@ -31,15 +33,29 @@
 #define OP_VENDOR_ACTION BT_MESH_MODEL_OP_3(0x00, BT_COMP_ID)
 
 #define GPIO_PORT0		"UWP_GPIO_P0"
-#define LED_ON 1
-#define LED_OFF 0
-#define LED0_GPIO_PIN_2 2
+#define BUTTON1_GPIO_PIN0 0
+#define LED1_GPIO_PIN1 1
+#define LED2_GPIO_PIN3 3
+#define LED3_GPIO_PIN2 2
 
 #define CUR_FAULTS_MAX 4
+
+#define BT_MESH_MODEL_OP_GEN_ONOFF_GET		BT_MESH_MODEL_OP_2(0x82, 0x01)
+#define BT_MESH_MODEL_OP_GEN_ONOFF_SET		BT_MESH_MODEL_OP_2(0x82, 0x02)
+#define BT_MESH_MODEL_OP_GEN_ONOFF_SET_UNACK	BT_MESH_MODEL_OP_2(0x82, 0x03)
+#define BT_MESH_MODEL_OP_GEN_ONOFF_STATUS	BT_MESH_MODEL_OP_2(0x82, 0x04)
+
+static struct device *gpio;
 
 static u8_t cur_faults[CUR_FAULTS_MAX];
 static u8_t reg_faults[CUR_FAULTS_MAX * 2];
 
+static struct k_work button_work;
+
+static u16_t led_state = 0;
+static u16_t led_light_state = 0;
+
+BT_MESH_MODEL_PUB_DEFINE(gen_onoff_pub_srv, NULL, 2 + 2);
 
 static const u8_t net_key[16] = {
 	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
@@ -54,6 +70,8 @@ static const u8_t app_key[16] = {
 	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
 };
 
+extern u32_t sys_rand32_get();
+
 static struct {
 	u16_t local;
 	u16_t dst;
@@ -64,6 +82,19 @@ static struct {
 	.dst = BT_MESH_ADDR_UNASSIGNED,
 };
 
+struct onoff_state {
+	u8_t current;
+	u8_t previous;
+	u8_t led_gpio_pin;
+	struct device *led_device;
+};
+
+static struct onoff_state onoff_state[] = {
+	{ .led_gpio_pin = LED1_GPIO_PIN1 },
+	{ .led_gpio_pin = LED2_GPIO_PIN3 },
+	{ .led_gpio_pin = LED3_GPIO_PIN2 },
+};
+
 static const u16_t net_idx;
 static const u16_t app_idx;
 static const u32_t iv_index;
@@ -72,6 +103,8 @@ static u16_t addr = NODE_ADDR;
 
 static bt_mesh_input_action_t input_act;
 static u8_t input_size;
+
+static struct tc_hmac_prng_struct prng;
 
 static void heartbeat(u8_t hops, u16_t feat)
 {
@@ -98,6 +131,50 @@ static struct bt_mesh_cfg_srv cfg_srv = {
 	.net_transmit = BT_MESH_TRANSMIT(2, 20),
 	.relay_retransmit = BT_MESH_TRANSMIT(2, 20),
 };
+
+static void gen_onoff_get(struct bt_mesh_model *model,
+			  struct bt_mesh_msg_ctx *ctx,
+			  struct net_buf_simple *buf)
+{
+	BTD("%s\n", __func__);
+}
+
+static void gen_onoff_set(struct bt_mesh_model *model,
+			  struct bt_mesh_msg_ctx *ctx,
+			  struct net_buf_simple *buf)
+{
+	u16_t state = net_buf_simple_pull_le16(buf);
+
+	BTD("%s %d -> %d\n", __func__, led_light_state, state);
+
+	if (state == led_light_state) {
+		return;
+	}
+
+	if (state) {
+		gpio_pin_write(gpio, LED2_GPIO_PIN3, 1);
+		gpio_pin_write(gpio, LED3_GPIO_PIN2, 1);
+	} else {
+		gpio_pin_write(gpio, LED2_GPIO_PIN3, 0);
+		gpio_pin_write(gpio, LED3_GPIO_PIN2, 0);
+	}
+	led_light_state = state;
+}
+
+static void gen_onoff_set_unack(struct bt_mesh_model *model,
+				struct bt_mesh_msg_ctx *ctx,
+				struct net_buf_simple *buf)
+{
+	BTD("%s\n", __func__);
+}
+
+static const struct bt_mesh_model_op gen_onoff_srv_op[] = {
+	{ BT_MESH_MODEL_OP_GEN_ONOFF_GET, 0, gen_onoff_get },
+	{ BT_MESH_MODEL_OP_GEN_ONOFF_SET, 2, gen_onoff_set },
+	{ BT_MESH_MODEL_OP_GEN_ONOFF_SET_UNACK, 2, gen_onoff_set_unack },
+	BT_MESH_MODEL_OP_END,
+};
+
 
 static void get_faults(u8_t *faults, u8_t faults_size, u8_t *dst, u8_t *count)
 {
@@ -209,7 +286,8 @@ static struct bt_mesh_model root_models[] = {
 	BT_MESH_MODEL_CFG_SRV(&cfg_srv),
 	BT_MESH_MODEL_CFG_CLI(&cfg_cli),
 	BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
-//	BT_MESH_MODEL_HEALTH_CLI(&health_cli),
+	BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_ONOFF_SRV, gen_onoff_srv_op,
+			  &gen_onoff_pub_srv, &onoff_state[0]),
 };
 
 
@@ -224,7 +302,6 @@ static struct bt_mesh_model vnd_models[] = {
 };
 
 static struct bt_mesh_elem elements[] = {
-//	BT_MESH_ELEM(0, root_models, BT_MESH_MODEL_NONE),
 	BT_MESH_ELEM(0, root_models, vnd_models),
 };
 
@@ -248,6 +325,9 @@ static void configure(void)
 	/* Bind to Health model */
 	bt_mesh_cfg_mod_app_bind(net_idx, addr, addr, app_idx,
 		BT_MESH_MODEL_ID_HEALTH_SRV, NULL);
+
+	bt_mesh_cfg_mod_app_bind(net_idx, addr, addr, app_idx,
+		BT_MESH_MODEL_ID_GEN_ONOFF_SRV, NULL);
 
 	/* Add model subscription */
 	bt_mesh_cfg_mod_sub_add_vnd(net_idx, addr, addr, GROUP_ADDR,
@@ -442,6 +522,24 @@ void vendor_message_send(void)
 	printk("Vendor message sent with OpCode 0x%08x\n", 0x88);
 }
 
+
+void vendor_led_on_send(void)
+{
+	NET_BUF_SIMPLE_DEFINE(msg, 2 + 1 + 4);
+	struct bt_mesh_msg_ctx ctx = {
+		.net_idx = net_idx,
+		.app_idx = app_idx,
+		.addr = 0xFFFF,
+		.send_ttl = BT_MESH_TTL_DEFAULT,
+	};
+	bt_mesh_model_msg_init(&msg, BT_MESH_MODEL_OP_GEN_ONOFF_SET);
+	net_buf_simple_add_u8(&msg, 1);
+	if (bt_mesh_model_send(&root_models[4], &ctx, &msg, NULL, NULL)) {
+		BTE("Unable to send On Off Status response");
+	}
+
+}
+
 void mesh_enable(void)
 {
 	int err;
@@ -460,20 +558,17 @@ int cmd_led(int argc, char *argv[])
 		return -1;
 	}
 	int status = strtoul(argv[1], NULL, 0);
-	struct device *gpio;
-
-	gpio = device_get_binding(GPIO_PORT0);
-	if(gpio == NULL) {
-		printk("Can not find device %s\n", GPIO_PORT0);
-		return;
-	}
 
 	switch (status) {
 		case 0:
-			gpio_pin_write(gpio, LED0_GPIO_PIN_2, LED_OFF);
+			gpio_pin_write(gpio, LED1_GPIO_PIN1, 1);
+			gpio_pin_write(gpio, LED2_GPIO_PIN3, 1);
+			gpio_pin_write(gpio, LED3_GPIO_PIN2, 1);
 			break;
 		case 1:
-			gpio_pin_write(gpio, LED0_GPIO_PIN_2, LED_ON);
+			gpio_pin_write(gpio, LED1_GPIO_PIN1, 0);
+			gpio_pin_write(gpio, LED2_GPIO_PIN3, 0);
+			gpio_pin_write(gpio, LED3_GPIO_PIN2, 0);
 			break;
 
 	}
@@ -481,19 +576,101 @@ int cmd_led(int argc, char *argv[])
 }
 
 
-static struct k_delayed_work work;
-
-static void work_queue_timeout(struct k_work *work)
+void button_pressed_worker(struct k_work *unused)
 {
-	printk("work queue timeout\n");
+	if (led_state) {
+		BTD("LED OFF\n");
+		led_state = 0;
+		gpio_pin_write(gpio, LED1_GPIO_PIN1, 1);
+	} else {
+		BTD("LED ON\n");
+		led_state = 1;
+		gpio_pin_write(gpio, LED1_GPIO_PIN1, 0);
+	}
+
+	NET_BUF_SIMPLE_DEFINE(msg, 2 + 2 + 4);
+	struct bt_mesh_msg_ctx ctx = {
+		.net_idx = net_idx,
+		.app_idx = app_idx,
+		.addr = 0xFFFF,
+		.send_ttl = BT_MESH_TTL_DEFAULT,
+	};
+	bt_mesh_model_msg_init(&msg, BT_MESH_MODEL_OP_GEN_ONOFF_SET);
+	net_buf_simple_add_le16(&msg, led_state);
+	if (bt_mesh_model_send(&root_models[4], &ctx, &msg, NULL, NULL)) {
+		BTE("Unable to send On Off Status response");
+	}
+
 }
+
+static void button_pressed(struct device *dev, struct gpio_callback *cb,
+			   u32_t pins)
+{
+	u32_t value = 0;
+	gpio_pin_read(gpio, BUTTON1_GPIO_PIN0, &value);
+	if (value == -1)
+		k_work_submit(&button_work);
+}
+
+
 
 void test() {
-	k_delayed_work_init(&work, work_queue_timeout);
-	k_delayed_work_submit(&work, K_SECONDS(2));
+	BTD("%s\n", __func__);
 }
 
 
+void mesh_init(void)
+{
+	static struct gpio_callback button_cb;
+
+	BTD("%s\n", __func__);
+	gpio = device_get_binding(GPIO_PORT0);
+	uwp_aon_irq_enable(AON_INT_GPIO0);
+	gpio_pin_configure(gpio, BUTTON1_GPIO_PIN0,
+			   (GPIO_DIR_IN | GPIO_INT | GPIO_INT_EDGE
+			   | GPIO_PUD_PULL_UP
+			   | GPIO_INT_ACTIVE_LOW));
+	unsigned int *p = 0x40840000 + 0x10;
+	*p = *p | (1 << 8);
+
+	gpio_init_callback(&button_cb, button_pressed,
+			   BIT(BUTTON1_GPIO_PIN0));
+	gpio_add_callback(gpio, &button_cb);
+	gpio_pin_enable_callback(gpio, BUTTON1_GPIO_PIN0);
+
+	gpio_pin_configure(gpio, LED1_GPIO_PIN1, 1);
+	gpio_pin_configure(gpio, LED2_GPIO_PIN3, 1);
+	gpio_pin_configure(gpio, LED3_GPIO_PIN2, 1);
+
+	addr = sys_rand32_get() & 0x7F;
+
+	k_work_init(&button_work, button_pressed_worker);
+
+	//mesh_enable();
+
+	gpio_pin_write(gpio, LED1_GPIO_PIN1, 0);
+	k_sleep(800);
+	gpio_pin_write(gpio, LED1_GPIO_PIN1, 1);
+	k_sleep(800);
+	gpio_pin_write(gpio, LED1_GPIO_PIN1, 0);
+	k_sleep(800);
+	gpio_pin_write(gpio, LED1_GPIO_PIN1, 1);
+
+
+}
+
+
+void mesh_info(void)
+{
+	BTD("%s\n", __func__);
+	BTI("Current addr: 0x%02X\n", addr);
+	//unsigned int *p = 0x40840000;
+	//BTI("GPIO 0: 0x%08X\n", *(p + 0x10));
+	//BTI("GPIO 1: 0x%08X\n", *(p + 0x14));
+	//BTI("GPIO 2: 0x%08X\n", *(p + 0x18));
+	//BTI("GPIO 3: 0x%08X\n", *(p + 0x1C));
+	//BTI("REST 3: 0x%08X\n", *(p + 0x64));
+}
 
 int cmd_mesh(int argc, char *argv[])
 {
@@ -510,6 +687,10 @@ int cmd_mesh(int argc, char *argv[])
 		vendor_net_send();
 	} else if (!strcmp(argv[1], "msg_tx")) {
 		vendor_message_send();
+	} else if (!strcmp(argv[1], "led")) {
+		vendor_led_on_send();
+	} else if (!strcmp(argv[1], "info")) {
+		mesh_info();
 	} else if (!strcmp(argv[1], "test")) {
 		test();
 	} else {

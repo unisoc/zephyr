@@ -4414,9 +4414,7 @@ int bt_recv(struct net_buf *buf)
 #if defined(CONFIG_BT_RECV_IS_RX_THREAD)
 		hci_event(buf);
 #else
-		BT_DBG("put rx_queue ++");
 		net_buf_put(&bt_dev.rx_queue, buf);
-		BT_DBG("put rx_queue --");
 #endif
 		return 0;
 	default:

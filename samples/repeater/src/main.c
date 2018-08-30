@@ -27,6 +27,7 @@
 #include <net/net_mgmt.h>
 
 #include "uwp_hal.h"
+#include "bluetooth/blues.h"
 
 #ifdef SYS_LOG_DOMAIN
 #undef SYS_LOG_DOMAIN
@@ -114,7 +115,7 @@ void led_switch(struct device *dev)
 	gpio_pin_write(dev, GPIO2, sw);
 }
 
-#if 0
+#if 1
 struct gpio_callback cb;
 
 static void gpio_callback(struct device *dev,
@@ -638,6 +639,8 @@ void main(void)
 	wdg_init();
 
 	download_wifi_ini();
+
+	blues_init();
 
 	while(1) {}
 	//uwp_aon_irq_enable(AON_INT_GPIO0);

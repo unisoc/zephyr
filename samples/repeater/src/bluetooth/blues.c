@@ -60,21 +60,15 @@ static void bt_ready(int err)
 	printk("Advertising successfully started\n");
 }
 
-void blues_init(void)
+static int cmd_init(int argc, char *argv[])
 {
 	int err;
 
 	err = bt_enable(bt_ready);
 	if (err) {
 		printk("Bluetooth init failed (err %d)\n", err);
-		return;
 	}
-}
-
-static int cmd_init(int argc, char *argv[])
-{
-	blues_init();
-	return 0;
+	return err;
 }
 
 static int cmd_vlog(int argc, char *argv[])
@@ -99,6 +93,11 @@ static int cmd_slog(int argc, char *argv[])
 	return 0;
 }
 
+void blues_init(void)
+{
+	BTD("%s\n", __func__);
+	mesh_init();
+}
 
 static const struct shell_cmd blues_commands[] = {
 	{ "init", cmd_init, NULL },
