@@ -357,6 +357,7 @@ int wifi_evt_scan_result(struct wifi_priv *priv, char *data, int len)
 	result.security = WIFI_SECURITY_TYPE_NONE;
 	memcpy(result.ssid, event->ssid, MAX_SSID_LEN);
 	result.ssid_length = strlen(result.ssid);
+	memcpy(result.bssid, event->bssid, ETH_ALEN);
 
 	result.channel = event->channel;
 	result.rssi = event->rssi;
