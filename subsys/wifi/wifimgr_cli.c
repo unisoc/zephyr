@@ -30,12 +30,13 @@ static int wifimgr_cmd_set_config(int argc, char *argv[])
 	ssid = argv[2];
 
 	if (argv[3])
-		passphrase = argv[3];
-
-	if (argv[4])
 		channel = atoi(argv[4]);
 
-	return wifimgr_ctrl_iface_set_conf(iface_name, ssid, passphrase, channel);
+	if (argv[4])
+		passphrase = argv[3];
+
+	return wifimgr_ctrl_iface_set_conf(iface_name, ssid, NULL, channel,
+					   passphrase);
 }
 
 static int wifimgr_cmd_get_config(int argc, char *argv[])
@@ -112,31 +113,30 @@ static int wifimgr_cmd_del_station(int argc, char *argv[])
 }
 
 static struct shell_cmd wifimgr_commands[] = {
-	{ "set_config",		wifimgr_cmd_set_config,
-	  "<iface, sta or ap> <SSID> "
-	  "<PSK (optional: valid only for secured SSIDs)> "
-	  "<channel number (optional)>" },
-	{ "get_config",		wifimgr_cmd_get_config,
-	  "<iface, sta or ap>" },
-	{ "status",		wifimgr_cmd_status,
-	  NULL },
-	{ "open",		wifimgr_cmd_open,
-	  "<iface, sta or ap>" },
-	{ "close",		wifimgr_cmd_close,
-	  "<iface, sta or ap>" },
-	{ "scan",		wifimgr_cmd_scan,
-	  NULL },
-	{ "connect",		wifimgr_cmd_connect,
-	  NULL },
-	{ "disconnect",		wifimgr_cmd_disconnect,
-	  NULL },
-	{ "start_ap",		wifimgr_cmd_start_ap,
-	  NULL },
-	{ "stop_ap",		wifimgr_cmd_stop_ap,
-	  NULL },
-	{ "del_station",	wifimgr_cmd_del_station,
-	  NULL },
-	{ NULL, NULL, NULL },
+	{"set_config", wifimgr_cmd_set_config,
+	 "<iface, sta or ap> <SSID> <channel (optional, 0 means any)> "
+	 "<PSK (optional: valid only for secured SSIDs)>"},
+	{"get_config", wifimgr_cmd_get_config,
+	 "<iface, sta or ap>"},
+	{"status", wifimgr_cmd_status,
+	 NULL},
+	{"open", wifimgr_cmd_open,
+	 "<iface, sta or ap>"},
+	{"close", wifimgr_cmd_close,
+	 "<iface, sta or ap>"},
+	{"scan", wifimgr_cmd_scan,
+	 NULL},
+	{"connect", wifimgr_cmd_connect,
+	 NULL},
+	{"disconnect", wifimgr_cmd_disconnect,
+	 NULL},
+	{"start_ap", wifimgr_cmd_start_ap,
+	 NULL},
+	{"stop_ap", wifimgr_cmd_stop_ap,
+	 NULL},
+	{"del_station", wifimgr_cmd_del_station,
+	 NULL},
+	{NULL, NULL, NULL},
 };
 
 static int wifimgr_shell_init(struct device *unused)

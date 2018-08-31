@@ -22,6 +22,16 @@
 #include <net/net_if.h>
 #include <net/wifi_mgmt.h>
 
+#define LOG_ERR         SYS_LOG_LEVEL_ERROR
+#define LOG_WARNING     SYS_LOG_LEVEL_WARNING
+#define LOG_INFO        SYS_LOG_LEVEL_INFO
+#define LOG_DEBUG       SYS_LOG_LEVEL_DEBUG
+
+#define syslog(log_level, ...)	SYS_ ## log_level(__VA_ARGS__)
+#define SYS_LOG_WARNING(...) SYS_LOG_WRN(__VA_ARGS__)
+#define SYS_LOG_INFO(...) printk(__VA_ARGS__)
+#define SYS_LOG_DEBUG(...) SYS_LOG_DBG(__VA_ARGS__)
+
 /*
  * Copied from include/linux/...
  */
@@ -44,7 +54,7 @@
 #define free(ptr)		k_free(ptr)
 
 #if !defined(CONFIG_NATIVE_POSIX_STDOUT_CONSOLE)
-#define fflush(...) { ; }
+#define fflush(...)
 #endif
 
 #define wifimgr_slist_init(list)		sys_slist_init(list)

@@ -45,21 +45,22 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 	return ret;
 }
 
-int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid,
-				       char *passphrase, unsigned char channel)
+int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
+				unsigned char channel, char *passphrase)
 {
 	struct wifimgr_config conf;
 	unsigned int cmd_id = 0;
 
 	memset(&conf, 0, sizeof(conf));
 	strcpy(conf.ssid, ssid);
+	strcpy(conf.bssid, bssid);
 	strcpy(conf.passphrase, passphrase);
 
-	if(!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME)) {
+	if (!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME)) {
 		cmd_id = WIFIMGR_CMD_SET_STA_CONFIG;
-	} else if(!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME)) {
+	} else if (!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME)) {
 		cmd_id = WIFIMGR_CMD_SET_AP_CONFIG;
-		/*conf.band = band;*/
+		/*conf.band = band; */
 		conf.channel = channel;
 	} else
 		return -1;
@@ -71,9 +72,9 @@ int wifimgr_ctrl_iface_get_conf(char *iface_name)
 {
 	unsigned int cmd_id = 0;
 
-	if(!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME))
+	if (!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME))
 		cmd_id = WIFIMGR_CMD_GET_STA_CONFIG;
-	else if(!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME))
+	else if (!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME))
 		cmd_id = WIFIMGR_CMD_GET_AP_CONFIG;
 	else
 		return -1;
@@ -90,9 +91,9 @@ int wifimgr_ctrl_iface_open(char *iface_name)
 {
 	unsigned int cmd_id = 0;
 
-	if(!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME))
+	if (!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME))
 		cmd_id = WIFIMGR_CMD_OPEN_STA;
-	else if(!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME))
+	else if (!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME))
 		cmd_id = WIFIMGR_CMD_OPEN_AP;
 	else
 		return -1;
@@ -104,9 +105,9 @@ int wifimgr_ctrl_iface_close(char *iface_name)
 {
 	unsigned int cmd_id = 0;
 
-	if(!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME))
+	if (!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME))
 		cmd_id = WIFIMGR_CMD_CLOSE_STA;
-	else if(!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME))
+	else if (!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME))
 		cmd_id = WIFIMGR_CMD_CLOSE_AP;
 	else
 		return -1;
@@ -139,14 +140,15 @@ int wifimgr_ctrl_iface_stop_ap(void)
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_STOP_AP, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_del_station(unsigned char *mac)
+int wifimgr_ctrl_iface_del_station(char *mac)
 {
 	char mac_addr[WIFIMGR_ETH_ALEN] = {0xff,0xff,0xff,0xff,0xff,0xff};
 
-	if(mac)
+	if (mac)
 		strncpy(mac_addr, mac, WIFIMGR_ETH_ALEN);
 
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_DEL_STATION, mac_addr, WIFIMGR_ETH_ALEN);
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_DEL_STATION, mac_addr,
+					   WIFIMGR_ETH_ALEN);
 }
 
 static const struct wifimgr_ctrl_ops wifimgr_ops = {

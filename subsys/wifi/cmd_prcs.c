@@ -194,7 +194,8 @@ int wifi_manager_command_processor_init(struct cmd_processor *handle)
 	pthread_attr_init(&tattr);
 	sparam.priority = WIFIMGR_CMD_PROCESSOR_PRIORITY;
 	pthread_attr_setschedparam(&tattr, &sparam);
-	pthread_attr_setstack(&tattr, &cmd_stacks[0][0], WIFIMGR_CMD_PROCESSOR_STACKSIZE);
+	pthread_attr_setstack(&tattr, &cmd_stacks[0][0],
+			      WIFIMGR_CMD_PROCESSOR_STACKSIZE);
 	pthread_attr_setschedpolicy(&tattr, SCHED_FIFO);
 
 	ret = pthread_create(&prcs->pid, &tattr, command_processor, prcs);

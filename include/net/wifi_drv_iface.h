@@ -9,23 +9,23 @@
 
 #include <net/wifi_mgmt.h>
 
-int wifi_drv_iface_load_fw(int firmware_type);
-int wifi_drv_iface_get_mac(int ictx_id, char *buf);
-int wifi_drv_iface_open_station(struct device *dev);
-int wifi_drv_iface_close_station(struct device *dev);
-int wifi_drv_iface_scan(struct device *dev);
-int wifi_drv_iface_connect(struct device *dev, char *ssid, char *passwd);
-int wifi_drv_iface_disconnect(struct device *dev);
-int wifi_drv_iface_get_station(struct device *dev, char* signal);
-int wifi_drv_iface_open_softap(struct device *dev);
-int wifi_drv_iface_close_softap(struct device *dev);
-int wifi_drv_iface_start_softap(struct device *dev, char *ssid, char *passwd, char channel);
-int wifi_drv_iface_stop_softap(struct device *dev);
-int wifi_drv_iface_del_station(struct device *dev, char *mac);
+int wifi_drv_iface_get_mac(void *iface, char *mac);
+int wifi_drv_iface_open_station(void *iface);
+int wifi_drv_iface_close_station(void *iface);
+int wifi_drv_iface_scan(void *iface);
+int wifi_drv_iface_connect(void *iface, char *ssid, char *passwd);
+int wifi_drv_iface_disconnect(void *iface);
+int wifi_drv_iface_get_station(void *iface, char *signal);
+int wifi_drv_iface_open_softap(void *iface);
+int wifi_drv_iface_close_softap(void *iface);
+int wifi_drv_iface_start_softap(void *iface, char *ssid, char *passwd,
+				char channel);
+int wifi_drv_iface_stop_softap(void *iface);
+int wifi_drv_iface_del_station(void *iface, char *mac);
 
 void wifi_drv_iface_scan_result_cb(struct net_if *iface, int status,
 				   struct wifi_scan_result *entry);
-void wifi_drv_iface_scan_done_cb(struct net_if *iface, int status);
-void wifi_drv_iface_connect_cb(struct net_if *iface, int status);
-void wifi_drv_iface_disconnect_cb(struct net_if *iface, int status);
+void wifi_drv_iface_scan_done_cb(void *iface, int status);
+void wifi_drv_iface_connect_cb(void *iface, int status);
+void wifi_drv_iface_disconnect_cb(void *iface, int status);
 #endif

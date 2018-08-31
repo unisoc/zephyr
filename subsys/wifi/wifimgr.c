@@ -124,23 +124,23 @@ int wifi_manager_get_status(void *handle)
 	struct wifimgr_status *sta_sts = &mgr->sta_sts;
 	struct wifimgr_state_machine *ap_sm = &mgr->ap_sm;
 
-	printk("STA Status:\t%s\n", sta_sts2str(sta_sm->state));
+	syslog(LOG_INFO, "STA Status:\t%s\n", sta_sts2str(sta_sm->state));
 
 	if (sm_sta_connected(sta_sm) == true) {
-		printk("SSID:\t\t%s\n", sta_sts->ssid);
-		printk("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+		syslog(LOG_INFO, "SSID:\t\t%s\n", sta_sts->ssid);
+		syslog(LOG_INFO, "BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
 		       sta_sts->bssid[0],
 		       sta_sts->bssid[1],
 		       sta_sts->bssid[2],
 		       sta_sts->bssid[3], sta_sts->bssid[4], sta_sts->bssid[5]);
-		printk("Band:\t\t%u\n", sta_sts->band);
-		printk("Channel:\t%u\n", sta_sts->channel);
+		syslog(LOG_INFO, "Band:\t\t%u\n", sta_sts->band);
+		syslog(LOG_INFO, "Channel:\t%u\n", sta_sts->channel);
 		wifi_manager_get_station(mgr);
-		printk("Signal:\t\t%d\n", sta_sts->rssi);
+		syslog(LOG_INFO, "Signal:\t\t%d\n", sta_sts->rssi);
 	}
 
-	printk("\n");
-	printk("AP Status:\t%s\n", ap_sts2str(ap_sm->state));
+	syslog(LOG_INFO, "\n");
+	syslog(LOG_INFO, "AP Status:\t%s\n", ap_sts2str(ap_sm->state));
 	fflush(stdout);
 
 	return 0;
@@ -151,7 +151,14 @@ bool wifi_manager_first_run(struct wifi_manager * mgr)
 	return mgr->fw_loaded == false;
 }
 
-static int wifi_drv_iface_init(struct wifi_manager *mgr, char *devname)
+int wifi_manager_load_fw(int firmware_type)
+{
+	/* TODO */
+
+	return 0;
+}
+
+static int wifi_manager_drv_iface_init(struct wifi_manager *mgr, char *devname)
 {
 	struct device *dev;
 	struct net_if *iface;
@@ -161,7 +168,6 @@ static int wifi_drv_iface_init(struct wifi_manager *mgr, char *devname)
 		syslog(LOG_ERR, "failed to get device %s!\n", devname);
 		return -ENODEV;
 	}
-	mgr->sta_dev = dev;
 
 	iface = net_if_lookup_by_dev(dev);
 	if (!iface) {
@@ -179,13 +185,13 @@ int wifi_manager_low_level_init(struct wifi_manager *mgr)
 
 	syslog(LOG_DEBUG, "first time!\n");
 /*
-	ret = wifi_drv_iface_load_fw(UNSC_FIRMWARE_WIFI);
+	ret = wifi_manager_load_fw(UNSC_FIRMWARE_WIFI);
 	if (ret) {
 		syslog(LOG_ERR, "failed to load WiFi firmware!\n");
 		return ret;
 	}
 */
-	ret = wifi_drv_iface_init(mgr, WIFIMGR_STA_DEVNAME);
+	ret = wifi_manager_drv_iface_init(mgr, WIFIMGR_STA_DEVNAME);
 	if (ret) {
 		syslog(LOG_ERR, "failed to init WiFi driver interface!\n");
 		return ret;
@@ -208,7 +214,7 @@ static int wifi_manager_init(struct device *unused)
 
 	ARG_UNUSED(unused);
 
-	/*setlogmask(~(LOG_MASK(LOG_DEBUG)));*/
+	/*setlogmask(~(LOG_MASK(LOG_DEBUG))); */
 	syslog(LOG_INFO, "WiFi manager start\n");
 
 	memset(mgr, 0, sizeof(struct wifi_manager));

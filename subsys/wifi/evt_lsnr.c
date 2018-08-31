@@ -237,7 +237,8 @@ int wifi_manager_event_listener_init(struct evt_listener *handle)
 	pthread_attr_init(&tattr);
 	sparam.priority = WIFIMGR_EVT_LISTENER_PRIORITY;
 	pthread_attr_setschedparam(&tattr, &sparam);
-	pthread_attr_setstack(&tattr, &evt_stacks[0][0], WIFIMGR_EVT_LISTENER_STACKSIZE);
+	pthread_attr_setstack(&tattr, &evt_stacks[0][0],
+			      WIFIMGR_EVT_LISTENER_STACKSIZE);
 	pthread_attr_setschedpolicy(&tattr, SCHED_FIFO);
 
 	ret = pthread_create(&lsnr->evt_pid, &tattr, event_listener, lsnr);

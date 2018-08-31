@@ -41,6 +41,7 @@
 
 struct wifimgr_config {
 	char ssid[WIFIMGR_MAX_SSID_LEN];
+	char bssid[WIFIMGR_ETH_ALEN];
 	char passphrase[WIFIMGR_MAX_PSPHR_LEN];
 	unsigned char band;
 	unsigned char channel;
@@ -51,7 +52,7 @@ struct wifimgr_status {
 	char bssid[WIFIMGR_ETH_ALEN];
 	unsigned char band;
 	unsigned char channel;
-	signed char rssi;
+	char rssi;
 };
 
 struct wifimgr_evt_connect {
@@ -93,11 +94,8 @@ struct wifi_manager {
 	struct cmd_processor prcs;
 	struct evt_listener lsnr;
 
-	struct device *sta_dev;
-	struct net_if *sta_iface;
-
-	struct device *ap_dev;
-	struct net_if *ap_iface;
+	void *sta_iface;
+	void *ap_iface;
 
 	struct wifimgr_evt_connect evt_conn;
 	struct wifimgr_evt_disconnect evt_disc;
