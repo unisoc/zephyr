@@ -10,46 +10,43 @@
 #include "wifimgr.h"
 
 #define WIFI_SHELL_MODULE "wifimgr"
+#define WIFIMGR_CLI_PRIORITY	CONFIG_KERNEL_INIT_PRIORITY_DEFAULT
 
-#define WIFI_SHELL_MGMT_EVENTS (NET_EVENT_WIFI_SCAN_RESULT |		\
-				NET_EVENT_WIFI_SCAN_DONE |		\
-				NET_EVENT_WIFI_CONNECT_RESULT |		\
-				NET_EVENT_WIFI_DISCONNECT_RESULT)
-
-static struct net_mgmt_event_callback wifimgr_event_cb;
-
-static void wifimgr_event_handler(struct net_mgmt_event_callback *cb,
-				    u32_t mgmt_event, struct net_if *iface)
+static int wifimgr_cmd_set_config(int argc, char *argv[])
 {
-	/*switch (mgmt_event) {
-	case NET_EVENT_WIFI_SCAN_RESULT:
-		handle_wifi_scan_result(cb);
-		break;
-	case NET_EVENT_WIFI_SCAN_DONE:
-		handle_wifi_scan_done(cb);
-		break;
-	case NET_EVENT_WIFI_CONNECT_RESULT:
-		handle_wifi_connect_result(cb);
-		break;
-	case NET_EVENT_WIFI_DISCONNECT_RESULT:
-		handle_wifi_disconnect_result(cb);
-		break;
-	default:
-		break;
-	}*/
+	char *iface_name, *ssid;
+	char *passphrase = NULL;
+	unsigned char channel = 0;
+
+	if (argc < 3 || argc > 5)
+		return -EINVAL;
+
+	if (!argv[1])
+		return -EINVAL;
+	iface_name = argv[1];
+
+	if (!argv[2])
+		return -EINVAL;
+	ssid = argv[2];
+
+	if (argv[3])
+		passphrase = argv[3];
+
+	if (argv[4])
+		channel = atoi(argv[4]);
+
+	return wifimgr_ctrl_iface_set_conf(iface_name, ssid, passphrase, channel);
 }
 
 static int wifimgr_cmd_get_config(int argc, char *argv[])
 {
-	char *iface_name = &argv[1][1];
-	int ret = -1;
+	char *iface_name;
 
-	if(!strncmp(iface_name, "sta", strlen("sta")))
-		ret = wifimgr_ctrl_iface_open_sta();
-	else if(!strncmp(iface_name, "ap", strlen("ap")))
-		ret = wifimgr_ctrl_iface_open_ap();
+	if (argc != 2 || !argv[1])
+		return -EINVAL;
+	iface_name = argv[1];
 
-	return ret;
+	return wifimgr_ctrl_iface_get_conf(iface_name);
 }
 
 static int wifimgr_cmd_status(int argc, char *argv[])
@@ -59,20 +56,24 @@ static int wifimgr_cmd_status(int argc, char *argv[])
 
 static int wifimgr_cmd_open(int argc, char *argv[])
 {
-	char *iface_name = &argv[1][1];
-	int ret = -1;
+	char *iface_name;
 
-	if(!strncmp(iface_name, "sta", strlen("sta")))
-		ret = wifimgr_ctrl_iface_open_sta();
-	else if(!strncmp(iface_name, "ap", strlen("ap")))
-		ret = wifimgr_ctrl_iface_open_ap();
+	if (argc != 2 || !argv[1])
+		return -EINVAL;
+	iface_name = argv[1];
 
-	return ret;
+	return wifimgr_ctrl_iface_open(iface_name);
 }
 
 static int wifimgr_cmd_close(int argc, char *argv[])
 {
-	return wifimgr_ctrl_iface_close_sta();
+	char *iface_name;
+
+	if (argc != 2 || !argv[1])
+		return -EINVAL;
+	iface_name = argv[1];
+
+	return wifimgr_ctrl_iface_close(iface_name);
 }
 
 static int wifimgr_cmd_scan(int argc, char *argv[])
@@ -80,76 +81,60 @@ static int wifimgr_cmd_scan(int argc, char *argv[])
 	return wifimgr_ctrl_iface_scan();
 }
 
-static int shell_cmd_connect(int argc, char *argv[])
+static int wifimgr_cmd_connect(int argc, char *argv[])
 {
-	struct net_if *iface = net_if_get_default();
-	static struct wifi_connect_req_params cnx_params;
-	int idx = 3;
-
-	if (argc < 3) {
-		return -EINVAL;
-	}
-
-	cnx_params.ssid_length = atoi(argv[2]);
-	if (cnx_params.ssid_length <= 2) {
-		return -EINVAL;
-	}
-
-	cnx_params.ssid = &argv[1][1];
-
-	argv[1][cnx_params.ssid_length + 1] = '\0';
-
-	if ((idx < argc) && (strlen(argv[idx]) <= 2)) {
-		cnx_params.channel = atoi(argv[3]);
-		if (cnx_params.channel == 0) {
-			cnx_params.channel = WIFI_CHANNEL_ANY;
-		}
-
-		idx++;
-	} else {
-		cnx_params.channel = WIFI_CHANNEL_ANY;
-	}
-
-	if (idx < argc) {
-		cnx_params.psk = argv[idx];
-		cnx_params.psk_length = strlen(argv[idx]);
-		cnx_params.security = WIFI_SECURITY_TYPE_PSK;
-	} else {
-		cnx_params.security = WIFI_SECURITY_TYPE_NONE;
-	}
-
-	if (net_mgmt(NET_REQUEST_WIFI_CONNECT, iface,
-		     &cnx_params, sizeof(struct wifi_connect_req_params))) {
-		printk("Connection request failed\n");
-	} else {
-		printk("Connection requested\n");
-	}
-
-	return 0;
+	return wifimgr_ctrl_iface_connect();
 }
 
-static int shell_cmd_disconnect(int argc, char *argv[])
+static int wifimgr_cmd_disconnect(int argc, char *argv[])
 {
-	return wifimgr_ctrl_iface_scan();
+	return wifimgr_ctrl_iface_disconnect();
+}
+
+static int wifimgr_cmd_start_ap(int argc, char *argv[])
+{
+	return wifimgr_ctrl_iface_start_ap();
+}
+
+static int wifimgr_cmd_stop_ap(int argc, char *argv[])
+{
+	return wifimgr_ctrl_iface_stop_ap();
+}
+
+static int wifimgr_cmd_del_station(int argc, char *argv[])
+{
+	char *mac = NULL;
+
+	if (argv[1])
+		mac = argv[1];
+
+	return wifimgr_ctrl_iface_del_station(mac);
 }
 
 static struct shell_cmd wifimgr_commands[] = {
-	/*{ "get_config",		wifimgr_cmd_get_config,
-	  NULL },
 	{ "set_config",		wifimgr_cmd_set_config,
-	  NULL },*/
+	  "<iface, sta or ap> <SSID> "
+	  "<PSK (optional: valid only for secured SSIDs)> "
+	  "<channel number (optional)>" },
+	{ "get_config",		wifimgr_cmd_get_config,
+	  "<iface, sta or ap>" },
 	{ "status",		wifimgr_cmd_status,
 	  NULL },
 	{ "open",		wifimgr_cmd_open,
-	  "\"<interface, sta or ap>\"" },
+	  "<iface, sta or ap>" },
 	{ "close",		wifimgr_cmd_close,
-	  "\"<interface, sta or ap>\"" },
+	  "<iface, sta or ap>" },
 	{ "scan",		wifimgr_cmd_scan,
 	  NULL },
-	{ "connect",		shell_cmd_connect,
-	  "\"<SSID>\" <SSID length> <channel number (optional), 0 means all> "
-	  "<PSK (optional: valid only for secured SSIDs)>" },
-	{ "disconnect",		shell_cmd_disconnect,
+	{ "connect",		wifimgr_cmd_connect,
+	  NULL },
+	{ "disconnect",		wifimgr_cmd_disconnect,
+	  NULL },
+	{ "start_ap",		wifimgr_cmd_start_ap,
+	  NULL },
+	{ "stop_ap",		wifimgr_cmd_stop_ap,
+	  NULL },
+	{ "del_station",	wifimgr_cmd_del_station,
 	  NULL },
 	{ NULL, NULL, NULL },
 };
@@ -158,16 +143,9 @@ static int wifimgr_shell_init(struct device *unused)
 {
 	ARG_UNUSED(unused);
 
-	net_mgmt_init_event_callback(&wifimgr_event_cb,
-				     wifimgr_event_handler,
-				     WIFI_SHELL_MGMT_EVENTS);
-
-	net_mgmt_add_event_callback(&wifimgr_event_cb);
-
 	SHELL_REGISTER(WIFI_SHELL_MODULE, wifimgr_commands);
 
 	return 0;
 }
 
-#define WIFIMGR_CLI_PRIORITY	CONFIG_KERNEL_INIT_PRIORITY_DEFAULT
 SYS_INIT(wifimgr_shell_init, APPLICATION, WIFIMGR_CLI_PRIORITY);

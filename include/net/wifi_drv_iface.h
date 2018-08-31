@@ -21,7 +21,7 @@ int wifi_drv_iface_open_softap(struct device *dev);
 int wifi_drv_iface_close_softap(struct device *dev);
 int wifi_drv_iface_start_softap(struct device *dev, char *ssid, char *passwd, char channel);
 int wifi_drv_iface_stop_softap(struct device *dev);
-int wifi_drv_iface_del_station(struct device *dev, char *mac, char reason_code);
+int wifi_drv_iface_del_station(struct device *dev, char *mac);
 
 void wifi_drv_iface_scan_result_cb(struct net_if *iface, int status,
 				   struct wifi_scan_result *entry);

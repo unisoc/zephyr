@@ -150,7 +150,7 @@ int wifi_drv_iface_stop_softap(struct device *dev)
 	return mgmt_api->stop_ap(dev);
 }
 
-int wifi_drv_iface_del_station(struct device *dev,char *mac, char reason_code)
+int wifi_drv_iface_del_station(struct device *dev,char *mac)
 {
 	struct net_wifi_mgmt_api *mgmt_api =
 		(struct net_wifi_mgmt_api *) dev->driver_api;

@@ -9,7 +9,7 @@
 int wifi_manager_get_ap_config(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifimgr_ap_config *ap_conf = &mgr->ap_conf;
+	struct wifimgr_config *ap_conf = &mgr->ap_conf;
 
 	if (ap_conf->ssid[0] != '\0') {
 		printk("AP Config\n");
@@ -26,7 +26,7 @@ int wifi_manager_get_ap_config(void *handle)
 
 int wifi_manager_set_ap_config(void *handle)
 {
-	struct wifimgr_ap_config *ap_conf = (struct wifimgr_ap_config *)handle;
+	struct wifimgr_config *ap_conf = (struct wifimgr_config *)handle;
 
 	printk("Setting AP SSID to %s\n", ap_conf->ssid);
 
@@ -70,7 +70,7 @@ static int wifi_manager_new_station_event_cb(void *arg)
 int wifi_manager_start_softap(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifimgr_ap_config *ap_conf = &mgr->ap_conf;
+	struct wifimgr_config *ap_conf = &mgr->ap_conf;
 	/*struct netif *netif;*/
 	int ret;
 

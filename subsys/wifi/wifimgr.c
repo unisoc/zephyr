@@ -9,6 +9,8 @@
 
 #include "wifimgr.h"
 
+#define WIFIMGR_PRIORITY	39
+
 static struct wifi_manager wifimgr;
 
 const char *wifimgr_sts2str(struct wifi_manager *mgr, unsigned int cmd_id)
@@ -119,7 +121,7 @@ int wifi_manager_get_status(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_state_machine *sta_sm = &mgr->sta_sm;
-	struct wifimgr_sta_status *sta_sts = &mgr->sta_sts;
+	struct wifimgr_status *sta_sts = &mgr->sta_sts;
 	struct wifimgr_state_machine *ap_sm = &mgr->ap_sm;
 
 	printk("STA Status:\t%s\n", sta_sts2str(sta_sm->state));
@@ -229,5 +231,4 @@ static int wifi_manager_init(struct device *unused)
 	return ret;
 }
 
-#define WIFIMGR_PRIORITY	39
 SYS_INIT(wifi_manager_init, APPLICATION, WIFIMGR_PRIORITY);

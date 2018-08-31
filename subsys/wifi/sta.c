@@ -11,7 +11,7 @@
 int wifi_manager_get_sta_config(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifimgr_sta_config *sta_conf = &mgr->sta_conf;
+	struct wifimgr_config *sta_conf = &mgr->sta_conf;
 
 	if (sta_conf->ssid[0] != '\0') {
 		printk("STA Config\n");
@@ -27,8 +27,8 @@ int wifi_manager_get_sta_config(void *handle)
 
 int wifi_manager_set_sta_config(void *handle)
 {
-	struct wifimgr_sta_config *sta_conf =
-	    (struct wifimgr_sta_config *)handle;
+	struct wifimgr_config *sta_conf =
+	    (struct wifimgr_config *)handle;
 
 	printk("Setting STA SSID to %s\n", sta_conf->ssid);
 
@@ -70,13 +70,14 @@ static int wifi_manager_disconnect_event(void *arg)
 		dhcp_stop(netif);
 	}
 */
-	/*Clear the info of specified AP */
+/*
+	[>Clear the info of specified AP <]
 	if (!strcmp(mgr->sta_sts.ssid, mgr->sta_conf.ssid))
 		if (!strncmp(mgr->sta_sts.bssid, mgr->sta_conf.bssid, WIFIMGR_ETH_ALEN)
 		    || is_zero_ether_addr(mgr->sta_conf.bssid))
 			memset(&mgr->sta_sts, 0,
-			       sizeof(struct wifimgr_sta_status));
-
+			       sizeof(struct wifimgr_status));
+*/
 	/* Notify the external caller */
 	if (wifimgr_get_ctrl_cbs() && wifimgr_get_ctrl_cbs()->notify_disconnect)
 		wifimgr_get_ctrl_cbs()->notify_disconnect(&evt_disc->
@@ -129,6 +130,20 @@ static int wifi_manager_connect_event(void *arg)
 			dhcp_start(netif);
 		}
 */
+/*
+	[> Record the info of specified AP <]
+	if (!strcmp(evt_scan_res->ssid, mgr->sta_conf.ssid)) {
+		if (!strncmp(evt_scan_res->bssid, mgr->sta_conf.bssid, WIFIMGR_ETH_ALEN)
+		    || is_zero_ether_addr(mgr->sta_conf.bssid)) {
+			strcpy(mgr->sta_sts.ssid, evt_scan_res->ssid);
+			strncpy(mgr->sta_sts.bssid, evt_scan_res->bssid,
+				WIFIMGR_ETH_ALEN);
+			mgr->sta_sts.band = evt_scan_res->band;
+			mgr->sta_sts.channel = evt_scan_res->channel;
+			mgr->sta_sts.rssi = evt_scan_res->rssi;
+		}
+	}
+*/
 		/* Notify the external caller */
 		if (wifimgr_get_ctrl_cbs()
 		    && wifimgr_get_ctrl_cbs()->notify_connect)
@@ -145,7 +160,7 @@ static int wifi_manager_connect_event(void *arg)
 int wifi_manager_connect(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifimgr_sta_config *sta_conf = &mgr->sta_conf;
+	struct wifimgr_config *sta_conf = &mgr->sta_conf;
 	int ret;
 
 	if (sta_conf->ssid[0] == '\0') {
@@ -175,30 +190,15 @@ static int wifi_manager_scan_result(void *arg)
 {
 	struct wifimgr_evt_scan_result *evt_scan_res =
 	    (struct wifimgr_evt_scan_result *)arg;
-	struct wifi_manager *mgr =
-	    container_of(evt_scan_res, struct wifi_manager, evt_scan_res);
 	int ret = 0;
 
 	printk("\t%-32s", evt_scan_res->ssid);
-	printk("\t%02x:%02x:%02x:%02x:%02x:%02x\t%u\t%u\t%d\n",
+	printk("\t%02x:%02x:%02x:%02x:%02x:%02x\t%u\t%d\n",
 	       evt_scan_res->bssid[0], evt_scan_res->bssid[1],
 	       evt_scan_res->bssid[2], evt_scan_res->bssid[3],
 	       evt_scan_res->bssid[4], evt_scan_res->bssid[5],
-	       evt_scan_res->band, evt_scan_res->channel, evt_scan_res->rssi);
+	       evt_scan_res->channel, evt_scan_res->rssi);
 	fflush(stdout);
-
-	/* Record the info of specified AP */
-	if (!strcmp(evt_scan_res->ssid, mgr->sta_conf.ssid)) {
-		if (!strncmp(evt_scan_res->bssid, mgr->sta_conf.bssid, WIFIMGR_ETH_ALEN)
-		    || is_zero_ether_addr(mgr->sta_conf.bssid)) {
-			strcpy(mgr->sta_sts.ssid, evt_scan_res->ssid);
-			strncpy(mgr->sta_sts.bssid, evt_scan_res->bssid,
-				WIFIMGR_ETH_ALEN);
-			mgr->sta_sts.band = evt_scan_res->band;
-			mgr->sta_sts.channel = evt_scan_res->channel;
-			mgr->sta_sts.rssi = evt_scan_res->rssi;
-		}
-	}
 
 	/* Notify the external caller */
 	if (wifimgr_get_ctrl_cbs() && wifimgr_get_ctrl_cbs()->notify_scan_res)

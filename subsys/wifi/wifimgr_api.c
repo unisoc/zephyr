@@ -45,26 +45,40 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 	return ret;
 }
 
-int wifimgr_ctrl_iface_set_conf(char *ssid, char *bssid,
-				       char *passphrase, unsigned char band,
-				       unsigned char channel)
+int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid,
+				       char *passphrase, unsigned char channel)
 {
-	struct wifimgr_sta_config sta_conf;
+	struct wifimgr_config conf;
+	unsigned int cmd_id = 0;
 
-	memset(&sta_conf, 0, sizeof(sta_conf));
-	strcpy(sta_conf.ssid, ssid);
-	strcpy(sta_conf.bssid, bssid);
-	strcpy(sta_conf.passphrase, passphrase);
-	sta_conf.band = band;
-	sta_conf.channel = channel;
+	memset(&conf, 0, sizeof(conf));
+	strcpy(conf.ssid, ssid);
+	strcpy(conf.passphrase, passphrase);
 
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_SET_STA_CONFIG,
-					   &sta_conf, sizeof(sta_conf));
+	if(!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME)) {
+		cmd_id = WIFIMGR_CMD_SET_STA_CONFIG;
+	} else if(!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME)) {
+		cmd_id = WIFIMGR_CMD_SET_AP_CONFIG;
+		/*conf.band = band;*/
+		conf.channel = channel;
+	} else
+		return -1;
+
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, &conf, sizeof(conf));
 }
 
-int wifimgr_ctrl_iface_get_conf(void)
+int wifimgr_ctrl_iface_get_conf(char *iface_name)
 {
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_GET_STA_CONFIG, NULL, 0);
+	unsigned int cmd_id = 0;
+
+	if(!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME))
+		cmd_id = WIFIMGR_CMD_GET_STA_CONFIG;
+	else if(!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME))
+		cmd_id = WIFIMGR_CMD_GET_AP_CONFIG;
+	else
+		return -1;
+
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
 int wifimgr_ctrl_iface_get_status(void)
@@ -72,14 +86,32 @@ int wifimgr_ctrl_iface_get_status(void)
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_GET_STATUS, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_open_sta(void)
+int wifimgr_ctrl_iface_open(char *iface_name)
 {
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_OPEN_STA, NULL, 0);
+	unsigned int cmd_id = 0;
+
+	if(!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME))
+		cmd_id = WIFIMGR_CMD_OPEN_STA;
+	else if(!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME))
+		cmd_id = WIFIMGR_CMD_OPEN_AP;
+	else
+		return -1;
+
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_close_sta(void)
+int wifimgr_ctrl_iface_close(char *iface_name)
 {
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_CLOSE_STA, NULL, 0);
+	unsigned int cmd_id = 0;
+
+	if(!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME))
+		cmd_id = WIFIMGR_CMD_CLOSE_STA;
+	else if(!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME))
+		cmd_id = WIFIMGR_CMD_CLOSE_AP;
+	else
+		return -1;
+
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
 int wifimgr_ctrl_iface_scan(void)
@@ -97,14 +129,24 @@ int wifimgr_ctrl_iface_disconnect(void)
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_DISCONNECT, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_open_ap(void)
+int wifimgr_ctrl_iface_start_ap(void)
 {
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_OPEN_AP, NULL, 0);
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_START_AP, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_close_ap(void)
+int wifimgr_ctrl_iface_stop_ap(void)
 {
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_CLOSE_AP, NULL, 0);
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_STOP_AP, NULL, 0);
+}
+
+int wifimgr_ctrl_iface_del_station(unsigned char *mac)
+{
+	char mac_addr[WIFIMGR_ETH_ALEN] = {0xff,0xff,0xff,0xff,0xff,0xff};
+
+	if(mac)
+		strncpy(mac_addr, mac, WIFIMGR_ETH_ALEN);
+
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_DEL_STATION, mac_addr, WIFIMGR_ETH_ALEN);
 }
 
 static const struct wifimgr_ctrl_ops wifimgr_ops = {
@@ -112,11 +154,14 @@ static const struct wifimgr_ctrl_ops wifimgr_ops = {
 	.set_conf = wifimgr_ctrl_iface_set_conf,
 	.get_conf = wifimgr_ctrl_iface_get_conf,
 	.get_status = wifimgr_ctrl_iface_get_status,
-	.open_sta = wifimgr_ctrl_iface_open_sta,
-	.close_sta = wifimgr_ctrl_iface_close_sta,
+	.open = wifimgr_ctrl_iface_open,
+	.close = wifimgr_ctrl_iface_close,
 	.scan = wifimgr_ctrl_iface_scan,
 	.connect = wifimgr_ctrl_iface_connect,
 	.disconnect = wifimgr_ctrl_iface_disconnect,
+	.start_ap = wifimgr_ctrl_iface_start_ap,
+	.stop_ap = wifimgr_ctrl_iface_stop_ap,
+	.del_station = wifimgr_ctrl_iface_del_station,
 };
 
 const struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops(void)

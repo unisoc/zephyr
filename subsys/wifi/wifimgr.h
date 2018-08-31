@@ -33,41 +33,25 @@
 #define WIFIMGR_MAX_SSID_LEN	32
 #define WIFIMGR_MAX_PSPHR_LEN	32
 #define WIFIMGR_ETH_ALEN	6
-#define IP_STRING_LEN		16
 
 #define WIFIMGR_SCAN_TIMEOUT	10
 #define WIFIMGR_EVENT_TIMEOUT	10
 
 #define E2S(x) case x: return #x;
 
-struct wifimgr_sta_config {
-	char ssid[WIFIMGR_MAX_SSID_LEN];
-	char bssid[WIFIMGR_ETH_ALEN];
-	char passphrase[WIFIMGR_MAX_PSPHR_LEN];
-	unsigned char band;
-	unsigned char channel;
-};
-
-struct wifimgr_ap_config {
+struct wifimgr_config {
 	char ssid[WIFIMGR_MAX_SSID_LEN];
 	char passphrase[WIFIMGR_MAX_PSPHR_LEN];
 	unsigned char band;
 	unsigned char channel;
 };
 
-struct wifimgr_sta_status {
+struct wifimgr_status {
 	char ssid[WIFIMGR_MAX_SSID_LEN];
 	char bssid[WIFIMGR_ETH_ALEN];
 	unsigned char band;
 	unsigned char channel;
 	signed char rssi;
-};
-
-struct wifimgr_ap_status {
-	char ssid[WIFIMGR_MAX_SSID_LEN];
-	char bssid[WIFIMGR_ETH_ALEN];
-	unsigned char band;
-	unsigned char channel;
 };
 
 struct wifimgr_evt_connect {
@@ -98,12 +82,12 @@ struct wifimgr_evt_new_station {
 struct wifi_manager {
 	bool fw_loaded;
 
-	struct wifimgr_sta_config sta_conf;
-	struct wifimgr_sta_status sta_sts;
+	struct wifimgr_config sta_conf;
+	struct wifimgr_status sta_sts;
 	struct wifimgr_state_machine sta_sm;
 
-	struct wifimgr_ap_config ap_conf;
-	struct wifimgr_ap_status ap_sts;
+	struct wifimgr_config ap_conf;
+	struct wifimgr_status ap_sts;
 	struct wifimgr_state_machine ap_sm;
 
 	struct cmd_processor prcs;
