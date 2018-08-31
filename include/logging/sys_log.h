@@ -20,16 +20,6 @@ extern "C" {
 #define SYS_LOG_LEVEL_INFO 3
 #define SYS_LOG_LEVEL_DEBUG 4
 
-#define LOG_ERR         SYS_LOG_LEVEL_ERROR
-#define LOG_WARNING     SYS_LOG_LEVEL_WARNING
-#define LOG_INFO        SYS_LOG_LEVEL_INFO
-#define LOG_DEBUG       SYS_LOG_LEVEL_DEBUG
-
-#define syslog(log_level, ...)	SYS_ ## log_level(__VA_ARGS__)
-#define SYS_LOG_WARNING(...) SYS_LOG_WRN(__VA_ARGS__)
-#define SYS_LOG_INFO(...) SYS_LOG_INF(__VA_ARGS__)
-#define SYS_LOG_DEBUG(...) SYS_LOG_DBG(__VA_ARGS__)
-
 /* Determine this compile unit log level */
 #if !defined(SYS_LOG_LEVEL)
 /* Use default */
