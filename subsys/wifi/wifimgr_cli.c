@@ -16,9 +16,8 @@ static int wifimgr_cmd_set_config(int argc, char *argv[])
 {
 	char *iface_name, *ssid;
 	char *passphrase = NULL;
-	unsigned char channel = 0;
 
-	if (argc < 3 || argc > 5)
+	if (argc < 3 || argc > 4)
 		return -EINVAL;
 
 	if (!argv[1])
@@ -30,13 +29,10 @@ static int wifimgr_cmd_set_config(int argc, char *argv[])
 	ssid = argv[2];
 
 	if (argv[3])
-		channel = atoi(argv[4]);
-
-	if (argv[4])
 		passphrase = argv[3];
 
-	return wifimgr_ctrl_iface_set_conf(iface_name, ssid, NULL, channel,
-					   passphrase);
+	return wifimgr_ctrl_iface_set_conf(iface_name, ssid, NULL, passphrase,
+					   0, 0);
 }
 
 static int wifimgr_cmd_get_config(int argc, char *argv[])
@@ -52,7 +48,13 @@ static int wifimgr_cmd_get_config(int argc, char *argv[])
 
 static int wifimgr_cmd_status(int argc, char *argv[])
 {
-	return wifimgr_ctrl_iface_get_status();
+	char *iface_name;
+
+	if (argc != 2 || !argv[1])
+		return -EINVAL;
+	iface_name = argv[1];
+
+	return wifimgr_ctrl_iface_get_status(iface_name);
 }
 
 static int wifimgr_cmd_open(int argc, char *argv[])
@@ -114,12 +116,11 @@ static int wifimgr_cmd_del_station(int argc, char *argv[])
 
 static struct shell_cmd wifimgr_commands[] = {
 	{"set_config", wifimgr_cmd_set_config,
-	 "<iface, sta or ap> <SSID> <channel (optional, 0 means any)> "
-	 "<PSK (optional: valid only for secured SSIDs)>"},
+	 "<iface, sta or ap> <SSID> <PSK (optional: valid only for secured SSIDs)>"},
 	{"get_config", wifimgr_cmd_get_config,
 	 "<iface, sta or ap>"},
 	{"status", wifimgr_cmd_status,
-	 NULL},
+	 "<iface, sta or ap>"},
 	{"open", wifimgr_cmd_open,
 	 "<iface, sta or ap>"},
 	{"close", wifimgr_cmd_close,

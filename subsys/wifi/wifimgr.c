@@ -163,6 +163,9 @@ static int wifi_manager_drv_iface_init(struct wifi_manager *mgr, char *devname)
 	struct device *dev;
 	struct net_if *iface;
 
+	if (!devname)
+		return -EINVAL;
+
 	dev = device_get_binding(devname);
 	if (!dev) {
 		syslog(LOG_ERR, "failed to get device %s!\n", devname);
@@ -193,7 +196,15 @@ int wifi_manager_low_level_init(struct wifi_manager *mgr)
 */
 	ret = wifi_manager_drv_iface_init(mgr, WIFIMGR_STA_DEVNAME);
 	if (ret) {
-		syslog(LOG_ERR, "failed to init WiFi driver interface!\n");
+		syslog(LOG_ERR, "failed to init %s interface!\n",
+		       WIFIMGR_STA_DEVNAME);
+		return ret;
+	}
+
+	ret = wifi_manager_drv_iface_init(mgr, WIFIMGR_AP_DEVNAME);
+	if (ret) {
+		syslog(LOG_ERR, "failed to init %s interface!\n",
+		       WIFIMGR_AP_DEVNAME);
 		return ret;
 	}
 

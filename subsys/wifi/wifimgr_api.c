@@ -46,7 +46,8 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 }
 
 int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
-				unsigned char channel, char *passphrase)
+				char *passphrase, unsigned char band,
+				unsigned char channel)
 {
 	struct wifimgr_config conf;
 	unsigned int cmd_id = 0;
@@ -82,7 +83,7 @@ int wifimgr_ctrl_iface_get_conf(char *iface_name)
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_get_status(void)
+int wifimgr_ctrl_iface_get_status(char *iface_name)
 {
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_GET_STATUS, NULL, 0);
 }

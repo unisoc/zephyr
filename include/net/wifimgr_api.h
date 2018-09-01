@@ -13,9 +13,10 @@
 struct wifimgr_ctrl_ops {
 	size_t size;
 	int (*set_conf) (char *iface_name, char *ssid, char *bssid,
-			 unsigned char channel, char *passphrase);
+			 char *passphrase, unsigned char band,
+			 unsigned char channel);
 	int (*get_conf) (char *iface_name);
-	int (*get_status) (void);
+	int (*get_status) (char *iface_name);
 	int (*open) (char *iface_name);
 	int (*close) (char *iface_name);
 	int (*scan) (void);
@@ -28,11 +29,11 @@ struct wifimgr_ctrl_ops {
 
 struct wifimgr_ctrl_cbs {
 	size_t size;
-	void (*get_conf_cb) (char *ssid, char *bssid, char *passphrase,
-			     unsigned char band, unsigned char channel);
-	void (*get_status_cb) (int status, char *ssid, char *bssid,
-			       unsigned char band, unsigned char channel,
-			       signed char signal, unsigned int ip_addr);
+	void (*get_conf_cb) (char *iface_name, char *ssid, char *bssid,
+			     char *passphrase, unsigned char band,
+			     unsigned char channel);
+	void (*get_status_cb) (char *iface_name, unsigned char status,
+			       char *own_mac, signed char signal);
 	void (*notify_scan_res) (char *ssid, char *bssid, unsigned char band,
 				 unsigned char channel, signed char signal);
 	void (*notify_connect) (unsigned char *result);
@@ -48,9 +49,10 @@ const struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops(void);
 const struct wifimgr_ctrl_cbs *wifimgr_get_ctrl_cbs(void);
 
 int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
-				unsigned char channel, char *passphrase);
+				char *passphrase, unsigned char band,
+				unsigned char channel);
 int wifimgr_ctrl_iface_get_conf(char *iface_name);
-int wifimgr_ctrl_iface_get_status(void);
+int wifimgr_ctrl_iface_get_status(char *iface_name);
 int wifimgr_ctrl_iface_open(char *iface_name);
 int wifimgr_ctrl_iface_close(char *iface_name);
 int wifimgr_ctrl_iface_scan(void);
