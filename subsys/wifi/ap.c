@@ -28,13 +28,13 @@ int wifi_manager_set_ap_config(void *handle)
 {
 	struct wifimgr_config *ap_conf = (struct wifimgr_config *)handle;
 
-	syslog(LOG_INFO, "Setting AP SSID to %s\n", ap_conf->ssid);
+	syslog(LOG_INFO, "Setting AP ...\n");
+	syslog(LOG_INFO, "SSID:\t\t%s\n", ap_conf->ssid);
+	syslog(LOG_INFO, "Channel:\t%d\n", ap_conf->channel);
 
 	if (ap_conf->passphrase[0] != '\0')
-		syslog(LOG_INFO, "Setting AP Passphrase to %s\n",
+		syslog(LOG_INFO, "Passphrase:\t%s\n",
 		       ap_conf->passphrase);
-
-	syslog(LOG_INFO, "Channel:\t\t%d\n", ap_conf->channel);
 
 	return 0;
 }

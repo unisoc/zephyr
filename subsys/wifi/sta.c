@@ -29,10 +29,11 @@ int wifi_manager_set_sta_config(void *handle)
 {
 	struct wifimgr_config *sta_conf = (struct wifimgr_config *)handle;
 
-	syslog(LOG_INFO, "Setting STA SSID to %s\n", sta_conf->ssid);
+	syslog(LOG_INFO, "Setting STA ...\n");
+	syslog(LOG_INFO, "SSID:\t\t%s\n", sta_conf->ssid);
 
 	if (sta_conf->passphrase[0] != '\0')
-		syslog(LOG_INFO, "Setting STA Passphrase to %s\n",
+		syslog(LOG_INFO, "Passphrase:\t%s\n",
 		       sta_conf->passphrase);
 
 	return 0;

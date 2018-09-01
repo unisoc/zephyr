@@ -52,6 +52,11 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	struct wifimgr_config conf;
 	unsigned int cmd_id = 0;
 
+	if((strlen(ssid) > sizeof(conf.ssid))
+	   || (strlen(bssid) > sizeof(conf.bssid))
+	   || (strlen(passphrase) > sizeof(conf.passphrase)))
+		return -EINVAL;
+
 	memset(&conf, 0, sizeof(conf));
 	strcpy(conf.ssid, ssid);
 	strcpy(conf.bssid, bssid);
@@ -63,8 +68,9 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 		cmd_id = WIFIMGR_CMD_SET_AP_CONFIG;
 		/*conf.band = band; */
 		conf.channel = channel;
-	} else
-		return -1;
+	} else {
+		return -EINVAL;
+	}
 
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, &conf, sizeof(conf));
 }
@@ -78,7 +84,7 @@ int wifimgr_ctrl_iface_get_conf(char *iface_name)
 	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
 		cmd_id = WIFIMGR_CMD_GET_AP_CONFIG;
 	else
-		return -1;
+		return -EINVAL;
 
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
@@ -92,7 +98,7 @@ int wifimgr_ctrl_iface_get_status(char *iface_name)
 	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
 		cmd_id = WIFIMGR_CMD_GET_AP_STATUS;
 	else
-		return -1;
+		return -EINVAL;
 
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
@@ -106,7 +112,7 @@ int wifimgr_ctrl_iface_open(char *iface_name)
 	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
 		cmd_id = WIFIMGR_CMD_OPEN_AP;
 	else
-		return -1;
+		return -EINVAL;
 
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
@@ -120,7 +126,7 @@ int wifimgr_ctrl_iface_close(char *iface_name)
 	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
 		cmd_id = WIFIMGR_CMD_CLOSE_AP;
 	else
-		return -1;
+		return -EINVAL;
 
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
@@ -154,8 +160,10 @@ int wifimgr_ctrl_iface_del_station(char *mac)
 {
 	char mac_addr[WIFIMGR_ETH_ALEN] = {0xff,0xff,0xff,0xff,0xff,0xff};
 
-	if (mac)
-		strncpy(mac_addr, mac, WIFIMGR_ETH_ALEN);
+	if(strlen(mac) > WIFIMGR_ETH_ALEN)
+		return -EINVAL;
+
+	strncpy(mac_addr, mac, WIFIMGR_ETH_ALEN);
 
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_DEL_STATION, mac_addr,
 					   WIFIMGR_ETH_ALEN);
