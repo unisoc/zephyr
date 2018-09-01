@@ -7,8 +7,8 @@
 #ifndef _WIFIMGR_API_H_
 #define _WIFIMGR_API_H_
 
-#define WIFIMGR_IFACE_STA_NAME	"sta"
-#define WIFIMGR_IFACE_AP_NAME	"ap"
+#define WIFIMGR_IFACE_NAME_STA	"sta"
+#define WIFIMGR_IFACE_NAME_AP	"ap"
 
 struct wifimgr_ctrl_ops {
 	size_t size;

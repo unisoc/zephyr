@@ -12,9 +12,29 @@
 #define WIFI_SHELL_MODULE "wifimgr"
 #define WIFIMGR_CLI_PRIORITY	CONFIG_KERNEL_INIT_PRIORITY_DEFAULT
 
-static int wifimgr_cmd_set_config(int argc, char *argv[])
+static int wifimgr_cmd_set_sta_config(int argc, char *argv[])
 {
 	char *iface_name, *ssid;
+	char *passphrase = NULL;
+
+	if (argc < 2 || argc > 3)
+		return -EINVAL;
+
+	if (!argv[1])
+		return -EINVAL;
+	ssid = argv[1];
+
+	if (argv[2])
+		passphrase = argv[2];
+
+	return wifimgr_ctrl_iface_set_conf("sta", ssid, NULL, passphrase,
+					   0, 0);
+}
+
+static int wifimgr_cmd_set_ap_config(int argc, char *argv[])
+{
+	char *iface_name, *ssid;
+	unsigned char channel = 0;
 	char *passphrase = NULL;
 
 	if (argc < 3 || argc > 4)
@@ -22,17 +42,17 @@ static int wifimgr_cmd_set_config(int argc, char *argv[])
 
 	if (!argv[1])
 		return -EINVAL;
-	iface_name = argv[1];
+	ssid = argv[1];
 
 	if (!argv[2])
 		return -EINVAL;
-	ssid = argv[2];
+	channel = atoi(argv[2]);
 
 	if (argv[3])
 		passphrase = argv[3];
 
-	return wifimgr_ctrl_iface_set_conf(iface_name, ssid, NULL, passphrase,
-					   0, 0);
+	return wifimgr_ctrl_iface_set_conf("ap", ssid, NULL, passphrase,
+					   0, channel);
 }
 
 static int wifimgr_cmd_get_config(int argc, char *argv[])
@@ -115,8 +135,10 @@ static int wifimgr_cmd_del_station(int argc, char *argv[])
 }
 
 static struct shell_cmd wifimgr_commands[] = {
-	{"set_config", wifimgr_cmd_set_config,
-	 "<iface, sta or ap> <SSID> <PSK (optional: valid only for secured SSIDs)>"},
+	{"set_sta", wifimgr_cmd_set_sta_config,
+	 "<SSID> <PSK (optional: valid only for secured SSIDs)>"},
+	{"set_ap", wifimgr_cmd_set_ap_config,
+	 "<SSID> <channel> <PSK (optional: valid only for secured SSIDs)>"},
 	{"get_config", wifimgr_cmd_get_config,
 	 "<iface, sta or ap>"},
 	{"status", wifimgr_cmd_status,

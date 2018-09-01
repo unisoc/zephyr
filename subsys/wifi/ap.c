@@ -39,6 +39,17 @@ int wifi_manager_set_ap_config(void *handle)
 	return 0;
 }
 
+int wifi_manager_get_ap_status(void *handle)
+{
+	struct wifi_manager *mgr = (struct wifi_manager *)handle;
+	struct wifimgr_state_machine *ap_sm = &mgr->ap_sm;
+
+	syslog(LOG_INFO, "AP Status:\t%s\n", ap_sts2str(ap_sm->state));
+	fflush(stdout);
+
+	return 0;
+}
+
 static int wifi_manager_new_station_event_cb(void *arg)
 {
 	struct wifimgr_evt_new_station *evt_new_sta =

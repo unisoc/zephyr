@@ -15,7 +15,8 @@ const char *wifimgr_cmd2str(int cmd)
 	E2S(WIFIMGR_CMD_SET_AP_CONFIG)
 	E2S(WIFIMGR_CMD_GET_STA_CONFIG)
 	E2S(WIFIMGR_CMD_GET_AP_CONFIG)
-	E2S(WIFIMGR_CMD_GET_STATUS)
+	E2S(WIFIMGR_CMD_GET_STA_STATUS)
+	E2S(WIFIMGR_CMD_GET_AP_STATUS)
 	E2S(WIFIMGR_CMD_OPEN_STA)
 	E2S(WIFIMGR_CMD_CLOSE_STA)
 	E2S(WIFIMGR_CMD_SCAN)
@@ -104,9 +105,13 @@ static void *command_processor(void *handle)
 			continue;
 		}
 
-		if (wifi_manager_first_run(mgr) == true
-		    && is_comman_cmd(msg.cmd_id) == false)
-			wifi_manager_low_level_init(mgr);
+		if (is_comman_cmd(msg.cmd_id) == false) {
+			ret = wifi_manager_low_level_init(mgr, msg.cmd_id);
+			if (ret == -ENODEV) {
+				syslog(LOG_ERR, "No such device!\n");
+				continue;
+			}
+		}
 
 		sem_wait(&prcs->exclsem);
 
@@ -183,8 +188,10 @@ int wifi_manager_command_processor_init(struct cmd_processor *handle)
 					  wifi_manager_get_sta_config, mgr);
 	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_AP_CONFIG,
 					  wifi_manager_get_ap_config, mgr);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_STATUS,
-					  wifi_manager_get_status, mgr);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_STA_STATUS,
+					  wifi_manager_get_sta_status, mgr);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_AP_STATUS,
+					  wifi_manager_get_ap_status, mgr);
 	command_processor_register_sender(prcs, WIFIMGR_CMD_OPEN_STA,
 					  wifi_manager_open_station, mgr);
 	command_processor_register_sender(prcs, WIFIMGR_CMD_OPEN_AP,

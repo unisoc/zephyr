@@ -57,9 +57,9 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	strcpy(conf.bssid, bssid);
 	strcpy(conf.passphrase, passphrase);
 
-	if (!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME)) {
+	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
 		cmd_id = WIFIMGR_CMD_SET_STA_CONFIG;
-	} else if (!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME)) {
+	} else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP)) {
 		cmd_id = WIFIMGR_CMD_SET_AP_CONFIG;
 		/*conf.band = band; */
 		conf.channel = channel;
@@ -73,9 +73,9 @@ int wifimgr_ctrl_iface_get_conf(char *iface_name)
 {
 	unsigned int cmd_id = 0;
 
-	if (!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME))
+	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
 		cmd_id = WIFIMGR_CMD_GET_STA_CONFIG;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME))
+	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
 		cmd_id = WIFIMGR_CMD_GET_AP_CONFIG;
 	else
 		return -1;
@@ -85,16 +85,25 @@ int wifimgr_ctrl_iface_get_conf(char *iface_name)
 
 int wifimgr_ctrl_iface_get_status(char *iface_name)
 {
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_GET_STATUS, NULL, 0);
+	unsigned int cmd_id = 0;
+
+	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
+		cmd_id = WIFIMGR_CMD_GET_STA_STATUS;
+	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
+		cmd_id = WIFIMGR_CMD_GET_AP_STATUS;
+	else
+		return -1;
+
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
 int wifimgr_ctrl_iface_open(char *iface_name)
 {
 	unsigned int cmd_id = 0;
 
-	if (!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME))
+	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
 		cmd_id = WIFIMGR_CMD_OPEN_STA;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME))
+	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
 		cmd_id = WIFIMGR_CMD_OPEN_AP;
 	else
 		return -1;
@@ -106,9 +115,9 @@ int wifimgr_ctrl_iface_close(char *iface_name)
 {
 	unsigned int cmd_id = 0;
 
-	if (!strcmp(iface_name, WIFIMGR_IFACE_STA_NAME))
+	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
 		cmd_id = WIFIMGR_CMD_CLOSE_STA;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_AP_NAME))
+	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
 		cmd_id = WIFIMGR_CMD_CLOSE_AP;
 	else
 		return -1;

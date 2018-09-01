@@ -38,6 +38,30 @@ int wifi_manager_set_sta_config(void *handle)
 	return 0;
 }
 
+int wifi_manager_get_sta_status(void *handle)
+{
+	struct wifi_manager *mgr = (struct wifi_manager *)handle;
+	struct wifimgr_state_machine *sta_sm = &mgr->sta_sm;
+	struct wifimgr_status *sta_sts = &mgr->sta_sts;
+
+	syslog(LOG_INFO, "STA Status:\t%s\n", sta_sts2str(sta_sm->state));
+
+	if (sm_sta_connected(sta_sm) == true) {
+		syslog(LOG_INFO, "SSID:\t\t%s\n", sta_sts->ssid);
+		syslog(LOG_INFO, "BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+		       sta_sts->bssid[0],
+		       sta_sts->bssid[1],
+		       sta_sts->bssid[2],
+		       sta_sts->bssid[3], sta_sts->bssid[4], sta_sts->bssid[5]);
+		syslog(LOG_INFO, "Band:\t\t%u\n", sta_sts->band);
+		syslog(LOG_INFO, "Channel:\t%u\n", sta_sts->channel);
+		wifi_manager_get_station(mgr);
+		syslog(LOG_INFO, "Signal:\t\t%d\n", sta_sts->rssi);
+	}
+
+	return 0;
+}
+
 int wifi_manager_get_station(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;

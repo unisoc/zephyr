@@ -27,8 +27,8 @@
 #include "evt_lsnr.h"
 #include "state_machine.h"
 
-#define WIFIMGR_STA_DEVNAME	"UWP_STA"
-#define WIFIMGR_AP_DEVNAME	"UWP_AP"
+#define WIFIMGR_DEV_NAME_STA	"UWP_STA"
+#define WIFIMGR_DEV_NAME_AP	"UWP_AP"
 
 #define WIFIMGR_MAX_SSID_LEN	32
 #define WIFIMGR_MAX_PSPHR_LEN	32
@@ -105,10 +105,9 @@ struct wifi_manager {
 	struct wifimgr_evt_new_station evt_new_sta;
 };
 
-int wifi_manager_get_status(void *handle);
-
 int wifi_manager_get_sta_config(void *handle);
 int wifi_manager_set_sta_config(void *handle);
+int wifi_manager_get_sta_status(void *handle);
 int wifi_manager_open_station(void *handle);
 int wifi_manager_close_station(void *handle);
 int wifi_manager_scan(void *handle);
@@ -118,6 +117,7 @@ int wifi_manager_get_station(void *handle);
 
 int wifi_manager_get_ap_config(void *handle);
 int wifi_manager_set_ap_config(void *handle);
+int wifi_manager_get_ap_status(void *handle);
 int wifi_manager_open_softap(void *handle);
 int wifi_manager_close_softap(void *handle);
 int wifi_manager_start_softap(void *handle);
@@ -130,7 +130,6 @@ int wifi_manager_sm_query_cmd(struct wifi_manager *mgr, unsigned int cmd_id);
 void wifi_manager_sm_step_cmd(struct wifi_manager *mgr, unsigned int cmd_id);
 void wifi_manager_sm_step_evt(struct wifi_manager *mgr, unsigned int evt_id);
 void wifi_manager_sm_step_back(struct wifi_manager *mgr, unsigned int evt_id);
-bool wifi_manager_first_run(struct wifi_manager *mgr);
-int wifi_manager_low_level_init(struct wifi_manager *mgr);
+int wifi_manager_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id);
 
 #endif
