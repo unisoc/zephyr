@@ -16,16 +16,20 @@
 #include "wifi_ipc.h"
 #include "wifi_rf.h"
 
+#define ETH_ALEN 6
+
+#define WIFI_MODE_NONE		0
 #define WIFI_MODE_STA       1
 #define WIFI_MODE_AP        2
 #define WIFI_MODE_APSTA     3
 #define WIFI_MODE_MONITOR   4
 
+
 struct wifi_priv {
-	//	struct socket_data socket_data[
-	//		CONFIG_WIFI_WINC1500_OFFLOAD_MAX_SOCKETS];
 	struct net_if *iface;
-	unsigned char mac[6];
+	u32_t cp_version;
+	u8_t mode;
+	unsigned char mac[ETH_ALEN];
 	scan_result_cb_t scan_cb;
 	u8_t scan_result;
 	bool connecting;

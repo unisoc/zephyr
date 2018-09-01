@@ -78,6 +78,27 @@ struct cmd_stop{
 	char mac[6];
 }__attribute__ ((packed));
 
+/* cmd struct for ap */
+struct cmd_start_ap {
+	struct trans_hdr trans_header;
+	u8_t ssid_len;
+	u8_t ssid[MAX_SSID_LEN];
+	u8_t password_len;
+	char password[MAX_KEY_LEN];
+	u8_t channel;
+	u8_t vht_chwidth;
+	u8_t vht_chan_center_freq_seg0_idx;
+	u8_t vht_chan_center_freq_seg1_idx;
+} __attribute__ ((packed));
+
+struct cmd_del_station {
+	/* if mac set to FF:FF:FF:FF:FF:FF,
+	 * all station will be disconnected
+	 */
+	u8_t mac[6];
+	u16_t reason_code;
+} __attribute__ ((packed));
+
 /* cmd struct for sta */
 struct cmd_scan {
 	struct trans_hdr trans_header; //common header for all event.
@@ -133,15 +154,15 @@ struct event_disconnect {
 
 //int wifi_cmd_load_ini(u8_t *pAd);
 extern int wifi_cmd_set_sta_connect_info(u8_t *pAd,char *ssid,char *key);
-extern int wifi_cmd_start_apsta(u8_t *pAd);
 extern int wifi_cmd_get_cp_info(struct wifi_priv *priv);
-extern int wifi_cmd_start_sta(struct wifi_priv *priv);
-extern int wifi_cmd_stop_sta(struct wifi_priv *priv);
+extern int wifi_cmd_start(struct wifi_priv *priv);
+extern int wifi_cmd_stop(struct wifi_priv *priv);
 extern int wifi_cmd_scan(struct wifi_priv *priv);
 extern int wifi_cmd_connect(struct wifi_priv *priv,
 		struct wifi_connect_req_params *params);
 extern int wifi_cmd_disconnect(struct wifi_priv *priv);
-extern int wifi_cmd_start_ap(u8_t *pAd);
+extern int wifi_cmd_start_ap(struct wifi_priv *priv, struct wifi_start_ap_req_params *params);
+extern int wifi_cmd_stop_ap(struct wifi_priv *priv);
 extern int wifi_cmd_npi_send(int ictx_id,char * t_buf,u32_t t_len,char *r_buf,u32_t *r_len);
 extern int wifi_cmd_npi_get_mac(int ictx_id,char * buf);
 

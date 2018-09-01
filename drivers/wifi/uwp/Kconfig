@@ -8,4 +8,7 @@ if WIFI_UWP
 config WIFI_UWP_STA_NAME
 	string "STA deivce name"
 	default "UWP_STA"
+config WIFI_UWP_AP_NAME
+	string "SoftAP deivce name"
+	default "UWP_AP"
 endif

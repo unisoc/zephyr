@@ -30,7 +30,8 @@
  */
 #define __SOCKET_H__
 #define HOSTNAME_MAX_SIZE	(64)
-static struct wifi_priv uwp_wifi_priv;
+static struct wifi_priv uwp_wifi_sta_priv;
+static struct wifi_priv uwp_wifi_ap_priv;
 #define DEV_DATA(dev) \
 	((struct wifi_priv *)(dev)->driver_data)
 
@@ -57,33 +58,62 @@ int wifi_get_mac(u8_t *mac,int idx)
 
 static int uwp_mgmt_open(struct device *dev)
 {
+	int ret;
 	struct wifi_priv *priv=DEV_DATA(dev);
 
 	if (priv->opened)
 		return -EAGAIN;
 
-	wifi_cmd_start_sta(priv);
-	priv->opened = true;
+	ret = wifi_cmd_start(priv);
+	if (ret) return ret;
 
-	wifi_tx_empty_buf(MAX_EMPTY_BUF_COUNT);
+	if (priv->mode == WIFI_MODE_STA)
+		wifi_tx_empty_buf(MAX_EMPTY_BUF_COUNT);
+
+	priv->opened = true;
 
 	return 0;
 }
 
 static int uwp_mgmt_close(struct device *dev)
 {
+	int ret;
 	struct wifi_priv *priv=DEV_DATA(dev);
 
 	if (!priv->opened)
 		return -EAGAIN;
 
-	wifi_cmd_stop_sta(priv);
+	ret = wifi_cmd_stop(priv);
+	if (ret) return ret;
+
 	priv->opened = false;
 
 	/*FIXME need to release all buffer which has been sent to CP. */
 
 	return 0;
 }
+
+static int uwp_mgmt_start_ap(struct device *dev,
+		struct wifi_start_ap_req_params *params)
+{
+	struct wifi_priv *priv=DEV_DATA(dev);
+
+	return wifi_cmd_start_ap(priv, params);
+}
+
+static int uwp_mgmt_stop_ap(struct device *dev)
+{
+	struct wifi_priv *priv=DEV_DATA(dev);
+
+	return wifi_cmd_stop_ap(priv);
+}
+
+static int uwp_mgmt_del_station(struct device *dev,
+		u8_t *mac)
+{
+	return 0;
+}
+
 static int uwp_mgmt_scan(struct device *dev, scan_result_cb_t cb)
 {
 	struct wifi_priv *priv=DEV_DATA(dev);
@@ -130,12 +160,8 @@ static void uwp_iface_init(struct net_if *iface)
 	k_sleep(50);
 	wifi_cmd_get_cp_info(priv);
 
-	wifi_get_mac(priv->mac, 0);
-
-	SYS_LOG_WRN("eth_init:net_if_set_link_addr:"
-			"MAC Address %02X:%02X:%02X:%02X:%02X:%02X",
-			priv->mac[0], priv->mac[1], priv->mac[2],
-			priv->mac[3], priv->mac[4], priv->mac[5]);
+	SYS_LOG_WRN("mode: %d, cp version: 0x%x.",
+			priv->mode, priv->cp_version);
 
 	net_if_set_link_addr(iface, priv->mac, sizeof(priv->mac),
 			NET_LINK_ETHERNET);
@@ -246,6 +272,9 @@ static const struct net_wifi_mgmt_api uwp_api = {
 	.get_station	= uwp_mgmt_get_station,
 	.connect		= uwp_mgmt_connect,
 	.disconnect		= uwp_mgmt_disconnect,
+	.start_ap		= uwp_mgmt_start_ap,
+	.stop_ap		= uwp_mgmt_stop_ap,
+	.del_station	= uwp_mgmt_del_station,
 };
 
 #define SEC1    1
@@ -255,30 +284,50 @@ static int uwp_init(struct device *dev)
 {
 	int ret;
 	struct wifi_priv *priv=DEV_DATA(dev);
-//	struct wifi_conf_sec1_t *sec1;
-//	struct wifi_conf_sec2_t *sec2;
+	static bool wifi_init = false;
 
-	priv->connecting = false;
-	priv->connected = false;
-	priv->opened = false;
-
-	ret = cp_mcu_init();
-	if (ret) {
-		SYS_LOG_ERR("firmware download failed %i.", ret);
-		return ret;
+	if (!strcmp(dev->config->name, "UWP_STA"))
+		priv->mode = WIFI_MODE_STA;
+	else if (!strcmp(dev->config->name, "UWP_AP"))
+		priv->mode = WIFI_MODE_AP;
+	else {
+		SYS_LOG_ERR("Unknown WIFI DEV NAME: %s",
+				dev->config->name);
 	}
 
-	wifi_cmdevt_init();
-	wifi_txrx_init(priv);
-	wifi_irq_init();
+	if (!wifi_init && (priv->mode == WIFI_MODE_STA)) {
+
+		priv->connecting = false;
+		priv->connected = false;
+		priv->opened = false;
+
+		ret = cp_mcu_init();
+		if (ret) {
+			SYS_LOG_ERR("firmware download failed %i.", ret);
+			return ret;
+		}
+
+		wifi_cmdevt_init();
+		wifi_txrx_init(priv);
+		wifi_irq_init();
+
+		wifi_init = true;
+	}
 
 	SYS_LOG_DBG("UWP WIFI driver Initialized");
 
 	return 0;
 }
 
-NET_DEVICE_INIT(uwp, CONFIG_WIFI_UWP_STA_NAME,
-		uwp_init, &uwp_wifi_priv, NULL,
+NET_DEVICE_INIT(uwp_sta, CONFIG_WIFI_UWP_STA_NAME,
+		uwp_init, &uwp_wifi_sta_priv, NULL,
+		CONFIG_WIFI_INIT_PRIORITY,
+		&uwp_api,
+		ETHERNET_L2, NET_L2_GET_CTX_TYPE(ETHERNET_L2),
+		1550);
+
+NET_DEVICE_INIT(uwp_ap, CONFIG_WIFI_UWP_AP_NAME,
+		uwp_init, &uwp_wifi_ap_priv, NULL,
 		CONFIG_WIFI_INIT_PRIORITY,
 		&uwp_api,
 		ETHERNET_L2, NET_L2_GET_CTX_TYPE(ETHERNET_L2),

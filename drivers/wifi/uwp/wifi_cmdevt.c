@@ -32,120 +32,6 @@ static u16_t CRC16(u8_t * buf, u16_t len)
 	return CRC;
 }
 
-
-#if 0
-int wifi_event_sta_connecting_handle(u8_t *pAd,struct event_sta_connecting_event *event)
-{
-
-	if (pAd == NULL || event == NULL){
-		SYS_LOG_ERR("invalid parameter");
-		return -1;
-	}
-	if (event->trans_header.type != EVENT_STA_CONNECTING_EVENT){
-		SYS_LOG_ERR("event type is not EVENT_STA_CONNECTING_EVENT,we can do nothing");
-		return -1;
-	}
-
-	switch (event->type){
-		case EVENT_STA_AP_CONNECTED_SUCC:
-			SYS_LOG_ERR("sta connected to ap(%s) success,start dhcpc now",pAd->sta_config.ssid);
-			netif_set_link_up(&pAd->sta_ifnet);
-			dhcp_start(&pAd->sta_ifnet);
-			break;
-		case EVENT_STA_AP_CONNECTED_FAIL:
-			if (event->errcode == EVENT_STA_CONNECT_ERRCODE_PW_ERR)
-				SYS_LOG_ERR("sta connect to ap(%s)fail,password error",pAd->sta_config.ssid);
-			else if (event->errcode == EVENT_STA_CONNECT_ERRCODE_AP_OF_OUT_RANGE)
-				SYS_LOG_ERR("sta connect to ap(%s)fail,ap is out of range",pAd->sta_config.ssid);
-			break;
-		case EVENT_STA_AP_CONNECTED_LOST:
-			SYS_LOG_ERR("sta lost connection with ap(%s)",pAd->sta_config.ssid);
-			break;
-		default:
-			SYS_LOG_ERR("unknow event->type=%d",event->type);
-	}
-
-	return 0;
-}
-int wifi_cmd_set_sta_connect_info(u8_t *pAd,char *ssid,char *key)
-{
-	struct cmd_sta_set_rootap_info data;
-	int ret = 0;
-	if (pAd == NULL ||ssid == NULL)
-	{
-		SYS_LOG_ERR("Invalid parameter,pAd=%p,ssid=%p",pAd,ssid);
-		return -1;
-	}
-
-	memset(&data,0,sizeof(data));
-	memcpy(data.rootap.ssid,ssid,(strlen(ssid)< 32?strlen(ssid):32));
-	if (strlen(key) <sizeof(data.rootap.key))
-		memcpy(data.rootap.key,key,strlen(key));
-	ret = wifi_cmd_send(CMD_STA_SET_ROOTAPINFO,
-			(char *)&data,sizeof(data),NULL,NULL);
-	if (ret < 0){
-		SYS_LOG_ERR("something wrong when set connection info");
-		return -1;
-	}
-
-	return 0;
-}
-#endif
-
-#if LWIP_IGMP
-int wifi_cmd_add_mmac(u8_t *pAd,char *mac)
-{
-	struct cmd_sta_set_igmp_mac data;
-	int ret = 0;
-
-	memset(&data,0,sizeof(data));
-	data.igmp_mac_set.action = IGMP_MAC_ACTION_ADD;
-	memcpy(data.igmp_mac_set.mac,mac,6);
-	ret = wifi_cmd_send(CMD_STA_SET_IGMP_MAC,(char *)&data,sizeof(data), NULL, NULL);
-	if (ret < 0){
-		SYS_LOG_ERR("set igmp add filter fail");
-		return -1;
-	}else{
-		ninfo("set igmp add filter success");
-		return 0;
-	}
-}
-int wifi_cmd_del_mmac(u8_t *pAd,char *mac)
-{
-	struct cmd_sta_set_igmp_mac data;
-	int ret = 0;
-
-	memset(&data,0,sizeof(data));
-	data.igmp_mac_set.action = IGMP_MAC_ACTION_REMOVE;
-	memcpy(data.igmp_mac_set.mac,mac,6);
-	ret = wifi_cmd_send(CMD_STA_SET_IGMP_MAC,(char *)&data,sizeof(data), NULL, NULL);
-	if (ret < 0){
-		SYS_LOG_ERR("set igmp delete filter fail");
-		return -1;
-	}else {
-		ninfo("set igmp delete filter success");
-		return 0;
-	}
-}
-#endif
-
-int wifi_cmd_start_ap(u8_t *pAd)
-{
-	struct cmd_start data;
-	int ret = 0;
-
-	memset(&data,0,sizeof(data));
-	data.mode = WIFI_MODE_AP;
-	wifi_get_mac((u8_t *)data.mac,1);
-	ret = wifi_cmd_send(WIFI_CMD_OPEN,(char *)&data,sizeof(data),NULL,NULL);
-	if (ret < 0){
-		SYS_LOG_ERR("ap start fail");
-		return -1;
-	}
-
-	return 0;
-}
-
 static struct cmd_download_ini ini;
 int wifi_cmd_load_ini(u8_t * data, uint32_t len, u8_t sec_num)
 {
@@ -255,64 +141,108 @@ int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 		return -1;
 	}
 
-	SYS_LOG_ERR("cp version: 0x%x.", cmd.version);
-	memcpy(priv->mac, cmd.mac, 6);
-
-	return 0;
-}
-
-int wifi_cmd_start_sta(struct wifi_priv *priv)
-{
-	struct cmd_start cmd;
-	int ret = 0;
-
-	memset(&cmd, 0, sizeof(cmd));
-	cmd.mode = WIFI_MODE_STA;
-	memcpy(cmd.mac, priv->mac, 6);
-	ret = wifi_cmd_send(WIFI_CMD_OPEN, (char *)&cmd, sizeof(cmd),
-			NULL, NULL);
-	if (ret < 0){
-		SYS_LOG_ERR("sta start fail");
-		return -1;
+	priv->cp_version = cmd.version;
+	if (priv->mode == WIFI_MODE_STA)
+		memcpy(priv->mac, cmd.mac, 6);
+	else if (priv->mode == WIFI_MODE_AP) {
+		cmd.mac[4] ^= 0x80;
+		memcpy(priv->mac, cmd.mac, 6);
 	}
 
 	return 0;
 }
 
-int wifi_cmd_stop_sta(struct wifi_priv *priv)
+int wifi_cmd_start(struct wifi_priv *priv)
+{
+	struct cmd_start cmd;
+	int ret = 0;
+
+	SYS_LOG_INF("open mode %d", priv->mode);
+
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.mode = priv->mode;
+	memcpy(cmd.mac, priv->mac, 6);
+
+	ret = wifi_cmd_send(WIFI_CMD_OPEN, (char *)&cmd, sizeof(cmd),
+			NULL, NULL);
+	if (ret < 0){
+		SYS_LOG_ERR("start mode %d fail", priv->mode);
+		return -1;
+	}
+	SYS_LOG_INF("open mode success.");
+
+	return 0;
+}
+
+int wifi_cmd_stop(struct wifi_priv *priv)
 {
 	struct cmd_stop cmd;
 	int ret = 0;
 
 	memset(&cmd, 0, sizeof(cmd));
-	cmd.mode = WIFI_MODE_STA;
+	cmd.mode = priv->mode;
+	memcpy(cmd.mac, priv->mac, 6);
+
+	ret = wifi_cmd_send(WIFI_CMD_CLOSE, (char *)&cmd, sizeof(cmd),
+			NULL, NULL);
+	if (ret < 0){
+		SYS_LOG_ERR("stop mode:%d fail", priv->mode);
+		return -1;
+	}
+
+	return 0;
+}
+
+int wifi_cmd_start_ap(struct wifi_priv *priv, struct wifi_start_ap_req_params *params)
+{
+	struct cmd_start_ap cmd;
+	int ret = 0;
+
+	SYS_LOG_INF("start ap at channel: %d.", params->channel);
+	memset(&cmd, 0, sizeof(cmd));
+
+	//memcpy(cmd.mac, priv->mac, 6);
+	if (params->ssid_length > 0) {
+		memcpy(cmd.ssid, params->ssid, params->ssid_length);
+		cmd.ssid_len = params->ssid_length;
+		SYS_LOG_INF("ssid: %s(%d).", cmd.ssid, cmd.ssid_len);
+	}
+	if (params->psk_length > 0) {
+		memcpy(cmd.password, params->psk, params->psk_length);
+		cmd.password_len = params->psk_length;
+		SYS_LOG_INF("psk: %s(%d).", cmd.password, cmd.password_len);
+	}
+
+	cmd.channel = params->channel;
+	ret = wifi_cmd_send(WIFI_CMD_START_AP, (char *)&cmd,
+			sizeof(cmd), NULL, NULL);
+	if (ret < 0){
+		SYS_LOG_ERR("ap start fail");
+		return -1;
+	}
+	SYS_LOG_INF("start ap ok.");
+
+	return 0;
+}
+
+int wifi_cmd_stop_ap(struct wifi_priv *priv)
+{
+	struct cmd_stop cmd;
+	int ret = 0;
+
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.mode = WIFI_MODE_AP;
 	memcpy(cmd.mac, priv->mac, 6);
 	ret = wifi_cmd_send(WIFI_CMD_CLOSE, (char *)&cmd, sizeof(cmd),
 			NULL, NULL);
 	if (ret < 0){
-		SYS_LOG_ERR("sta stop fail");
+		SYS_LOG_ERR("ap stop fail");
 		return -1;
 	}
 
 	return 0;
 }
 
-int wifi_cmd_start_apsta(u8_t *pAd)
-{
-	struct cmd_start data;
-	int ret = 0;
-
-	memset(&data,0,sizeof(data));
-	data.mode= WIFI_MODE_APSTA;
-	wifi_get_mac((u8_t *)data.mac,1);
-	ret = wifi_cmd_send(WIFI_CMD_OPEN,(char *)&data,sizeof(data),NULL,NULL);
-	if (ret < 0){
-		SYS_LOG_ERR("apsta start fail");
-		return -1;
-	}
-
-	return 0;
-}
 
 /*
  * return value is the real len sent to upper layer or -1 while error.
