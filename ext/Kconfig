@@ -22,4 +22,7 @@ source "ext/lib/mgmt/Kconfig"
 
 source "ext/debug/Kconfig"
 
+source "ext/lib/engpc/Kconfig"
+
+source "ext/lib/iwnpi/Kconfig"
 endmenu

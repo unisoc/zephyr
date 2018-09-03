@@ -26,20 +26,26 @@ typedef enum {
 	ENG_DIAG_RECV_TO_CP,
 } eng_diag_state;
 
-static unsigned char log_data[128];
+#define LOG_LEN		2048
+static unsigned char log_data[LOG_LEN];
 static unsigned int log_data_len;
 //static char backup_data_buf[DATA_BUF_SIZE];
 static int g_diag_status = ENG_DIAG_RECV_TO_AP;
 static struct k_sem	uart_rx_sem;
 
-/*paramters for poll thread*/
-//static char poll_name[] = "poll_thread";
-//static char poll_para[] = "poll thread from engpc";
+struct engpc_buf
+{
+	unsigned char buf[LOG_LEN];
+	unsigned int used;
+	bool valid;
+};
 
-int get_user_diag_buf( unsigned char *buf, int len) {
+struct engpc_buf g_buf;
+int get_user_diag_buf( unsigned char *buf, int len)
+{
 	int i;
 	int is_find = 0;
-	eng_dump(buf, len, len, 1, __FUNCTION__);
+	//eng_dump(buf, len, len, 1, __FUNCTION__);
 
 	for (i = 0; i < len; i++) {
 		if (buf[i] == 0x7e && ext_buf_len == 0) {  // start
@@ -53,47 +59,91 @@ int get_user_diag_buf( unsigned char *buf, int len) {
 			}
 		}
 	}
+	printk("jessie: print ext_data_buf, ext_buf_len is %d\n", ext_buf_len);
+	//eng_dump(ext_data_buf, ext_buf_len, ext_buf_len, 1, __FUNCTION__);
 	return is_find;
 }
 
+void clean_engpc_buf()
+{
+	printk(" start to clean buf\n");
+	memset(g_buf.buf, 0, LOG_LEN);
+	g_buf.used = 0;
+	g_buf.valid = true;
+}
 void init_user_diag_buf(void)
 {
 	memset(ext_data_buf, 0, DATA_EXT_DIAG_SIZE);
 	ext_buf_len = 0;
+	//clean_engpc_buf();
 }
 
+void show_buf(unsigned char *buf, unsigned int len)
+{
+	unsigned int index = 0;
+	printk(" len is : %d \n", len);
+	for(index = 0; index < len; index++) {
+		printk("%02x ", buf[index]);
+	}
+	printk("\n");
+}
+
+static unsigned int offset = 0;
 void uart_cb(struct device *dev)
 {
-	int has_processed = 0;
+	u8_t c;
+	if (uart_irq_rx_ready(uart)) {
 
-	log_data_len = uart_fifo_read(uart, log_data, sizeof(log_data)); //just read 128 byte.
+		while (1) {
+			if (uart_fifo_read(uart, &c , 1) == 0) {
+				clean_engpc_buf();
+				//printk("jessie: uart_fifo_read is null, clean buf & break\n");
+				break;
+			}
 
-	if (get_user_diag_buf(log_data, log_data_len)) {
-		g_diag_status = ENG_DIAG_RECV_TO_AP;
+			log_data[offset++] = c;
+
+			if (offset >= LOG_LEN){
+				//printk("jessie: offset is larger than LOG_LEN, break\n");
+				break;
+			}
+		}
+		k_sem_give(&uart_rx_sem);
 	}
-
-	k_sem_give(&uart_rx_sem);
 }
 
 int engpc_thread(int argc, char *argv[])
 {
 	int has_processed = 0;
 
-	memset(log_data,0x00, sizeof(log_data));
 	init_user_diag_buf();
 	while(1) {
+		printk("jessie: before take sem\n");
 		k_sem_take(&uart_rx_sem, K_FOREVER);
-		SYS_LOG_INF("read cnt : %d :", log_data_len);
+		if (offset > 0) {
+			//printk("jessie: print log_data, offset is %d\n", offset);
+			show_buf(log_data, offset);
+			//check_data(log_data, offset);
+			memcpy(g_buf.buf + g_buf.used, log_data, offset);
+			g_buf.used += offset;
+			//printk("jessie: print gbuf, gbuf used  is %d\n", g_buf.used);
+			show_buf(g_buf.buf, g_buf.used);
+			memset(log_data, 0, LOG_LEN);
+			offset = 0;
+		}
 
+		if (get_user_diag_buf(g_buf.buf, g_buf.used)){
+			printk("jessie: find 0x7e\n");
+			g_diag_status = ENG_DIAG_RECV_TO_AP;
+		}
 		has_processed = eng_diag(uart, ext_data_buf, ext_buf_len);
 
-		memset(log_data,0x00, sizeof(log_data));
 		init_user_diag_buf();
 		printk("ALL handle finished!!!!!!!!!\n");
 	}
 }
 
-#define ENGPC_STACK_SIZE		(1024)
+#define ENGPC_STACK_SIZE		(2048)
 K_THREAD_STACK_MEMBER(engpc_stack, ENGPC_STACK_SIZE);
 static struct k_thread engpc_thread_data;
 int engpc_init(struct device *dev)
@@ -118,7 +168,7 @@ int engpc_init(struct device *dev)
 
 	SYS_LOG_INF("open serial success");
 
-	k_sem_init(&uart_rx_sem, 0, UINT_MAX);
+	k_sem_init(&uart_rx_sem, 0, 1);
 
 	SYS_LOG_INF("start engpc thread.");
 	k_thread_create(&engpc_thread_data, engpc_stack,
