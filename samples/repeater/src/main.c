@@ -92,6 +92,7 @@ static void handler(struct net_mgmt_event_callback *cb,
 
 int dhcp_client(int argc, char **argv)
 {
+	struct device *dev;
 	struct net_if *iface;
 
 	SYS_LOG_WRN("Run dhcpv4 client");
@@ -100,7 +101,17 @@ int dhcp_client(int argc, char **argv)
 				     NET_EVENT_IPV4_ADDR_ADD);
 	net_mgmt_add_event_callback(&mgmt_cb);
 
-	iface = net_if_get_default();
+	dev = device_get_binding(CONFIG_WIFI_UWP_STA_NAME);
+	if (!dev) {
+		SYS_LOG_ERR( "failed to get device %s!\n", CONFIG_WIFI_UWP_STA_NAME);
+		return -1;
+	}
+
+	iface = net_if_lookup_by_dev(dev);
+	if (!iface) {
+		SYS_LOG_ERR("failed to get iface %s!\n", CONFIG_WIFI_UWP_STA_NAME);
+		return -1;
+	}
 
 	net_dhcpv4_start(iface);
 

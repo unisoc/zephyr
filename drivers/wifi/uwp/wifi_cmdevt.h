@@ -78,13 +78,16 @@ struct cmd_stop{
 	char mac[6];
 }__attribute__ ((packed));
 
+/* FIXME */
+#define MAX_AP_SSID_LEN	33
+#define MAX_AP_KEY_LEN	64
 /* cmd struct for ap */
 struct cmd_start_ap {
 	struct trans_hdr trans_header;
 	u8_t ssid_len;
-	u8_t ssid[MAX_SSID_LEN];
+	u8_t ssid[MAX_AP_SSID_LEN];
 	u8_t password_len;
-	char password[MAX_KEY_LEN];
+	char password[MAX_AP_KEY_LEN];
 	u8_t channel;
 	u8_t vht_chwidth;
 	u8_t vht_chan_center_freq_seg0_idx;
