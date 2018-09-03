@@ -638,7 +638,7 @@ void main(void)
 	gpio_init();
 	wdg_init();
 
-	//download_wifi_ini();
+	download_wifi_ini();
 
 	blues_init();
 

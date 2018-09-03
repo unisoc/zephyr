@@ -30,7 +30,6 @@ static struct device *gpio;
 static struct gpio_callback button_cb;
 
 static u16_t led_state = 0;
-static u16_t led_light_state = 0;
 
 static struct k_work button_work;
 static struct k_timer banner_timer;
@@ -53,10 +52,11 @@ static void led_all_turn_on()
 	int i;
 	for (i = 0; i < sizeof(unisoc_leds)/sizeof(struct onoff_state); i++) {
 		if (gpio, unisoc_leds[i].state == LED_STATE_OFF) {
-			gpio_pin_write(gpio, unisoc_leds[i].pin, LED_ON_VALUE); 
+			gpio_pin_write(gpio, unisoc_leds[i].pin, LED_ON_VALUE);
 			unisoc_leds[i].state = LED_STATE_ON;
 		}
 	}
+	led_state = 1;
 }
 
 static void led_all_turn_off()
@@ -64,10 +64,11 @@ static void led_all_turn_off()
 	int i;
 	for (i = 0; i < sizeof(unisoc_leds)/sizeof(struct onoff_state); i++) {
 		if (gpio, unisoc_leds[i].state == LED_STATE_ON) {
-			gpio_pin_write(gpio, unisoc_leds[i].pin, LED_OFF_VALUE); 
+			gpio_pin_write(gpio, unisoc_leds[i].pin, LED_OFF_VALUE);
 			unisoc_leds[i].state = LED_STATE_OFF;
 		}
 	}
+	led_state = 0;
 }
 
 
@@ -78,14 +79,9 @@ void button_pressed_worker(struct k_work *unused)
 		is_banner_running = 0;
 	}
 
-
 	if (led_state) {
-		//BTD("LED OFF\n");
-		led_state = 0;
 		led_all_turn_off();
 	} else {
-		//BTD("LED ON\n");
-		led_state = 1;
 		led_all_turn_on();
 	}
 
@@ -96,10 +92,13 @@ void button_pressed_worker(struct k_work *unused)
 		.addr = 0xFFFF,
 		.send_ttl = BT_MESH_TTL_DEFAULT,
 	};
+
+	BTI("SET LED %d\n", led_state);
+
 	bt_mesh_model_msg_init(&msg, BT_MESH_MODEL_OP_GEN_ONOFF_SET);
 	net_buf_simple_add_le16(&msg, led_state);
 	if (bt_mesh_model_send(get_root_modules() + 4, &ctx, &msg, NULL, NULL)) {
-		BTE("Unable to send On Off Status response");
+		BTE("Unable to send On Off Status response\n");
 	}
 
 }
@@ -155,14 +154,14 @@ void light_onoff_set(struct bt_mesh_model *model,
 {
 	u16_t state = net_buf_simple_pull_le16(buf);
 
-	BTI("%s %d -> %d\n", __func__, led_light_state, state);
+	BTI("%s %d -> %d\n", __func__, led_state, state);
 
 	if (is_banner_running) {
 		k_timer_stop(&banner_timer);
 		is_banner_running = 0;
 	}
 
-	if (state == led_light_state) {
+	if (state == led_state) {
 		return;
 	}
 
@@ -171,7 +170,6 @@ void light_onoff_set(struct bt_mesh_model *model,
 	} else {
 		led_all_turn_off();
 	}
-	led_light_state = state;
 }
 
 void light_onoff_set_unack(struct bt_mesh_model *model,
