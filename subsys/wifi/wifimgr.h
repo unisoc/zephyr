@@ -19,13 +19,15 @@
 #ifndef _WIFIMGR_H_
 #define _WIFIMGR_H_
 
-#include <net/wifi_drv_iface.h>
+#include <net/wifimgr_drv.h>
 #include <net/wifimgr_api.h>
 
 #include "os_adapter.h"
 #include "cmd_prcs.h"
 #include "evt_lsnr.h"
 #include "state_machine.h"
+#include "drv_iface.h"
+#include "wifimgr_api_internal.h"
 
 #define WIFIMGR_DEV_NAME_STA	"UWP_STA"
 #define WIFIMGR_DEV_NAME_AP	"UWP_AP"
@@ -45,13 +47,11 @@ struct wifimgr_config {
 	char passphrase[WIFIMGR_MAX_PSPHR_LEN];
 	unsigned char band;
 	unsigned char channel;
+	bool found;
 };
 
 struct wifimgr_status {
-	char ssid[WIFIMGR_MAX_SSID_LEN];
-	char bssid[WIFIMGR_ETH_ALEN];
-	unsigned char band;
-	unsigned char channel;
+	char own_mac[WIFIMGR_ETH_ALEN];
 	char rssi;
 };
 
@@ -113,7 +113,6 @@ int wifi_manager_close_station(void *handle);
 int wifi_manager_scan(void *handle);
 int wifi_manager_connect(void *handle);
 int wifi_manager_disconnect(void *handle);
-int wifi_manager_get_station(void *handle);
 
 int wifi_manager_get_ap_config(void *handle);
 int wifi_manager_set_ap_config(void *handle);

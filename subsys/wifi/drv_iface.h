@@ -4,10 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef _WIFI_DRV_IFACE_H_
-#define _WIFI_DRV_IFACE_H_
-
-#include <net/wifi_mgmt.h>
+#ifndef _DRV_IFACE_H_
+#define _DRV_IFACE_H_
 
 int wifi_drv_iface_get_mac(void *iface, char *mac);
 int wifi_drv_iface_open_station(void *iface);
@@ -23,9 +21,4 @@ int wifi_drv_iface_start_softap(void *iface, char *ssid, char *passwd,
 int wifi_drv_iface_stop_softap(void *iface);
 int wifi_drv_iface_del_station(void *iface, char *mac);
 
-void wifi_drv_iface_scan_result_cb(struct net_if *iface, int status,
-				   struct wifi_scan_result *entry);
-void wifi_drv_iface_scan_done_cb(void *iface, int status);
-void wifi_drv_iface_connect_cb(void *iface, int status);
-void wifi_drv_iface_disconnect_cb(void *iface, int status);
 #endif

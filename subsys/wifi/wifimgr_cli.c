@@ -155,7 +155,7 @@ static struct shell_cmd wifimgr_commands[] = {
 	{"stop_ap", wifimgr_cmd_stop_ap,
 	 NULL},
 	{"del_station", wifimgr_cmd_del_station,
-	 NULL},
+	 "<MAC address>"},
 	{NULL, NULL, NULL},
 };
 

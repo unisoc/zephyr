@@ -44,7 +44,7 @@ int wifi_manager_get_ap_status(void *handle)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_state_machine *ap_sm = &mgr->ap_sm;
 
-	syslog(LOG_INFO, "AP Status:\t%s\n", ap_sts2str(ap_sm->state));
+	syslog(LOG_INFO, "AP Status:\t%s\n", ap_sts2str(sm_ap_query(ap_sm)));
 	fflush(stdout);
 
 	return 0;
@@ -84,7 +84,6 @@ int wifi_manager_start_softap(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_config *ap_conf = &mgr->ap_conf;
-	/*struct netif *netif; */
 	int ret;
 
 	if (ap_conf->ssid[0] == '\0') {
@@ -117,8 +116,7 @@ int wifi_manager_start_softap(void *handle)
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP,
 					  wifi_manager_stop_softap, mgr);
 /*
-	netif = netif_find(WIFIMGR_AP_DEVNAME);
-	if (netif) {
+	if (mgr->ap_iface) {
 		syslog(LOG_INFO, "start DHCP server\n");
 		dhcpd_start();
 	}

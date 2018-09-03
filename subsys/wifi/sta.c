@@ -22,6 +22,15 @@ int wifi_manager_get_sta_config(void *handle)
 
 	}
 
+	/* Notify the external caller */
+	if (wifimgr_get_ctrl_cbs() && wifimgr_get_ctrl_cbs()->get_conf_cb)
+		wifimgr_get_ctrl_cbs()->get_conf_cb(WIFIMGR_IFACE_NAME_STA,
+						    sta_conf->ssid,
+						    sta_conf->bssid,
+						    sta_conf->passphrase,
+						    sta_conf->band,
+						    sta_conf->channel);
+
 	return 0;
 }
 
@@ -33,8 +42,9 @@ int wifi_manager_set_sta_config(void *handle)
 	syslog(LOG_INFO, "SSID:\t\t%s\n", sta_conf->ssid);
 
 	if (sta_conf->passphrase[0] != '\0')
-		syslog(LOG_INFO, "Passphrase:\t%s\n",
-		       sta_conf->passphrase);
+		syslog(LOG_INFO, "Passphrase:\t%s\n", sta_conf->passphrase);
+
+	sta_conf->found = false;
 
 	return 0;
 }
@@ -44,31 +54,30 @@ int wifi_manager_get_sta_status(void *handle)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_state_machine *sta_sm = &mgr->sta_sm;
 	struct wifimgr_status *sta_sts = &mgr->sta_sts;
+	int ret = 0;
 
-	syslog(LOG_INFO, "STA Status:\t%s\n", sta_sts2str(sta_sm->state));
+	syslog(LOG_INFO, "STA Status:\t%s\n",
+	       sta_sts2str(sm_sta_query(sta_sm)));
+
+	if (is_zero_ether_addr(sta_sts->own_mac))
+		ret = wifi_drv_iface_get_mac(mgr->sta_iface, sta_sts->own_mac);
+	syslog(LOG_INFO, "Own MAC:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+	       sta_sts->own_mac[0], sta_sts->own_mac[1],
+	       sta_sts->own_mac[2], sta_sts->own_mac[3],
+	       sta_sts->own_mac[4], sta_sts->own_mac[5]);
 
 	if (sm_sta_connected(sta_sm) == true) {
-		syslog(LOG_INFO, "SSID:\t\t%s\n", sta_sts->ssid);
-		syslog(LOG_INFO, "BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-		       sta_sts->bssid[0],
-		       sta_sts->bssid[1],
-		       sta_sts->bssid[2],
-		       sta_sts->bssid[3], sta_sts->bssid[4], sta_sts->bssid[5]);
-		syslog(LOG_INFO, "Band:\t\t%u\n", sta_sts->band);
-		syslog(LOG_INFO, "Channel:\t%u\n", sta_sts->channel);
-		wifi_manager_get_station(mgr);
+		ret = wifi_drv_iface_get_station(mgr->sta_iface,
+						 &sta_sts->rssi);
 		syslog(LOG_INFO, "Signal:\t\t%d\n", sta_sts->rssi);
 	}
 
-	return 0;
-}
-
-int wifi_manager_get_station(void *handle)
-{
-	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	int ret;
-
-	ret = wifi_drv_iface_get_station(mgr->sta_iface, &mgr->sta_sts.rssi);
+	/* Notify the external caller */
+	if (wifimgr_get_ctrl_cbs() && wifimgr_get_ctrl_cbs()->get_status_cb)
+		wifimgr_get_ctrl_cbs()->get_status_cb(WIFIMGR_IFACE_NAME_STA,
+						      sm_sta_query(sta_sm),
+						      sta_sts->own_mac,
+						      sta_sts->rssi);
 
 	return ret;
 }
@@ -79,7 +88,6 @@ static int wifi_manager_disconnect_event(void *arg)
 	    (struct wifimgr_evt_disconnect *)arg;
 	struct wifi_manager *mgr =
 	    container_of(evt_disc, struct wifi_manager, evt_disc);
-	/*struct netif *netif; */
 	int ret = 0;
 
 	syslog(LOG_INFO, "disconnect, reason_code %d!\n",
@@ -88,23 +96,15 @@ static int wifi_manager_disconnect_event(void *arg)
 
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
 /*
-	netif = netif_find(WIFIMGR_STA_DEVNAME);
-	if (netif) {
+	if (mgr->sta_iface) {
 		syslog(LOG_INFO, "stop DHCP\n");
-		dhcp_stop(netif);
+		dhcp_stop(mgr->sta_iface);
 	}
 */
 
-	/*Clear the info of specified AP */
-	if (!strcmp(mgr->sta_sts.ssid, mgr->sta_conf.ssid))
-		if (!strncmp
-		    (mgr->sta_sts.bssid, mgr->sta_conf.bssid, WIFIMGR_ETH_ALEN)
-		    || is_zero_ether_addr(mgr->sta_conf.bssid))
-			memset(&mgr->sta_sts, 0, sizeof(struct wifimgr_status));
-
 	/* Notify the external caller */
 	if (wifimgr_get_ctrl_cbs() && wifimgr_get_ctrl_cbs()->notify_disconnect)
-		wifimgr_get_ctrl_cbs()->notify_disconnect(&evt_disc->
+		wifimgr_get_ctrl_cbs()->notify_disconnect(evt_disc->
 							  reason_code);
 
 	return ret;
@@ -133,7 +133,6 @@ static int wifi_manager_connect_event(void *arg)
 	    (struct wifimgr_evt_connect *)arg;
 	struct wifi_manager *mgr =
 	    container_of(evt_conn, struct wifi_manager, evt_conn);
-	/*struct netif *netif; */
 	int ret = evt_conn->status;
 
 	if (!ret) {
@@ -149,17 +148,16 @@ static int wifi_manager_connect_event(void *arg)
 						  WIFIMGR_CMD_DISCONNECT,
 						  wifi_manager_disconnect, mgr);
 /*
-		netif = netif_find(WIFIMGR_STA_DEVNAME);
-		if (netif) {
+		if (mgr->sta_iface) {
 			syslog(LOG_INFO, "start DHCP client\n");
-			dhcp_start(netif);
+			dhcp_start(mgr->sta_iface);
 		}
 */
 
 		/* Notify the external caller */
 		if (wifimgr_get_ctrl_cbs()
 		    && wifimgr_get_ctrl_cbs()->notify_connect)
-			wifimgr_get_ctrl_cbs()->notify_connect(&evt_conn->
+			wifimgr_get_ctrl_cbs()->notify_connect(evt_conn->
 							       status);
 	} else {
 		syslog(LOG_ERR, "failed to connect!\n");
@@ -204,7 +202,6 @@ static int wifi_manager_scan_result(void *arg)
 {
 	struct wifimgr_evt_scan_result *evt_scan_res =
 	    (struct wifimgr_evt_scan_result *)arg;
-	int ret = 0;
 	struct wifi_manager *mgr =
 	    container_of(evt_scan_res, struct wifi_manager, evt_scan_res);
 
@@ -216,19 +213,12 @@ static int wifi_manager_scan_result(void *arg)
 	       evt_scan_res->channel, evt_scan_res->rssi);
 	fflush(stdout);
 
-	/* Record the info of specified AP */
-	if (!strcmp(evt_scan_res->ssid, mgr->sta_conf.ssid)) {
+	/* Found specified AP */
+	if (!strcmp(evt_scan_res->ssid, mgr->sta_conf.ssid))
 		if (!strncmp
 		    (evt_scan_res->bssid, mgr->sta_conf.bssid, WIFIMGR_ETH_ALEN)
-		    || is_zero_ether_addr(mgr->sta_conf.bssid)) {
-			strcpy(mgr->sta_sts.ssid, evt_scan_res->ssid);
-			strncpy(mgr->sta_sts.bssid, evt_scan_res->bssid,
-				WIFIMGR_ETH_ALEN);
-			mgr->sta_sts.band = evt_scan_res->band;
-			mgr->sta_sts.channel = evt_scan_res->channel;
-			mgr->sta_sts.rssi = evt_scan_res->rssi;
-		}
-	}
+		    || is_zero_ether_addr(mgr->sta_conf.bssid))
+			mgr->sta_conf.found = true;
 
 	/* Notify the external caller */
 	if (wifimgr_get_ctrl_cbs() && wifimgr_get_ctrl_cbs()->notify_scan_res)
@@ -238,7 +228,7 @@ static int wifi_manager_scan_result(void *arg)
 							evt_scan_res->channel,
 							evt_scan_res->rssi);
 
-	return ret;
+	return 0;
 }
 
 static int wifi_manager_scan_done(void *arg)
@@ -256,6 +246,10 @@ static int wifi_manager_scan_done(void *arg)
 	else
 		syslog(LOG_ERR, "scan abort!\n");
 	fflush(stdout);
+
+	/* Notify the external caller */
+	if (wifimgr_get_ctrl_cbs() && wifimgr_get_ctrl_cbs()->notify_scan_done)
+		wifimgr_get_ctrl_cbs()->notify_scan_done(mgr->sta_conf.found);
 
 	return ret;
 }

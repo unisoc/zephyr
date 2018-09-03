@@ -3,7 +3,7 @@
 #include <string.h>
 #include <sipc.h>
 #include <sblock.h>
-#include <net/wifi_drv_iface.h>
+#include <net/wifimgr_drv.h>
 
 #include "wifi_main.h"
 

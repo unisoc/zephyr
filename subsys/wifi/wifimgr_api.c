@@ -6,6 +6,8 @@
 
 #include "wifimgr.h"
 
+static struct wifimgr_ctrl_cbs *wifimgr_cbs = NULL;
+
 static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 				       int buf_len)
 {
@@ -170,7 +172,6 @@ int wifimgr_ctrl_iface_del_station(char *mac)
 }
 
 static const struct wifimgr_ctrl_ops wifimgr_ops = {
-	.size = sizeof(struct wifimgr_ctrl_ops),
 	.set_conf = wifimgr_ctrl_iface_set_conf,
 	.get_conf = wifimgr_ctrl_iface_get_conf,
 	.get_status = wifimgr_ctrl_iface_get_status,
@@ -184,12 +185,15 @@ static const struct wifimgr_ctrl_ops wifimgr_ops = {
 	.del_station = wifimgr_ctrl_iface_del_station,
 };
 
-const struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops(void)
+const
+struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops(struct wifimgr_ctrl_cbs *cbs)
 {
+	wifimgr_cbs = cbs;
+
 	return &wifimgr_ops;
 }
 
 const struct wifimgr_ctrl_cbs *wifimgr_get_ctrl_cbs(void)
 {
-	return NULL;
+	return wifimgr_cbs;
 }
