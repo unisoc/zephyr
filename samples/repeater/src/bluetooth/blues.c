@@ -6,10 +6,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <errno.h>
 #include <zephyr/types.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <misc/printk.h>
 #include <misc/byteorder.h>
 #include <zephyr.h>
@@ -24,12 +25,26 @@
 
 
 #include "../../../../drivers/bluetooth/unisoc/uki_utlis.h"
+#include "../../../../drivers/bluetooth/unisoc/uki_config.h"
+#include "blues.h"
 #include "throughput.h"
 #include "wifi_manager_service.h"
 #include "mesh.h"
 
 #define DEVICE_NAME		CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN		(sizeof(DEVICE_NAME) - 1)
+
+static blues_config_t  blues_config;
+static const conf_entry_t blues_config_table[] = {
+    CONF_ITEM_TABLE(role, 0, blues_config, 1),
+    CONF_ITEM_TABLE(address, 0, blues_config, 6),
+    CONF_ITEM_TABLE(auto_run, 0, blues_config, 1),
+	CONF_ITEM_TABLE(net_key, 0, blues_config, 16),
+	CONF_ITEM_TABLE(device_key, 0, blues_config, 16),
+	CONF_ITEM_TABLE(app_key, 0, blues_config, 16),
+	CONF_ITEM_TABLE(node_address, 0, blues_config, 6),
+	{0, 0, 0, 0, 0}
+};
 
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
@@ -96,7 +111,14 @@ static int cmd_slog(int argc, char *argv[])
 void blues_init(void)
 {
 	BTD("%s\n", __func__);
-	mesh_init();
+	uki_config_init();
+
+	memset(&blues_config, 0, sizeof(blues_config_t));
+	vnd_load_configure(BT_CONFIG_INFO_FILE, &blues_config_table[0], 1);
+
+	if (blues_config.role == DEVICE_ROLE_MESH
+		&& blues_config.auto_run)
+		mesh_init();
 }
 
 static const struct shell_cmd blues_commands[] = {

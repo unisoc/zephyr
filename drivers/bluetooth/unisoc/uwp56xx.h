@@ -27,31 +27,6 @@
 #define HCI_CMD_MAX_LEN 258
 #define HCI_CMD_PREAMBLE_SIZE 3
 
-#define CONF_ITEM_TABLE(ITEM, ACTION, BUF, LEN) \
-  { #ITEM, ACTION, &(BUF.ITEM), LEN, (sizeof(BUF.ITEM) / LEN) }
-
-#define UINT32_TO_STREAM(p, u32) {*(p)++ = (uint8_t)(u32); *(p)++ = (uint8_t)((u32) >> 8); *(p)++ = (uint8_t)((u32) >> 16); *(p)++ = (uint8_t)((u32) >> 24);}
-#define UINT24_TO_STREAM(p, u24) {*(p)++ = (uint8_t)(u24); *(p)++ = (uint8_t)((u24) >> 8); *(p)++ = (uint8_t)((u24) >> 16);}
-#define UINT16_TO_STREAM(p, u16) {*(p)++ = (uint8_t)(u16); *(p)++ = (uint8_t)((u16) >> 8);}
-#define UINT8_TO_STREAM(p, u8)   {*(p)++ = (uint8_t)(u8);}
-
-
-enum { DUAL_MODE = 0, CLASSIC_MODE, LE_MODE };
-enum { DISABLE_BT = 0, ENABLE_BT };
-
-
-typedef int(conf_action_t)(char *p_conf_name, char *p_conf_value, void *buf,
-                           int len, int size);
-
-typedef struct {
-    const char *conf_entry;
-    conf_action_t *p_action;
-    void *buf;
-    int len;
-    int size;
-} conf_entry_t;
-
-
 typedef struct {
     uint32_t  device_class;
     uint8_t  feature_set[16];
