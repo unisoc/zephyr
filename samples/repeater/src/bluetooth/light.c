@@ -35,6 +35,8 @@ static struct k_work button_work;
 static struct k_timer banner_timer;
 static u8_t is_banner_running = 0;
 
+static struct k_timer led_test_timer;
+
 struct onoff_state unisoc_leds[] = {
 	{ .pin = LED1_GPIO_PIN,
 	  .state = LED_STATE_OFF
@@ -124,8 +126,8 @@ static void banner_timer_task(struct k_timer *work)
 	index--;
 	if (!index)
 		index = 3;
-	
-	gpio_pin_write(gpio, unisoc_leds[index - 1].pin, LED_ON_VALUE); 
+
+	gpio_pin_write(gpio, unisoc_leds[index - 1].pin, LED_ON_VALUE);
 	unisoc_leds[index - 1].state = LED_STATE_ON;
 	BTV("LED: %d ON\n", index);
 
@@ -134,7 +136,7 @@ static void banner_timer_task(struct k_timer *work)
 static void button_pressed(struct device *dev, struct gpio_callback *cb,
 			   u32_t pins)
 {
-	BTI("%s\n", __func__);
+	BTV("%s\n", __func__);
 	u32_t value = 0;
 	gpio_pin_read(gpio, BUTTON1_GPIO_PIN0, &value);
 	if (value == -1)
@@ -179,8 +181,17 @@ void light_onoff_set_unack(struct bt_mesh_model *model,
 	BTD("%s\n", __func__);
 }
 
+
+static void led_test_timer_task(struct k_timer *work)
+{
+	button_pressed_worker(NULL);
+
+}
+
 int cmd_led(int argc, char *argv[])
 {
+	k_timer_init(&led_test_timer, led_test_timer_task, NULL);
+	k_timer_start(&led_test_timer, 0, 500);
 
 	return 0;
 }

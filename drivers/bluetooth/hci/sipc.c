@@ -128,6 +128,7 @@ static void rx_thread(void *p1, void *p2, void *p3)
 	ARG_UNUSED(p2);
 	ARG_UNUSED(p3);
 	int ret;
+	u32_t left_length;
 	struct net_buf *buf;
 	unsigned char *rxmsg = NULL;
 	struct bt_hci_acl_hdr acl_hdr;
@@ -148,44 +149,63 @@ static void rx_thread(void *p1, void *p2, void *p3)
 			BTV("test cmd\n");
 			goto rx_continue;
 		}
-		rxmsg = (unsigned char*)blk.addr;
-		switch (rxmsg[PACKET_TYPE]) {
-		case HCI_EVT:
-			switch (rxmsg[EVT_HEADER_EVENT]) {
-			case BT_HCI_EVT_VENDOR:
-				/* Vendor events are currently unsupported */
-				bt_spi_handle_vendor_evt(rxmsg);
-				goto rx_continue;
-			case BT_HCI_EVT_CMD_COMPLETE:
-			case BT_HCI_EVT_CMD_STATUS:
-				buf = bt_buf_get_cmd_complete(K_FOREVER);
+
+		left_length = blk.length;
+
+		do {
+
+			rxmsg = ((unsigned char*)blk.addr) + blk.length - left_length;
+
+
+			switch (rxmsg[PACKET_TYPE]) {
+			case HCI_EVT:
+				switch (rxmsg[EVT_HEADER_EVENT]) {
+				case BT_HCI_EVT_VENDOR:
+					{
+						bt_spi_handle_vendor_evt(rxmsg);
+						left_length -= rxmsg[EVT_HEADER_SIZE] + 3;
+						BTD("left: vendor %d\n", left_length);
+						if (!left_length) {
+							goto rx_continue;
+						} else {
+							continue;
+						}
+					}
+				case BT_HCI_EVT_CMD_COMPLETE:
+				case BT_HCI_EVT_CMD_STATUS:
+					buf = bt_buf_get_cmd_complete(K_FOREVER);
+					break;
+				default:
+					buf = bt_buf_get_rx(BT_BUF_EVT, K_FOREVER);
+					break;
+				}
+
+				net_buf_add_mem(buf, &rxmsg[1],
+						rxmsg[EVT_HEADER_SIZE] + 2);
+
+				left_length -= rxmsg[EVT_HEADER_SIZE] + 3;
+				break;
+			case HCI_ACL:
+				buf = bt_buf_get_rx(BT_BUF_ACL_IN, K_FOREVER);
+				memcpy(&acl_hdr, &rxmsg[1], sizeof(acl_hdr));
+				net_buf_add_mem(buf, &acl_hdr, sizeof(acl_hdr));
+				net_buf_add_mem(buf, &rxmsg[5],
+						sys_le16_to_cpu(acl_hdr.len));
+				left_length -= sys_le16_to_cpu(acl_hdr.len) + 5;
 				break;
 			default:
-				buf = bt_buf_get_rx(BT_BUF_EVT, K_FOREVER);
-				break;
+				BTE("Unknown BT buf type %d", rxmsg[0]);
+				goto rx_continue;
 			}
 
-			net_buf_add_mem(buf, &rxmsg[1],
-					rxmsg[EVT_HEADER_SIZE] + 2);
-			break;
-		case HCI_ACL:
-			buf = bt_buf_get_rx(BT_BUF_ACL_IN, K_FOREVER);
-			memcpy(&acl_hdr, &rxmsg[1], sizeof(acl_hdr));
-			net_buf_add_mem(buf, &acl_hdr, sizeof(acl_hdr));
-			net_buf_add_mem(buf, &rxmsg[5],
-					sys_le16_to_cpu(acl_hdr.len));
-			break;
-		default:
-			BTE("Unknown BT buf type %d", rxmsg[0]);
-			goto rx_continue;
-		}
-
-		if (rxmsg[PACKET_TYPE] == HCI_EVT &&
-		    bt_hci_evt_is_prio(rxmsg[EVT_HEADER_EVENT])) {
-			bt_recv_prio(buf);
-		} else {
-			bt_recv(buf);
-		}
+			if (rxmsg[PACKET_TYPE] == HCI_EVT &&
+			    bt_hci_evt_is_prio(rxmsg[EVT_HEADER_EVENT])) {
+				bt_recv_prio(buf);
+			} else {
+				bt_recv(buf);
+			}
+			BTD("left: %d\n", left_length);
+		} while (left_length);
 rx_continue:;
 		sblock_release(0, SMSG_CH_BT, &blk);
 	}
