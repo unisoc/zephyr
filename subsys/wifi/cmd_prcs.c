@@ -67,6 +67,26 @@ int command_processor_unregister_sender(struct cmd_processor *handle,
 	return 0;
 }
 
+static void command_processor_post_process(void *handle,
+					   struct cmd_message *msg, int reply)
+{
+	struct cmd_processor *prcs = (struct cmd_processor *)handle;
+	int ret;
+
+	free(msg->buf);
+
+	msg->reply = reply;
+	ret =
+	    mq_send(prcs->mq, (const char *)msg, sizeof(struct cmd_message), 0);
+	if (ret < 0)
+		syslog(LOG_ERR,
+		       "failed to send [%s] reply: %d, errno %d!\n",
+		       wifimgr_cmd2str(msg->cmd_id), ret, errno);
+	else
+		syslog(LOG_DEBUG, "send [%s] reply: %d\n",
+		       wifimgr_cmd2str(msg->cmd_id), msg->reply);
+}
+
 static void *command_processor(void *handle)
 {
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
@@ -98,7 +118,7 @@ static void *command_processor(void *handle)
 		/* Ask state machine whether the command could be executed */
 		ret = wifi_manager_sm_query_cmd(mgr, msg.cmd_id);
 		if (ret) {
-			free(msg.buf);
+			command_processor_post_process(prcs, &msg, ret);
 
 			if (ret == -EBUSY)
 				syslog(LOG_ERR, "Busy! try again later\n");
@@ -108,6 +128,7 @@ static void *command_processor(void *handle)
 		if (is_comman_cmd(msg.cmd_id) == false) {
 			ret = wifi_manager_low_level_init(mgr, msg.cmd_id);
 			if (ret == -ENODEV) {
+				command_processor_post_process(prcs, &msg, ret);
 				syslog(LOG_ERR, "No such device!\n");
 				continue;
 			}
@@ -130,18 +151,19 @@ static void *command_processor(void *handle)
 			} else {
 				/*Remain current state when failed sending */
 				syslog(LOG_ERR,
-				       "failed to send command! remains: %s\n",
+				       "failed to exec [%s]! remains: %s\n",
+				       wifimgr_cmd2str(msg.cmd_id),
 				       wifimgr_sts2str(mgr, msg.cmd_id));
 			}
 		} else {
 			syslog(LOG_ERR, "[%s] not allowed under %s\n",
 			       wifimgr_cmd2str(msg.cmd_id),
 			       wifimgr_sts2str(mgr, msg.cmd_id));
+			ret = -EPERM;
 		}
 
 		sem_post(&prcs->exclsem);
-
-		free(msg.buf);
+		command_processor_post_process(prcs, &msg, ret);
 	}
 
 	return NULL;
@@ -166,7 +188,7 @@ int wifi_manager_command_processor_init(struct cmd_processor *handle)
 	attr.mq_flags = 0;
 
 	/* open message queue of command sender */
-	prcs->mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDONLY | O_CREAT, 0666, &attr);
+	prcs->mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
 	if (!prcs->mq) {
 		syslog(LOG_ERR, "failed to open command queue %s!\n",
 		       WIFIMGR_CMD_MQUEUE);

@@ -126,8 +126,9 @@ static int wifimgr_cmd_del_station(int argc, char *argv[])
 {
 	char *mac = NULL;
 
-	if (argv[1])
-		mac = argv[1];
+	if (argc != 2 || !argv[1])
+		return -EINVAL;
+	mac = argv[1];
 
 	return wifimgr_ctrl_iface_del_station(mac);
 }

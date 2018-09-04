@@ -10,6 +10,6 @@ zephyr_sources_ifdef(
   sta.c
   ap.c
   drv_iface.c
-  wifimgr_api.c
+  api.c
   )
-zephyr_sources_ifdef(CONFIG_WIFIMGR_CLI wifimgr_cli.c)
+zephyr_sources_ifdef(CONFIG_WIFIMGR_CLI cli.c)

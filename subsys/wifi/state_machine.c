@@ -21,9 +21,8 @@ static int sm_timer_start(timer_t timerid, unsigned int sec)
 
 	ret = timer_settime(timerid, 0, &todelay, NULL);
 	if (ret < 0) {
-		int errorcode = errno;
-		syslog(LOG_ERR, "failed to set the timer: %d\n", errorcode);
-		return -errorcode;
+		syslog(LOG_ERR, "failed to set the timer: %d\n", errno);
+		ret = -errno;
 	}
 
 	return ret;
@@ -72,6 +71,7 @@ static void sm_sta_timeout(void *sival_ptr)
 	    (struct wifimgr_state_machine *)sival_ptr;
 	struct wifi_manager *mgr =
 	    container_of(sta_sm, struct wifi_manager, sta_sm);
+	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	unsigned int expected_evt;
 
 	/* Remove event receiver, notify the external caller */
@@ -82,9 +82,8 @@ static void sm_sta_timeout(void *sival_ptr)
 					       WIFIMGR_EVT_SCAN_RESULT);
 		event_listener_remove_receiver(&mgr->lsnr, expected_evt);
 
-		if (wifimgr_get_ctrl_cbs()
-		    && wifimgr_get_ctrl_cbs()->notify_scan_timeout)
-			wifimgr_get_ctrl_cbs()->notify_scan_timeout();
+		if (cbs && cbs->notify_scan_timeout)
+			cbs->notify_scan_timeout();
 
 		syslog(LOG_ERR, "[%s] timeout!\n",
 		       wifimgr_evt2str(expected_evt));
@@ -93,9 +92,8 @@ static void sm_sta_timeout(void *sival_ptr)
 		expected_evt = WIFIMGR_EVT_CONNECT;
 		event_listener_remove_receiver(&mgr->lsnr, expected_evt);
 
-		if (wifimgr_get_ctrl_cbs()
-		    && wifimgr_get_ctrl_cbs()->notify_connect_timeout)
-			wifimgr_get_ctrl_cbs()->notify_connect_timeout();
+		if (cbs && cbs->notify_connect_timeout)
+			cbs->notify_connect_timeout();
 
 		syslog(LOG_ERR, "[%s] timeout!\n",
 		       wifimgr_evt2str(expected_evt));
@@ -103,9 +101,8 @@ static void sm_sta_timeout(void *sival_ptr)
 	case WIFIMGR_CMD_DISCONNECT:
 		expected_evt = WIFIMGR_EVT_DISCONNECT;
 
-		if (wifimgr_get_ctrl_cbs()
-		    && wifimgr_get_ctrl_cbs()->notify_disconnect_timeout)
-			wifimgr_get_ctrl_cbs()->notify_disconnect_timeout();
+		if (cbs && cbs->notify_disconnect_timeout)
+			cbs->notify_disconnect_timeout();
 
 		syslog(LOG_ERR, "[%s] timeout!\n",
 		       wifimgr_evt2str(expected_evt));
@@ -171,6 +168,7 @@ static void sm_ap_timeout(void *sival_ptr)
 {
 	struct wifimgr_state_machine *ap_sm =
 	    (struct wifimgr_state_machine *)sival_ptr;
+	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	unsigned int expected_evt;
 
 	/* Notify the external caller */
@@ -178,9 +176,8 @@ static void sm_ap_timeout(void *sival_ptr)
 	case WIFIMGR_CMD_DEL_STATION:
 		expected_evt = WIFIMGR_EVT_NEW_STATION;
 
-		if (wifimgr_get_ctrl_cbs()
-		    && wifimgr_get_ctrl_cbs()->notify_del_station_timeout)
-			wifimgr_get_ctrl_cbs()->notify_del_station_timeout();
+		if (cbs && cbs->notify_del_station_timeout)
+			cbs->notify_del_station_timeout();
 
 		syslog(LOG_ERR, "[%s] timeout!\n",
 		       wifimgr_evt2str(expected_evt));
@@ -366,6 +363,10 @@ void sm_sta_step_evt(struct wifimgr_state_machine *sta_sm, unsigned int evt_id)
 			sm_sta_step(sta_sm, WIFIMGR_SM_STA_CONNECTED);
 		break;
 	case WIFIMGR_SM_STA_DISCONNECTING:
+		if (evt_id == WIFIMGR_EVT_DISCONNECT)
+			sm_sta_step(sta_sm, WIFIMGR_SM_STA_READY);
+		break;
+	case WIFIMGR_SM_STA_CONNECTED:
 		if (evt_id == WIFIMGR_EVT_DISCONNECT)
 			sm_sta_step(sta_sm, WIFIMGR_SM_STA_READY);
 		break;

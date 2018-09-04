@@ -61,7 +61,8 @@ struct cmd_processor {
 /* Structure defining the messages passed to a processor thread */
 struct cmd_message {
 	wifimgr_snode_t cmd_node;
-	unsigned int cmd_id;	/* Message ID */
+	unsigned int cmd_id;	/* Command ID */
+	int reply;		/* Command reply */
 	int buf_len;		/* Command message length in bytes */
 	void *buf;		/* Command message pointer */
 };

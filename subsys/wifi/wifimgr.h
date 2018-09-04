@@ -27,7 +27,7 @@
 #include "evt_lsnr.h"
 #include "state_machine.h"
 #include "drv_iface.h"
-#include "wifimgr_api_internal.h"
+#include "api.h"
 
 #define WIFIMGR_DEV_NAME_STA	"UWP_STA"
 #define WIFIMGR_DEV_NAME_AP	"UWP_AP"
@@ -36,6 +36,7 @@
 #define WIFIMGR_MAX_PSPHR_LEN	32
 #define WIFIMGR_ETH_ALEN	6
 
+#define WIFIMGR_CMD_TIMEOUT	3
 #define WIFIMGR_SCAN_TIMEOUT	10
 #define WIFIMGR_EVENT_TIMEOUT	10
 

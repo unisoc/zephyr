@@ -214,7 +214,6 @@ void wifi_drv_iface_scan_result_cb(struct net_if *iface, int status,
 	scan_res.channel = entry->channel;
 	scan_res.rssi = entry->rssi;
 
-	syslog(LOG_DEBUG, "SSID: %s\n", entry->ssid);
 	wifi_drv_iface_notify_event(WIFIMGR_EVT_SCAN_RESULT, &scan_res,
 				    sizeof(scan_res));
 }

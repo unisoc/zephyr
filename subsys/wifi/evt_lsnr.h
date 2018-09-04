@@ -67,7 +67,7 @@ struct evt_listener {
 
 /* Structure defining the messages passed to a listening thread */
 struct evt_message {
-	unsigned int evt_id;	/* Message ID */
+	unsigned int evt_id;	/* Event ID */
 	int buf_len;		/* Event message length in bytes */
 	void *buf;		/* Event message pointer */
 };

@@ -21,6 +21,6 @@ int wifimgr_ctrl_iface_start_ap(void);
 int wifimgr_ctrl_iface_stop_ap(void);
 int wifimgr_ctrl_iface_del_station(char *mac);
 
-const struct wifimgr_ctrl_cbs *wifimgr_get_ctrl_cbs(void);
+struct wifimgr_ctrl_cbs *wifimgr_get_ctrl_cbs(void);
 
 #endif

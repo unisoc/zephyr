@@ -9,32 +9,52 @@
 int wifi_manager_get_ap_config(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifimgr_config *ap_conf = &mgr->ap_conf;
+	struct wifimgr_config *conf = &mgr->ap_conf;
+	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
+	int ret = 0;
 
-	if (ap_conf->ssid[0] != '\0') {
-		syslog(LOG_INFO, "AP Config\n");
-		syslog(LOG_INFO, "SSID:\t\t%s\n", ap_conf->ssid);
-		if (ap_conf->passphrase[0] != '\0')
-			syslog(LOG_INFO, "Passphrase:\t%s\n",
-			       ap_conf->passphrase);
-		syslog(LOG_INFO, "Channel:\t%d\n", ap_conf->channel);
+	syslog(LOG_INFO, "AP Config\n");
+	if (strlen(conf->ssid))
+		syslog(LOG_INFO, "SSID:\t\t%s\n", conf->ssid);
 
+	if (is_zero_ether_addr(conf->bssid)) {
+		ret = wifi_drv_iface_get_mac(mgr->ap_iface, conf->bssid);
+	} else {
+		syslog(LOG_INFO, "BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+		       conf->bssid[0], conf->bssid[1], conf->bssid[2],
+		       conf->bssid[3], conf->bssid[4], conf->bssid[5]);
 	}
 
-	return 0;
+	if (conf->channel)
+		syslog(LOG_INFO, "Channel:\t%d\n", conf->channel);
+
+	if (strlen(conf->passphrase))
+		syslog(LOG_INFO, "Passphrase:\t%s\n", conf->passphrase);
+	fflush(stdout);
+
+	/* Notify the external caller */
+	if (cbs && cbs->get_conf_cb)
+		cbs->get_conf_cb(WIFIMGR_IFACE_NAME_AP,
+				 strlen(conf->ssid) ? conf->ssid : NULL,
+				 is_zero_ether_addr(conf->bssid) ? NULL :
+				 conf->bssid,
+				 strlen(conf->passphrase) ? conf->
+				 passphrase : NULL, conf->band, conf->channel);
+
+	return ret;
 }
 
 int wifi_manager_set_ap_config(void *handle)
 {
-	struct wifimgr_config *ap_conf = (struct wifimgr_config *)handle;
+	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
 	syslog(LOG_INFO, "Setting AP ...\n");
-	syslog(LOG_INFO, "SSID:\t\t%s\n", ap_conf->ssid);
-	syslog(LOG_INFO, "Channel:\t%d\n", ap_conf->channel);
+	syslog(LOG_INFO, "SSID:\t\t%s\n", conf->ssid);
+	syslog(LOG_INFO, "Channel:\t%d\n", conf->channel);
 
-	if (ap_conf->passphrase[0] != '\0')
-		syslog(LOG_INFO, "Passphrase:\t%s\n",
-		       ap_conf->passphrase);
+	if (strlen(conf->passphrase))
+		syslog(LOG_INFO, "Passphrase:\t%s\n", conf->passphrase);
+	fflush(stdout);
 
 	return 0;
 }
@@ -42,9 +62,23 @@ int wifi_manager_set_ap_config(void *handle)
 int wifi_manager_get_ap_status(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifimgr_state_machine *ap_sm = &mgr->ap_sm;
+	struct wifimgr_state_machine *sm = &mgr->ap_sm;
+	struct wifimgr_status *sts = &mgr->ap_sts;
+	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
+	int ret = 0;
 
-	syslog(LOG_INFO, "AP Status:\t%s\n", ap_sts2str(sm_ap_query(ap_sm)));
+	syslog(LOG_INFO, "AP Status:\t%s\n", ap_sts2str(sm_ap_query(sm)));
+
+	if (is_zero_ether_addr(sts->own_mac))
+		ret = wifi_drv_iface_get_mac(mgr->ap_iface, sts->own_mac);
+	syslog(LOG_INFO, "Own MAC:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+	       sts->own_mac[0], sts->own_mac[1], sts->own_mac[2],
+	       sts->own_mac[3], sts->own_mac[4], sts->own_mac[5]);
+
+	/* Notify the external caller */
+	if (cbs && cbs->get_status_cb)
+		cbs->get_status_cb(WIFIMGR_IFACE_NAME_AP, sm_ap_query(sm),
+				   sts->own_mac, 0);
 	fflush(stdout);
 
 	return 0;
@@ -52,30 +86,25 @@ int wifi_manager_get_ap_status(void *handle)
 
 static int wifi_manager_new_station_event_cb(void *arg)
 {
-	struct wifimgr_evt_new_station *evt_new_sta =
+	struct wifimgr_evt_new_station *new_sta =
 	    (struct wifimgr_evt_new_station *)arg;
+	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 
-	if (evt_new_sta->is_connect)
+	if (new_sta->is_connect)
 		syslog(LOG_INFO,
-		       "new station (%02x:%02x:%02x:%02x:%02x:%02x) connected!\n",
-		       evt_new_sta->mac[0], evt_new_sta->mac[1],
-		       evt_new_sta->mac[2], evt_new_sta->mac[3],
-		       evt_new_sta->mac[4], evt_new_sta->mac[5]);
+		       "station (%02x:%02x:%02x:%02x:%02x:%02x) connected!\n",
+		       new_sta->mac[0], new_sta->mac[1], new_sta->mac[2],
+		       new_sta->mac[3], new_sta->mac[4], new_sta->mac[5]);
 	else
 		syslog(LOG_ERR,
 		       "station (%02x:%02x:%02x:%02x:%02x:%02x) disconnected!\n",
-		       evt_new_sta->mac[0], evt_new_sta->mac[1],
-		       evt_new_sta->mac[2], evt_new_sta->mac[3],
-		       evt_new_sta->mac[4], evt_new_sta->mac[5]);
-
+		       new_sta->mac[0], new_sta->mac[1], new_sta->mac[2],
+		       new_sta->mac[3], new_sta->mac[4], new_sta->mac[5]);
 	fflush(stdout);
 
 	/* Notify the external caller */
-	if (wifimgr_get_ctrl_cbs()
-	    && wifimgr_get_ctrl_cbs()->notify_new_station)
-		wifimgr_get_ctrl_cbs()->notify_new_station(evt_new_sta->
-							   is_connect,
-							   evt_new_sta->mac);
+	if (cbs && cbs->notify_new_station)
+		cbs->notify_new_station(new_sta->is_connect, new_sta->mac);
 
 	return 0;
 }
@@ -83,27 +112,25 @@ static int wifi_manager_new_station_event_cb(void *arg)
 int wifi_manager_start_softap(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifimgr_config *ap_conf = &mgr->ap_conf;
+	struct wifimgr_config *conf = &mgr->ap_conf;
 	int ret;
 
-	if (ap_conf->ssid[0] == '\0') {
+	if (conf->ssid[0] == '\0') {
 		syslog(LOG_ERR, "no AP config!\n");
 		return -EINVAL;
 	}
 
-	ret =
-	    event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_NEW_STATION,
-					false,
-					wifi_manager_new_station_event_cb,
-					&mgr->evt_new_sta);
+	ret = event_listener_add_receiver(&mgr->lsnr,
+					  WIFIMGR_EVT_NEW_STATION, false,
+					  wifi_manager_new_station_event_cb,
+					  &mgr->evt_new_sta);
 	if (ret) {
 		syslog(LOG_ERR, "failed to start AP!\n");
 		return ret;
 	}
 
-	ret =
-	    wifi_drv_iface_start_softap(mgr->ap_iface, ap_conf->ssid,
-					ap_conf->passphrase, ap_conf->channel);
+	ret = wifi_drv_iface_start_softap(mgr->ap_iface, conf->ssid,
+					  conf->passphrase, conf->channel);
 
 	if (ret) {
 		event_listener_remove_receiver(&mgr->lsnr,
