@@ -19,13 +19,6 @@
 #define NODE_ADDR 0x0b0c
 #endif
 
-#define GROUP_ADDR 0xc000
-#define PUBLISHER_ADDR  0x000f
-
-#define BT_COMP_ID           0x01EC
-#define MOD_ID 0x1688
-#define OP_VENDOR_ACTION BT_MESH_MODEL_OP_3(0x00, BT_COMP_ID)
-
 static const u8_t net_key[16] = {
 	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
 	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
@@ -55,6 +48,7 @@ static const u16_t app_idx;
 static const u32_t iv_index;
 static u8_t flags;
 static u16_t addr = NODE_ADDR;
+static u16_t target = GROUP_ADDR;
 
 static bt_mesh_input_action_t input_act;
 static u8_t input_size;
@@ -145,9 +139,6 @@ static void configure(void)
 	bt_mesh_cfg_mod_app_bind_vnd(net_idx, addr, addr, app_idx,
 		MOD_ID, BT_COMP_ID, NULL);
 
-	/* Bind to Health model */
-	bt_mesh_cfg_mod_app_bind(net_idx, addr, addr, app_idx,
-		BT_MESH_MODEL_ID_HEALTH_SRV, NULL);
 
 	bt_mesh_cfg_mod_app_bind(net_idx, addr, addr, app_idx,
 		BT_MESH_MODEL_ID_GEN_ONOFF_SRV, NULL);
@@ -156,17 +147,9 @@ static void configure(void)
 	bt_mesh_cfg_mod_sub_add_vnd(net_idx, addr, addr, GROUP_ADDR,
 				    MOD_ID, BT_COMP_ID, NULL);
 
-	struct bt_mesh_cfg_hb_pub pub = {
-		.dst = GROUP_ADDR,
-		.count = 0xff,
-		.period = 0x05,
-		.ttl = 0x07,
-		.feat = 0,
-		.net_idx = net_idx,
-	};
+	health_init();
+	light_init();
 
-	bt_mesh_cfg_hb_pub_set(net_idx, addr, &pub, NULL);
-	printk("Publishing heartbeat messages\n");
 	printk("Configuration complete\n");
 
 }
@@ -261,45 +244,6 @@ static struct bt_mesh_prov prov = {
 	.input = input,
 };
 
-
-static void bt_ready(int err)
-{
-	if (err) {
-		printk("Bluetooth init failed (err %d)\n", err);
-		return;
-	}
-
-	printk("Bluetooth initialized\n");
-
-	err = bt_mesh_init(&prov, &comp);
-	if (err) {
-		printk("Initializing mesh failed (err %d)\n", err);
-		return;
-	}
-
-	printk("Mesh initialized\n");
-
-	if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
-		printk("Loading stored settings\n");
-		settings_load();
-	}
-
-	err = bt_mesh_provision(net_key, net_idx, flags, iv_index, addr,
-				dev_key);
-	if (err == -EALREADY) {
-		printk("Using stored settings\n");
-	} else if (err) {
-		printk("Provisioning failed (err %d)\n", err);
-		return;
-	} else {
-		printk("Provisioning completed\n");
-		configure();
-	}
-}
-
-static u16_t target = GROUP_ADDR;
-
-
 void vendor_net_send(void)
 {
 	NET_BUF_SIMPLE_DEFINE(msg, 2 + 6 + 4);
@@ -363,14 +307,38 @@ void vendor_led_on_send(void)
 
 }
 
-void mesh_enable(void)
+static void mesh_enable(int err)
 {
-	int err;
-
-	err = bt_enable(bt_ready);
 	if (err) {
 		printk("Bluetooth init failed (err %d)\n", err);
 		return;
+	}
+
+	printk("Bluetooth initialized\n");
+
+	err = bt_mesh_init(&prov, &comp);
+	if (err) {
+		printk("Initializing mesh failed (err %d)\n", err);
+		return;
+	}
+
+	printk("Mesh initialized\n");
+
+	if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
+		printk("Loading stored settings\n");
+		settings_load();
+	}
+
+	err = bt_mesh_provision(net_key, net_idx, flags, iv_index, addr,
+				dev_key);
+	if (err == -EALREADY) {
+		printk("Using stored settings\n");
+	} else if (err) {
+		printk("Provisioning failed (err %d)\n", err);
+		return;
+	} else {
+		printk("Provisioning completed\n");
+		configure();
 	}
 }
 
@@ -381,12 +349,18 @@ void test() {
 
 void mesh_init(void)
 {
+	int err;
 
 	BTI("%s\n", __func__);
-	mesh_enable();
-	addr = sys_rand32_get() & 0x7F;
 
-	light_init();
+	addr = sys_rand32_get() & 0x7FFF;
+	BTI("Node address: 0x%04X\n", addr);
+
+	err = bt_enable(mesh_enable);
+	if (err) {
+		printk("Bluetooth init failed (err %d)\n", err);
+		return;
+	}
 }
 
 u16_t get_net_idx(void)
@@ -402,6 +376,11 @@ u16_t get_app_idx(void)
 u32_t get_iv_index(void)
 {
 	return iv_index;
+}
+
+u16_t get_addr(void)
+{
+	return addr;
 }
 
 struct bt_mesh_model *get_root_modules(void)
@@ -424,7 +403,7 @@ int cmd_mesh(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "on")) {
-		mesh_enable();
+		mesh_init();
 	} else if (!strcmp(argv[1], "config")) {
 		//configure();
 	} else if (!strcmp(argv[1], "net_tx")) {

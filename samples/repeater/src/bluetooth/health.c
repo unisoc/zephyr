@@ -117,3 +117,24 @@ struct bt_mesh_health_srv unisoc_health_srv = {
 };
 
 
+void health_init(void)
+{
+	BTI("%s\n", __func__);
+	/* Bind to Health model */
+	bt_mesh_cfg_mod_app_bind(get_net_idx(), get_addr(), get_addr(), get_app_idx(),
+		BT_MESH_MODEL_ID_HEALTH_SRV, NULL);
+
+	struct bt_mesh_cfg_hb_pub pub = {
+		.dst = GROUP_ADDR,
+		.count = 0xff,
+		.period = 0x05,
+		.ttl = 0x07,
+		.feat = 0,
+		.net_idx = get_net_idx(),
+	};
+
+	bt_mesh_cfg_hb_pub_set(get_net_idx(), get_addr(), &pub, NULL);
+	printk("Publishing heartbeat messages\n");
+
+}
+

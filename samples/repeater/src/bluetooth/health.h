@@ -10,4 +10,6 @@
 
 #define CUR_FAULTS_MAX 4
 
+void health_init(void);
+
 #endif
