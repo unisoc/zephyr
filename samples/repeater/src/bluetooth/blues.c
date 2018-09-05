@@ -111,7 +111,6 @@ static int cmd_slog(int argc, char *argv[])
 void blues_init(void)
 {
 	BTD("%s\n", __func__);
-	uki_config_init();
 
 	memset(&blues_config, 0, sizeof(blues_config_t));
 	vnd_load_configure(BT_CONFIG_INFO_FILE, &blues_config_table[0], 1);

@@ -619,19 +619,12 @@ static struct fs_mount_t fatfs_mnt = {
 	.fs_data = &fat_fs,
 };
 
-void download_wifi_ini(void)
+void mount_file_system(void)
 {
 	int ret;
 	ret = fs_mount(&fatfs_mnt);
 	if (ret < 0) {
 		SYS_LOG_ERR("Error mounting fs [%d]\n", ret);
-		return;
-	}
-
-	ret = uwp_wifi_download_ini();
-	if (ret) {
-		SYS_LOG_ERR("Download wifi ini failed.");
-		return;
 	}
 }
 #endif
@@ -649,7 +642,7 @@ void main(void)
 	gpio_init();
 	wdg_init();
 
-	download_wifi_ini();
+	mount_file_system();
 
 	blues_init();
 

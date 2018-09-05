@@ -178,11 +178,13 @@ int cp_check_wifi_running(void)
 	return -1;
 }
 
-
-
+static bool cp_init_flag = false;
 int cp_mcu_init(void)
 {
 	int ret = 0;
+
+	if (cp_init_flag)
+		return;
 
 	SYS_LOG_INF("Start init mcu and download firmware.");
 
@@ -211,6 +213,8 @@ int cp_mcu_init(void)
 		SYS_LOG_ERR("cp fw is not running,something must be wrong");
 		return ret;
 	}
+
+	cp_init_flag = true;
 
 	SYS_LOG_INF("CP Init done,and CP fw is running!!!");
 	return 0;

@@ -70,6 +70,12 @@ static int uwp_mgmt_open(struct device *dev)
 	if (priv->mode == WIFI_MODE_STA)
 		wifi_tx_empty_buf(MAX_EMPTY_BUF_COUNT);
 
+	ret = uwp_wifi_download_ini();
+	if (ret) {
+		SYS_LOG_ERR("Download wifi ini failed.");
+		return;
+	}
+
 	priv->opened = true;
 
 	return 0;

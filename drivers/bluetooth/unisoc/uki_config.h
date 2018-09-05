@@ -54,6 +54,5 @@ typedef struct {
     int size;
 } conf_entry_t;
 void vnd_load_configure(const char *p_path, const conf_entry_t *entry, unsigned int mask);
-void uki_config_init(void);
 
 #endif  // LIBBT_CONF_SPRD_MARLIN_INCLUDE_MARLIN_H_

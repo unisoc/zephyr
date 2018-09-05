@@ -16,16 +16,6 @@
 
 #include <fs.h>
 #include <ff.h>
-#define FATFS_MNTP "/NAND:"
-/* FatFs work area */
-static FATFS fat_fs;
-
-/* mounting info */
-static struct fs_mount_t fatfs_mnt = {
-    .type = FS_FATFS,
-    .mnt_point = FATFS_MNTP,
-    .fs_data = &fat_fs,
-};
 
 char *uki_strtok_r(char *str, const char *delim, char **saveptr)
 {
@@ -154,15 +144,6 @@ static void parse_number(char *p_conf_name, char *p_conf_value, void *buf,
         }
         sub_value = uki_strtok_r(NULL, CONF_VALUES_PARTITION, &p);
     } while (--len);
-}
-
-void uki_config_init(void)
-{
-	int ret = fs_mount(&fatfs_mnt);
-	if (ret < 0 && ret!=-EBUSY) {
-		BTE("Error mounting fs [%d]\n", ret);
-		return -1;
-	}
 }
 
 void vnd_load_configure(const char *p_path, const conf_entry_t *entry, unsigned int mask)
