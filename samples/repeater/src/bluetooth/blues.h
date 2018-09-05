@@ -15,5 +15,7 @@ typedef struct {
 
 
 #define DEVICE_ROLE_MESH 1
+#define DEVICE_ROLE_BLUES 2
+
 
 #endif

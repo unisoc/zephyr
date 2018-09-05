@@ -36,9 +36,9 @@
 
 static blues_config_t  blues_config;
 static const conf_entry_t blues_config_table[] = {
-    CONF_ITEM_TABLE(role, 0, blues_config, 1),
-    CONF_ITEM_TABLE(address, 0, blues_config, 6),
-    CONF_ITEM_TABLE(auto_run, 0, blues_config, 1),
+	CONF_ITEM_TABLE(role, 0, blues_config, 1),
+	CONF_ITEM_TABLE(address, 0, blues_config, 6),
+	CONF_ITEM_TABLE(auto_run, 0, blues_config, 1),
 	CONF_ITEM_TABLE(net_key, 0, blues_config, 16),
 	CONF_ITEM_TABLE(device_key, 0, blues_config, 16),
 	CONF_ITEM_TABLE(app_key, 0, blues_config, 16),
@@ -118,15 +118,64 @@ void blues_init(void)
 	if (blues_config.role == DEVICE_ROLE_MESH
 		&& blues_config.auto_run)
 		mesh_init();
-}
 
+	if (blues_config.role == DEVICE_ROLE_BLUES
+		&& blues_config.auto_run)
+		cmd_init(0,NULL);
+}
+#if 0
+static int wifi_test(int argc, char *argv[])
+{
+	if (argc < 2) {
+		printk("%s, argc: %d", __func__, argc);
+		return -1;
+	}
+    char data[255]={0};
+	if(!strcmp(argv[1], "open")) {
+		wifimgr_open(data);
+	}else if(!strcmp(argv[1], "close")) {
+        wifimgr_close(data);
+    }else if(!strcmp(argv[1], "connect")) {
+        data[0]=16;
+        data[1]=0;
+        data[2]=10;
+        data[3]=0;
+        data[4]='M';
+        data[5]='C';
+        data[6]='U';
+        data[7]='_';
+        data[8]='M';
+        data[9]='O';
+        data[10]='D';
+        data[11]='U';
+        data[12]='L';
+        data[13]='E';
+        data[14]=0;
+        data[15]=0;
+        data[16]=0;
+        data[17]=0;
+        wifimgr_set_conf_and_connect(data);
+    }else if(!strcmp(argv[1], "disconnect")) {
+        wifimgr_disconnect(data);
+    }else if(!strcmp(argv[1], "status")) {
+        wifimgr_get_status(data);
+    }else if(!strcmp(argv[1], "conf")) {
+        wifimgr_get_conf(data);
+    }else if(!strcmp(argv[1], "scan")) {
+        wifimgr_do_scan();
+    }
+	return 0;
+}
+#endif
 static const struct shell_cmd blues_commands[] = {
 	{ "init", cmd_init, NULL },
 	{ "vlog", cmd_vlog, NULL },
 	{ "slog", cmd_slog, NULL },
 	{ "mesh", cmd_mesh, NULL },
 	{ "led", cmd_led, NULL },
-
+#if 0
+	{ "wifi", wifi_test, NULL },
+#endif
 	{ NULL, NULL, NULL}
 };
 
