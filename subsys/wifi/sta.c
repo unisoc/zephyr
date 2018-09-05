@@ -158,14 +158,14 @@ static int wifi_manager_connect_event(void *arg)
 			dhcp_start(mgr->sta_iface);
 		}
 */
-
-		/* Notify the external caller */
-		if (cbs && cbs->notify_connect)
-			cbs->notify_connect(conn->status);
 	} else {
 		syslog(LOG_ERR, "failed to connect!\n");
 	}
 	fflush(stdout);
+
+	/* Notify the external caller */
+	if (cbs && cbs->notify_connect)
+		cbs->notify_connect(conn->status);
 
 	return ret;
 }
