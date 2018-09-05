@@ -29,6 +29,7 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 	}
 
 	msg.cmd_id = cmd_id;
+	msg.reply = 0;
 	msg.buf_len = buf_len;
 	msg.buf = NULL;
 	if (buf_len) {
@@ -55,7 +56,7 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 			syslog(LOG_ERR,
 			       "failed to get command reply: %d, errno %d!\n",
 			       ret, errno);
-			if (errno == ETIMEDOUT)
+			if (errno == ETIME)
 				syslog(LOG_ERR, "[%s] timeout!\n",
 				       wifimgr_cmd2str(msg.cmd_id));
 			ret = -errno;

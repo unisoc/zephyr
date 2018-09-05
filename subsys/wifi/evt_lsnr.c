@@ -146,10 +146,10 @@ static void *event_listener(void *handle)
 			       "failed to receive event: %d, errno %d!\n", ret,
 			       errno);
 			continue;
-		} else {
-			syslog(LOG_DEBUG, "recv [%s], buf: 0x%08x\n",
-			       wifimgr_evt2str(msg.evt_id), *(int *)msg.buf);
 		}
+
+		syslog(LOG_DEBUG, "recv [%s], buf: 0x%08x\n",
+		       wifimgr_evt2str(msg.evt_id), *(int *)msg.buf);
 
 		sem_wait(&lsnr->exclsem);
 
@@ -159,8 +159,11 @@ static void *event_listener(void *handle)
 
 		while (rcvr) {
 			if (rcvr->expected_evt == msg.evt_id) {
-				match = true;
+				if (rcvr->oneshot)
+					_event_listener_remove_receiver(lsnr,
+									rcvr);
 
+				match = true;
 				syslog(LOG_DEBUG, "receiver 0x%p matches\n",
 				       rcvr);
 				break;
@@ -168,6 +171,7 @@ static void *event_listener(void *handle)
 			rcvr = (struct evt_receiver *)
 			    wifimgr_slist_peek_next(&rcvr->evt_node);
 		}
+
 		sem_post(&lsnr->exclsem);
 
 		if (match == true) {
@@ -184,13 +188,12 @@ static void *event_listener(void *handle)
 			else
 				/*Step back to previous state when failed callback */
 				wifi_manager_sm_step_back(mgr, msg.evt_id);
-
-			if (rcvr->oneshot)
-				_event_listener_remove_receiver(lsnr, rcvr);
 		} else {
-			syslog(LOG_ERR, "unexpected [%s]!\n",
-			       wifimgr_evt2str(msg.evt_id));
+			syslog(LOG_ERR, "unexpected [%s] under %s!\n",
+			       wifimgr_evt2str(msg.evt_id),
+			       wifimgr_sts2str_evt(mgr, msg.evt_id));
 		}
+
 		free(msg.buf);
 	}
 

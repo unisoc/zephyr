@@ -110,6 +110,11 @@ static void *command_processor(void *handle)
 			       "failed to get command: %d, errno %d!\n", ret,
 			       errno);
 			continue;
+		} else if (msg.reply) {
+			/* Drop command reply when receiving it */
+			syslog(LOG_ERR, "recv [%s] reply: %d? drop it\n",
+			       wifimgr_cmd2str(msg.cmd_id), msg.reply);
+			continue;
 		}
 
 		syslog(LOG_DEBUG, "recv [%s], buf: 0x%08x\n",
@@ -125,13 +130,12 @@ static void *command_processor(void *handle)
 			continue;
 		}
 
-		if (is_comman_cmd(msg.cmd_id) == false) {
-			ret = wifi_manager_low_level_init(mgr, msg.cmd_id);
-			if (ret == -ENODEV) {
-				command_processor_post_process(prcs, &msg, ret);
-				syslog(LOG_ERR, "No such device!\n");
-				continue;
-			}
+		/* Initialize driver interface for the first time running */
+		ret = wifi_manager_low_level_init(mgr, msg.cmd_id);
+		if (ret == -ENODEV) {
+			command_processor_post_process(prcs, &msg, ret);
+			syslog(LOG_ERR, "No such device!\n");
+			continue;
 		}
 
 		sem_wait(&prcs->exclsem);
@@ -151,14 +155,14 @@ static void *command_processor(void *handle)
 			} else {
 				/*Remain current state when failed sending */
 				syslog(LOG_ERR,
-				       "failed to exec [%s]! remains: %s\n",
+				       "failed to exec [%s]! remains %s\n",
 				       wifimgr_cmd2str(msg.cmd_id),
-				       wifimgr_sts2str(mgr, msg.cmd_id));
+				       wifimgr_sts2str_cmd(mgr, msg.cmd_id));
 			}
 		} else {
-			syslog(LOG_ERR, "[%s] not allowed under %s\n",
+			syslog(LOG_ERR, "[%s] not allowed under %s!\n",
 			       wifimgr_cmd2str(msg.cmd_id),
-			       wifimgr_sts2str(mgr, msg.cmd_id));
+			       wifimgr_sts2str_cmd(mgr, msg.cmd_id));
 			ret = -EPERM;
 		}
 

@@ -13,12 +13,23 @@
 
 static struct wifi_manager wifimgr;
 
-const char *wifimgr_sts2str(struct wifi_manager *mgr, unsigned int cmd_id)
+const char *wifimgr_sts2str_cmd(struct wifi_manager *mgr, unsigned int cmd_id)
 {
 	if (is_sta_cmd(cmd_id) == true)
 		return sta_sts2str(mgr->sta_sm.state);
 
 	if (is_ap_cmd(cmd_id) == true)
+		return ap_sts2str(mgr->ap_sm.state);
+
+	return NULL;
+}
+
+const char *wifimgr_sts2str_evt(struct wifi_manager *mgr, unsigned int evt_id)
+{
+	if (is_sta_evt(evt_id) == true)
+		return sta_sts2str(mgr->sta_sm.state);
+
+	if (is_ap_evt(evt_id) == true)
 		return ap_sts2str(mgr->ap_sm.state);
 
 	return NULL;
@@ -145,6 +156,9 @@ int wifi_manager_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id)
 	char *devname = NULL;
 	struct net_if *iface = NULL;
 	int ret = 0;
+
+	if (is_comman_cmd(cmd_id) == true)
+		return ret;
 
 	if (!mgr->sta_iface && is_sta_cmd(cmd_id) == true)
 		devname = WIFIMGR_DEV_NAME_STA;
