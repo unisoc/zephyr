@@ -7,7 +7,7 @@
 
 #include "wifi_main.h"
 
-#define RECV_BUF_SIZE 128 
+#define RECV_BUF_SIZE 128
 static unsigned char recv_buf[RECV_BUF_SIZE];
 static unsigned int recv_len;
 static struct k_sem	cmd_sem;
@@ -274,6 +274,38 @@ int wifi_cmd_npi_send(int ictx_id,char * t_buf,uint32_t t_len,char *r_buf,uint32
 int wifi_cmd_npi_get_mac(int ictx_id,char * buf)
 {
 	return wifi_get_mac((u8_t *)buf,ictx_id);
+}
+
+
+int wifi_cmd_set_ip(struct wifi_priv *priv, u8_t *ip_addr, u8_t len)
+{
+	int ret = 0;
+	struct cmd_set_ip cmd;
+
+	memset(&cmd, 0, sizeof(cmd));
+	if (len == IPV4_LEN) {
+		/*
+		 ** Temporarily supported 4-byte ipv4 address.
+		 ** TODO: support ipv6 address, need to reserve more bytes.
+		 */
+		memcpy(cmd.ip, ip_addr, len);
+		/* Store ipv4 address in wifi_priv. */
+		memcpy(priv->ipv4_addr, ip_addr, len);
+	} else {
+		SYS_LOG_WRN("Currently only ipv4, 4 bytes.");
+		return -1;
+	}
+
+	ret = wifi_cmd_send(WIFI_CMD_SET_IP, (char *)&cmd,
+			sizeof(cmd), NULL, NULL);
+	if (ret < 0) {
+		SYS_LOG_ERR("set ip fail");
+		return ret;
+	}
+
+	SYS_LOG_DBG("set ip ok.");
+
+	return 0;
 }
 
 static struct wifi_scan_result result;

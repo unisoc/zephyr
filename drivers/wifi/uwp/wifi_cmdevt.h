@@ -5,6 +5,7 @@
 #define MAX_KEY_LEN 128
 #define ETH_ALEN 6
 #define INI_SIZE  1600
+#define IPV4_LEN 4
 
 #include <net/wifi_mgmt.h>
 
@@ -29,6 +30,8 @@ enum cmd_type {
 	WIFI_CMD_DEL_STATION,	//disconnect sta connected with us
 	WIFI_CMD_SET_BLACKLIST,	//disconnect sta connected with us
 	WIFI_CMD_SET_WHITELIST,	//disconnect sta connected with us
+
+	WIFI_CMD_SET_IP = 0x0F, /* Set IP address */
 
 	WIFI_CMD_MAX,
 };
@@ -134,6 +137,17 @@ struct cmd_disconnect {
 	u8_t reason_code;
 } __attribute__ ((packed));
 
+struct cmd_set_ip {
+	/* Common header for all event */
+	struct trans_hdr trans_header;
+	/*
+	 ** IPV4 address
+	 ** TODO: For compatibility with ipv6,
+	 ** it might be greater than 4 bytes.
+	 */
+	u8_t ip[IPV4_LEN];
+} __attribute__ ((packed));
+
 struct event_scan_result {
 	u8_t band;
 	u8_t channel;
@@ -169,6 +183,7 @@ extern int wifi_cmd_start_ap(struct wifi_priv *priv, struct wifi_start_ap_req_pa
 extern int wifi_cmd_stop_ap(struct wifi_priv *priv);
 extern int wifi_cmd_npi_send(int ictx_id,char * t_buf,u32_t t_len,char *r_buf,u32_t *r_len);
 extern int wifi_cmd_npi_get_mac(int ictx_id,char * buf);
+extern int wifi_cmd_set_ip(struct wifi_priv *priv, u8_t *ip, u8_t len);
 
 extern int wifi_cmd_send(u8_t cmd, char *data, int len,
 		char * rbuf, int *rlen);

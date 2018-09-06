@@ -17,6 +17,7 @@
 #include "wifi_rf.h"
 
 #define ETH_ALEN 6
+#define IPV4_LEN 4
 
 #define WIFI_MODE_NONE		0
 #define WIFI_MODE_STA       1
@@ -30,6 +31,7 @@ struct wifi_priv {
 	u32_t cp_version;
 	u8_t mode;
 	unsigned char mac[ETH_ALEN];
+	u8_t ipv4_addr[IPV4_LEN];
 	scan_result_cb_t scan_cb;
 	u8_t scan_result;
 	bool connecting;

@@ -160,6 +160,13 @@ static int uwp_mgmt_disconnect(struct device *dev)
 	return wifi_cmd_disconnect(priv);
 }
 
+static int uwp_mgmt_set_ip(struct device *dev, u8_t *ip, u8_t len)
+{
+	struct wifi_priv *priv = DEV_DATA(dev);
+
+	return wifi_cmd_set_ip(priv, ip, len);
+}
+
 static void uwp_iface_init(struct net_if *iface)
 {
 	struct wifi_priv *priv=DEV_DATA(iface->if_dev->dev);
