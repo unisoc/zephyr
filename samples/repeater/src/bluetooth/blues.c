@@ -162,7 +162,7 @@ static int wifi_test(int argc, char *argv[])
     }else if(!strcmp(argv[1], "conf")) {
         wifimgr_get_conf(data);
     }else if(!strcmp(argv[1], "scan")) {
-        wifimgr_do_scan();
+        wifimgr_do_scan(3);
     }
 	return 0;
 }

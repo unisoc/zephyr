@@ -24,6 +24,7 @@
 
 #define GET_STATUS_TIMEOUT  K_SECONDS(5)
 #define SCAN_TIMEOUT        K_SECONDS(10)
+#define SCAN_NUM    3
 
 
 static struct bt_uuid_128 wifimgr_service_uuid = BT_UUID_INIT_128(
@@ -51,6 +52,7 @@ static int disconnect_result = -1;
 static struct k_sem disconnect_sem;
 
 struct wifimgr_ctrl_cbs *get_wifimgr_cbs(void);
+static int scan_result = 0;
 
 #if 0
 struct bt_conn *cur_conn;
@@ -219,7 +221,7 @@ void wifimgr_set_conf_and_connect(const void *buf)
         goto error;
     }
 
-    if(0 != wifimgr_do_scan()) {
+    if(0 != wifimgr_do_scan(SCAN_NUM)) {
         BTD("%s, scan fail\n", __func__);
         res_result = RESULT_FAIL;
         goto error;
@@ -466,28 +468,33 @@ void wifimgr_close(const void *buf)
 }
 
 
-int wifimgr_do_scan(void)
+int wifimgr_do_scan(int retry_num)
 {
     //before connect need scan
     BTD("%s\n", __func__);
     int ret = -1;
+    int i =0;
 
-    if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->scan) {
-        ret = wifimgr_get_ctrl_ops(get_wifimgr_cbs())->scan();
-    } else {
-        BTD("%s, scan = NULL\n", __func__);
-        goto error;
-    }
+    for(i = 0, scan_result = 0; (i < retry_num) && (1 != scan_result); i++){
+        BTD("%s,do the %dth scan\n", __func__,i+1);
+        if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->scan) {
+            ret = wifimgr_get_ctrl_ops(get_wifimgr_cbs())->scan();
+        } else {
+            BTD("%s, scan = NULL\n", __func__);
+            goto error;
+        }
 
-    if(0 != ret) {
-        BTD("%s, scan fail,err = %d\n", __func__,ret);
-        goto error;
-    } else {
-        if(0 != k_sem_take(&scan_sem, SCAN_TIMEOUT)){
-            BTD("%s, take scan_sem fail\n", __func__);
-            ret = -1;
-        }else {
-            ret = 0;
+        if(0 != ret) {
+            BTD("%s, scan fail,err = %d\n", __func__,ret);
+            goto error;
+        } else {
+            if(0 != k_sem_take(&scan_sem, SCAN_TIMEOUT)){
+                BTD("%s, take scan_sem fail\n", __func__);
+                scan_result = 0;
+                ret = -1;
+            }else {
+                ret = ((1 == scan_result) ? 0 : -1);
+            }
         }
     }
 error:
@@ -733,12 +740,15 @@ void wifimgr_ctrl_iface_notify_scan_res(char *ssid, char *bssid, unsigned char b
 void wifimgr_ctrl_iface_notify_scan_done(unsigned char result)
 {
     BTD("%s,result = %d\n", __func__,result);
+    scan_result = result;
     k_sem_give(&scan_sem);
 }
 
 void wifimgr_ctrl_iface_notify_scan_timeout(void)
 {
     BTD("%s\n", __func__);
+    scan_result = 0;
+    k_sem_give(&scan_sem);
 
 }
 

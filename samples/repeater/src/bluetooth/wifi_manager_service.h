@@ -52,7 +52,7 @@ enum {
 
 void wifi_manager_service_init(void);
 void wifi_manager_notify(const void *data, u16_t len);
-int wifimgr_do_scan(void);
+int wifimgr_do_scan(int retry_num);
 int wifimgr_do_connect(void);
 int wifimgr_do_disconnect(u8_t flags);
 int wifimgr_do_open(void);
