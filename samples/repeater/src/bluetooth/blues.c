@@ -34,7 +34,7 @@
 #define DEVICE_NAME		CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN		(sizeof(DEVICE_NAME) - 1)
 
-static blues_config_t  blues_config;
+blues_config_t  blues_config;
 static const conf_entry_t blues_config_table[] = {
 	CONF_ITEM_TABLE(role, 0, blues_config, 1),
 	CONF_ITEM_TABLE(address, 0, blues_config, 6),
