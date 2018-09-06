@@ -185,7 +185,7 @@ int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
 
 	net_pkt_set_ll_reserve(pkt,
 			sizeof(struct tx_msdu_dscr) + net_pkt_ll_reserve(pkt));
-	SYS_LOG_INF("size msdu: %d", sizeof(struct tx_msdu_dscr));
+	SYS_LOG_DBG("size msdu: %d", sizeof(struct tx_msdu_dscr));
 
 	dscr = (struct tx_msdu_dscr *)net_pkt_ll(pkt);
 	memset(dscr, 0x00, sizeof(struct tx_msdu_dscr));

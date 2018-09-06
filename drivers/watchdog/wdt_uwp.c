@@ -31,9 +31,11 @@ static void wdg_uwp_enable(struct device *dev)
 	uwp_wdg_enable();
 }
 
-static void wdg_uwp_disable(struct device *dev)
+static int wdg_uwp_disable(struct device *dev)
 {
 	uwp_wdg_disable();
+
+	return 0;
 }
 
 static void wdg_uwp_reload(struct device *dev)

@@ -130,6 +130,7 @@ struct cmd_connect {
 } __attribute__ ((packed));
 
 struct cmd_disconnect {
+	struct trans_hdr trans_header;
 	u8_t reason_code;
 } __attribute__ ((packed));
 

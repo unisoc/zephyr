@@ -615,7 +615,7 @@ int sblock_receive(uint8_t dst, uint8_t channel, struct sblock *blk, int timeout
 	if (ringhd->rxblk_wrptr == ringhd->rxblk_rdptr) {
 		if (timeout == 0) {
 			/* no wait */
-			ipc_info("sblock_receive %d-%d is empty!",dst, channel);
+			ipc_debug("sblock_receive %d-%d is empty!",dst, channel);
 			ret = -ENODATA;
 		} else if (timeout < 0) {
 			/* wait forever */

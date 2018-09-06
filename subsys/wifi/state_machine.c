@@ -49,6 +49,7 @@ static int sm_timer_init(struct wifimgr_state_machine *sm, void *sighand)
 	return ret;
 }
 
+#if 0
 static int sm_timer_release(timer_t timerid)
 {
 	int result;
@@ -64,6 +65,7 @@ static int sm_timer_release(timer_t timerid)
 
 	return ret;
 }
+#endif
 
 static void sm_sta_timeout(void *sival_ptr)
 {
@@ -159,10 +161,12 @@ static int sm_sta_timer_init(struct wifimgr_state_machine *sta_sm)
 	return sm_timer_init(sta_sm, sm_sta_timeout);
 }
 
+#if 0
 static int sm_sta_timer_release(struct wifimgr_state_machine *sta_sm)
 {
 	return sm_timer_release(sta_sm->timerid);
 }
+#endif
 
 static void sm_ap_timeout(void *sival_ptr)
 {
@@ -223,10 +227,12 @@ static int sm_ap_timer_init(struct wifimgr_state_machine *ap_sm)
 	return sm_timer_init(ap_sm, sm_ap_timeout);
 }
 
+#if 0
 static int sm_ap_timer_release(struct wifimgr_state_machine *ap_sm)
 {
 	return sm_timer_release(ap_sm->timerid);
 }
+#endif
 
 const char *wifimgr_cmd2str(int cmd)
 {

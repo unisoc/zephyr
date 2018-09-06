@@ -136,7 +136,7 @@ static void txrx_thread(void *p1)
 			memset(addr, RX_BUF_SIZE, 0);
 			ret = wifi_ipc_recv(SMSG_CH_WIFI_CTRL, addr, &len, 0);
 			if (ret == 0) {
-				SYS_LOG_INF("Recieve cmd/evt %p len %i", addr, len);
+				SYS_LOG_DBG("Recieve cmd/evt %p len %i", addr, len);
 
 				wifi_cmdevt_process(priv, addr, len);
 			} else {

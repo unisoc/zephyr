@@ -173,10 +173,10 @@ int smsg_msg_dispatch_thread(int argc, char *argv[])
 			if(msg->type == SMSG_TYPE_WIFI_IRQ){
 				if (SMSG_WIFI_IRQ_OPEN == msg->flag) {
 				   sprd_wifi_irq_enable_num(msg->value);
-				   ipc_info("wifi irq open\n");
+				   ipc_debug("wifi irq open\n");
 				} else 	if (SMSG_WIFI_IRQ_CLOSE == msg->flag) {
 				   sprd_wifi_irq_disable_num(msg->value);
-				   ipc_info("wifi irq close\n");
+				   ipc_debug("wifi irq close\n");
 				}
 				continue;
 			}
@@ -230,7 +230,7 @@ int smsg_ch_open(u8_t dst, u8_t channel,int prio, int timeout)
 
 	int ret = 0;
 
-	ipc_info("open dst %d channel %d", dst, channel);
+	ipc_debug("open dst %d channel %d", dst, channel);
 	if(!ipc) {
 		ipc_error("get ipc %d failed.\n", dst);
 		return -ENODEV;
@@ -425,7 +425,7 @@ int smsg_recv(u8_t dst, struct smsg *msg, int timeout)
 				msg->channel, ch->rdptr, ch->wrptr);
 
 		if (ch->wrptr == ch->rdptr) {
-			ipc_info("smsg_recv none data!");
+			ipc_debug("smsg_recv none data!");
 			return -ETIME;
 		}
 	}

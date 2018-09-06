@@ -40,7 +40,7 @@ int wifi_cmd_load_ini(u8_t * data, uint32_t len, u8_t sec_num)
 
 	/*calc CRC value */
 	CRC = CRC16(data, len);
-	SYS_LOG_INF("sec: %d, len: %d, CRC value: 0x%x",
+	SYS_LOG_DBG("sec: %d, len: %d, CRC value: 0x%x",
 			sec_num, len, CRC);
 
 	memset(&ini, 0, sizeof(ini));
@@ -157,7 +157,7 @@ int wifi_cmd_start(struct wifi_priv *priv)
 	struct cmd_start cmd;
 	int ret = 0;
 
-	SYS_LOG_INF("open mode %d", priv->mode);
+	SYS_LOG_DBG("open mode %d", priv->mode);
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.mode = priv->mode;
@@ -169,7 +169,7 @@ int wifi_cmd_start(struct wifi_priv *priv)
 		SYS_LOG_ERR("start mode %d fail", priv->mode);
 		return -1;
 	}
-	SYS_LOG_INF("open mode success.");
+	SYS_LOG_DBG("open mode success.");
 
 	return 0;
 }
@@ -198,19 +198,19 @@ int wifi_cmd_start_ap(struct wifi_priv *priv, struct wifi_start_ap_req_params *p
 	struct cmd_start_ap cmd;
 	int ret = 0;
 
-	SYS_LOG_INF("start ap at channel: %d.", params->channel);
+	SYS_LOG_DBG("start ap at channel: %d.", params->channel);
 	memset(&cmd, 0, sizeof(cmd));
 
 	//memcpy(cmd.mac, priv->mac, 6);
 	if (params->ssid_length > 0) {
 		memcpy(cmd.ssid, params->ssid, params->ssid_length);
 		cmd.ssid_len = params->ssid_length;
-		SYS_LOG_INF("ssid: %s(%d).", cmd.ssid, cmd.ssid_len);
+		SYS_LOG_DBG("ssid: %s(%d).", cmd.ssid, cmd.ssid_len);
 	}
 	if (params->psk_length > 0) {
 		memcpy(cmd.password, params->psk, params->psk_length);
 		cmd.password_len = params->psk_length;
-		SYS_LOG_INF("psk: %s(%d).", cmd.password, cmd.password_len);
+		SYS_LOG_DBG("psk: %s(%d).", cmd.password, cmd.password_len);
 	}
 
 	cmd.channel = params->channel;
@@ -220,7 +220,7 @@ int wifi_cmd_start_ap(struct wifi_priv *priv, struct wifi_start_ap_req_params *p
 		SYS_LOG_ERR("ap start fail");
 		return -1;
 	}
-	SYS_LOG_INF("start ap ok.");
+	SYS_LOG_DBG("start ap ok.");
 
 	return 0;
 }
@@ -292,7 +292,7 @@ int wifi_evt_scan_result(struct wifi_priv *priv, char *data, int len)
 	result.channel = event->channel;
 	result.rssi = event->rssi;
 
-	SYS_LOG_INF("ssid: %s", event->ssid);
+	SYS_LOG_DBG("ssid: %s", event->ssid);
 
 	if (priv->scan_cb) {
 		priv->scan_cb(priv->iface, 0, &result);
@@ -368,7 +368,7 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 		return 0;
 	}
 
-	SYS_LOG_INF("Recieve event type 0x%x.", hdr->type);
+	SYS_LOG_DBG("Recieve event type 0x%x.", hdr->type);
 
 	len -= sizeof(*hdr);
 
@@ -381,7 +381,6 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 			wifi_evt_scan_done(priv);
 			break;
 		case WIFI_EVENT_DISCONNECT:
-			SYS_LOG_ERR("disconnected");
 			wifi_evt_disconnect(priv, hdr->data, len);
 			break;
 		case WIFI_EVENT_CONNECT:
@@ -431,7 +430,7 @@ int wifi_cmd_send(u8_t cmd,char *data,int len,char * rbuf,int *rlen)
 	if(rlen)
 		*rlen = recv_len;
 
-	SYS_LOG_INF("get command response success");
+	SYS_LOG_DBG("get command response success");
 	return 0;
 }
 

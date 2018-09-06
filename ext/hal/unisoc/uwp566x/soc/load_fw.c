@@ -184,9 +184,9 @@ int cp_mcu_init(void)
 	int ret = 0;
 
 	if (cp_init_flag)
-		return;
+		return ret;
 
-	SYS_LOG_INF("Start init mcu and download firmware.");
+	SYS_LOG_DBG("Start init mcu and download firmware.");
 
 	GNSS_Start();
 	ret = cp_mcu_pull_reset();
@@ -216,6 +216,6 @@ int cp_mcu_init(void)
 
 	cp_init_flag = true;
 
-	SYS_LOG_INF("CP Init done,and CP fw is running!!!");
+	SYS_LOG_DBG("CP Init done,and CP fw is running!!!");
 	return 0;
 }

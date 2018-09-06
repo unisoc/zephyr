@@ -34,15 +34,7 @@
 #endif
 #define SYS_LOG_DOMAIN	"UNISOC"
 
-#define GPIO_PORT0		"UWP_GPIO_P0"
 #define UART_2			"UART_2"
-#define UWP_WDG		CONFIG_WDT_UWP_DEVICE_NAME
-
-#define GPIO0		0
-#define GPIO2		2
-
-#define ON		1
-#define OFF		0
 
 typedef void (*uwp_intc_callback_t) (int channel, void *user);
 extern void uwp_intc_set_irq_callback(int channel,
@@ -117,36 +109,6 @@ int dhcp_client(int argc, char **argv)
 
 	return 0;
 }
-void led_switch(struct device *dev)
-
-{
-	static int sw = ON;
-
-	sw = (sw == ON) ? OFF : ON;
-	gpio_pin_write(dev, GPIO2, sw);
-}
-
-#if 1
-struct gpio_callback cb;
-
-static void gpio_callback(struct device *dev,
-		struct gpio_callback *gpio_cb, u32_t pins)
-{
-	SYS_LOG_INF("main gpio int.\n");
-}
-
-void timer_expiry(struct k_timer *timer)
-{
-	static int c = 0;
-	SYS_LOG_INF("timer_expiry %d.", c++);
-}
-
-void timer_stop(struct k_timer *timer)
-{
-	static int c = 0;
-	SYS_LOG_INF("timer_stop %d.", c++);
-}
-#endif
 
 void print_devices(void)
 {
@@ -163,122 +125,6 @@ void print_devices(void)
 	}
 }
 
-/* WDT Requires a callback, there is no interrupt enable / disable. */
-void wdt_example_cb(struct device *dev, int channel_id)
-{
-
-}
-
-void wdg_init(void)
-{
-	struct wdt_timeout_cfg wdt_cfg;
-	struct wdt_config wr_cfg;
-	struct wdt_config cfg;
-	struct device *wdt_dev;
-
-	wdt_cfg.callback = wdt_example_cb;
-	wdt_cfg.flags = WDT_FLAG_RESET_SOC;
-	wdt_cfg.window.min = 0;
-	wdt_cfg.window.max = 4000;
-
-	wr_cfg.timeout = 4000;
-	wr_cfg.mode = WDT_MODE_INTERRUPT_RESET;
-	wr_cfg.interrupt_fn = wdt_example_cb;
-
-	wdt_dev = device_get_binding(UWP_WDG);
-	if(wdt_dev == NULL) {
-		SYS_LOG_ERR("Can not find device %s.", UWP_WDG);
-		return;
-	}
-
-#if 0
-	ret = wdt_install_timeout(wdt_dev, &wdt_cfg);
-	if (ret < 0) {
-		SYS_LOG_ERR("wdt install error.");
-		return;
-	}
-
-	ret = wdt_setup(wdt_dev, 0);
-	if (ret < 0) {
-		SYS_LOG_ERR("Watchdog setup error\n");
-		return;
-	}
-#endif
-	wdt_set_config(wdt_dev, &wr_cfg);
-	wdt_enable(wdt_dev);
-
-
-	wdt_get_config(wdt_dev, &cfg);
-}
-
-#if 0
-//#define FLASH_TEST_REGION_OFFSET 0xff000
-#define FLASH_TEST_REGION_OFFSET 0x0
-#define FLASH_SECTOR_SIZE        4096
-#define TEST_DATA_BYTE_0         0x55
-#define TEST_DATA_BYTE_1         0xaa
-#define TEST_DATA_LEN            0x100
-void spi_flash_test(void)
-{
-	struct device *flash_dev;
-	u8_t buf[TEST_DATA_LEN];
-	u8_t *p = 0x100000;
-
-	printk("\nW25QXXDV SPI flash testing\n");
-	printk("==========================\n");
-	printk("flash name:%s.\n",CONFIG_FLASH_UWP_NAME);
-
-	flash_dev = device_get_binding(CONFIG_FLASH_UWP_NAME);
-
-	if (!flash_dev) {
-		printk("SPI flash driver was not found!\n");
-		return;
-	}
-
-	/* Write protection needs to be disabled in w25qxxdv flash before
-	 * each write or erase. This is because the flash component turns
-	 * on write protection automatically after completion of write and
-	 * erase operations.
-	 */
-#if 1
-	printk("\nTest 1: Flash erase\n");
-	flash_write_protection_set(flash_dev, false);
-	if (flash_erase(flash_dev,
-				FLASH_TEST_REGION_OFFSET,
-				FLASH_SECTOR_SIZE) != 0) {
-		printk("   Flash erase failed!\n");
-	} else {
-		printk("   Flash erase succeeded!\n");
-	}
-
-	printk("\nTest 2: Flash write\n");
-	flash_write_protection_set(flash_dev, false);
-
-	buf[0] = TEST_DATA_BYTE_0;
-	buf[1] = TEST_DATA_BYTE_1;
-	if (flash_write(flash_dev, FLASH_TEST_REGION_OFFSET, p,
-				TEST_DATA_LEN) != 0) {
-		printk("   Flash write failed!\n");
-		return;
-	}
-#endif
-
-	if (flash_read(flash_dev, FLASH_TEST_REGION_OFFSET, buf,
-				TEST_DATA_LEN) != 0) {
-		printk("   Flash read failed!\n");
-		return;
-	}
-
-	if(memcmp(p, buf, TEST_DATA_LEN) == 0) {
-		printk("   Data read matches with data written. Good!!\n");
-	} else {
-		printk("   Data read does not match with data written!!\n");
-	}
-
-}
-
-#endif
-
 void uart_test(void)
 {
 	struct device *uart;
@@ -293,11 +139,6 @@ void uart_test(void)
 	uart_irq_rx_enable(uart);
 
 	uart_fifo_fill(uart, str, strlen(str));
-#if 0
-	while(i--) {
-		uart_poll_out(uart, 'a');
-	}
-#endif
 
 	SYS_LOG_INF("test uart %s finish.", UART_2);
 }
@@ -430,7 +271,6 @@ u32_t str2hex(char *s)
 		s++;
 	}
 
-
 	return val;
 }
 
@@ -510,60 +350,6 @@ static int write_cmd(int argc, char **argv)
 	return 0;
 }
 
-#if 0
-extern int iwnpi_main(int argc, char **argv);
-static int iwnpi_cmd(int argc, char **argv)
-{
-	iwnpi_main(argc, argv);
-	return 0;
-}
-/* NFFS work area strcut */
-static struct nffs_flash_desc flash_desc;
-
-/* mounting info */
-static struct fs_mount_t nffs_mnt = {
-	.type = FS_NFFS,
-	.mnt_point = "/zephyr",
-	.fs_data = &flash_desc,
-};
-
-static int test_mount(void)
-{
-	struct device *flash_dev;
-	int res;
-
-	flash_dev = device_get_binding(CONFIG_FS_NFFS_FLASH_DEV_NAME);
-	if (!flash_dev) {
-		printk("get flash %s failed.\n", CONFIG_FS_NFFS_FLASH_DEV_NAME);
-		return -ENODEV;
-	}
-	printk("get flash %s success.\n", CONFIG_FS_NFFS_FLASH_DEV_NAME);
-
-	/* set backend storage dev */
-	nffs_mnt.storage_dev = flash_dev;
-
-	res = fs_mount(&nffs_mnt);
-	if (res < 0) {
-		printk("Error mounting nffs [%d]\n", res);
-		return -1;
-	}
-
-	printk("mount success.\n");
-
-	return 0;
-}
-
-static int flash_cmd(int argc, char **argv)
-{
-	int ret;
-
-	if(!strcmp(argv[1], "mount")) {
-		ret = test_mount();
-	}
-	return 0;
-}
-#endif
-
 extern int dhcp_client(int argc, char **argv);
 
 static const struct shell_cmd zephyr_cmds[] = {
@@ -580,34 +366,6 @@ static const struct shell_cmd zephyr_cmds[] = {
 	//	{ "flash", flash_cmd, "mount|read|write address value" },
 };
 
-void gpio_init(void)
-{
-	struct device *gpio;
-
-	gpio = device_get_binding(GPIO_PORT0);
-	if(gpio == NULL) {
-		SYS_LOG_ERR("Can not find device %s.", GPIO_PORT0);
-		return;
-	}
-
-	gpio_pin_configure(gpio, GPIO2, GPIO_DIR_OUT
-			| GPIO_PUD_PULL_DOWN);
-
-#if 0
-	gpio_pin_disable_callback(gpio, GPIO0);
-
-	gpio_pin_configure(gpio, GPIO0,
-			GPIO_DIR_IN | GPIO_INT | GPIO_INT_LEVEL | \
-			GPIO_INT_ACTIVE_LOW | GPIO_PUD_PULL_UP);
-
-	gpio_init_callback(&cb, gpio_callback, BIT(GPIO0));
-	gpio_add_callback(gpio, &cb);
-
-	gpio_pin_enable_callback(gpio, GPIO0);
-#endif
-}
-
-#if 1
 #define FATFS_MNTP "/NAND:"
 /* FatFs work area */
 static FATFS fat_fs;
@@ -627,34 +385,16 @@ void mount_file_system(void)
 		SYS_LOG_ERR("Error mounting fs [%d]\n", ret);
 	}
 }
-#endif
 
 void main(void)
 {
-	//int ret;
-	//struct k_timer timer;
 	SYS_LOG_WRN("Unisoc Wi-Fi Repeater.");
 
 	SHELL_REGISTER("zephyr", zephyr_cmds);
 
-	//shell_register_default_module("zephyr");
-
-	gpio_init();
-	wdg_init();
-
 	mount_file_system();
 
 	blues_init();
-
-	while(1) {}
-	//uwp_aon_irq_enable(AON_INT_GPIO0);
-
-#if 0
-	k_timer_init(&timer, timer_expiry, timer_stop);
-	k_timer_user_data_set(&timer, (void *)portf);
-	SYS_LOG_INF("start timer..\n");
-	k_timer_start(&timer, K_SECONDS(1), K_SECONDS(5));
-#endif
 
 	while(1) {}
 }

@@ -250,7 +250,7 @@ static int wifi_nvm_set_cmd(struct nvm_name_table *pTable,
 			*((unsigned int *)p + i)
 				= (unsigned int)(cmd->par[i]);
 		else
-			SYS_LOG_INF("%s, type err\n", __func__);
+			SYS_LOG_ERR("%s, type err\n", __func__);
 	}
 	return 0;
 }
@@ -358,7 +358,7 @@ static int wifi_nvm_parse(const char *path, void *p_data)
 	unsigned char *p_buf = buffer;
 	unsigned int file_size = 0;
 
-	SYS_LOG_INF("%s()...", __func__);
+	SYS_LOG_DBG("%s()...", __func__);
 	if (fs_open(&file, path)) {
 		SYS_LOG_ERR("open file %s error", path);
 		return -1;
@@ -368,7 +368,7 @@ static int wifi_nvm_parse(const char *path, void *p_data)
 	file_size = fs_tell(&file);
 	fs_seek(&file, 0, FS_SEEK_SET);
 	buffer_len = 0;
-	SYS_LOG_INF("file size: %d", file_size);
+	SYS_LOG_DBG("file size: %d", file_size);
 
 	do {
 		read_len = fs_read(&file, p_buf, file_size);
@@ -381,10 +381,10 @@ static int wifi_nvm_parse(const char *path, void *p_data)
 
 	fs_close(&file);
 
-	SYS_LOG_INF("%s read %s data_len:0x%x", __func__, path, buffer_len);
+	SYS_LOG_DBG("%s read %s data_len:0x%x", __func__, path, buffer_len);
 	wifi_nvm_buf_operate(buffer, buffer_len, p_data);
 	//free(buffer);
-	SYS_LOG_INF("%s(), ok!", __func__);
+	SYS_LOG_DBG("%s(), ok!", __func__);
 	return 0;
 }
 
@@ -401,7 +401,7 @@ int uwp_wifi_download_ini(void)
 	if (download_ini_flag)
 		return ret;
 
-	SYS_LOG_INF("Start loading wifi ini.");
+	SYS_LOG_DBG("Start loading wifi ini.");
 	ret = wifi_nvm_parse(SYSTEM_WIFI_CONFIG_FILE, (void *)&conf);
 	if (ret) {
 		return ret;
@@ -411,14 +411,14 @@ int uwp_wifi_download_ini(void)
 	sec1 = (struct wifi_conf_sec1_t *)&conf;
 	sec2 = (struct wifi_conf_sec2_t *)&conf.tx_scale;
 
-	SYS_LOG_INF("download the first section of config file");
+	SYS_LOG_DBG("download the first section of config file");
 	ret = wifi_cmd_load_ini((u8_t *) sec1, sizeof(*sec1), SEC1);
 	if (ret) {
 		SYS_LOG_ERR("download the first section of ini fail,return");
 		return ret;
 	}
 
-	SYS_LOG_INF("download the second section of config file");
+	SYS_LOG_DBG("download the second section of config file");
 	ret = wifi_cmd_load_ini((u8_t *) sec2, sizeof(*sec2), SEC2);
 	if (ret) {
 		SYS_LOG_ERR("download the second section of ini fail,return");
@@ -427,7 +427,7 @@ int uwp_wifi_download_ini(void)
 #endif
 	download_ini_flag = true;
 
-	SYS_LOG_INF("Load wifi ini success.");
+	SYS_LOG_DBG("Load wifi ini success.");
 
 	return ret;
 }
