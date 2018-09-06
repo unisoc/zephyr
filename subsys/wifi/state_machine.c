@@ -228,6 +228,43 @@ static int sm_ap_timer_release(struct wifimgr_state_machine *ap_sm)
 	return sm_timer_release(ap_sm->timerid);
 }
 
+const char *wifimgr_cmd2str(int cmd)
+{
+	switch (cmd) {
+	E2S(WIFIMGR_CMD_SET_STA_CONFIG)
+	E2S(WIFIMGR_CMD_SET_AP_CONFIG)
+	E2S(WIFIMGR_CMD_GET_STA_CONFIG)
+	E2S(WIFIMGR_CMD_GET_AP_CONFIG)
+	E2S(WIFIMGR_CMD_GET_STA_STATUS)
+	E2S(WIFIMGR_CMD_GET_AP_STATUS)
+	E2S(WIFIMGR_CMD_OPEN_STA)
+	E2S(WIFIMGR_CMD_CLOSE_STA)
+	E2S(WIFIMGR_CMD_SCAN)
+	E2S(WIFIMGR_CMD_CONNECT)
+	E2S(WIFIMGR_CMD_DISCONNECT)
+	E2S(WIFIMGR_CMD_OPEN_AP)
+	E2S(WIFIMGR_CMD_CLOSE_AP)
+	E2S(WIFIMGR_CMD_START_AP)
+	E2S(WIFIMGR_CMD_STOP_AP)
+	E2S(WIFIMGR_CMD_DEL_STATION)
+	default:
+		return "WIFIMGR_CMD_UNKNOWN";
+	}
+}
+
+const char *wifimgr_evt2str(int evt)
+{
+	switch (evt) {
+	E2S(WIFIMGR_EVT_SCAN_RESULT)
+	E2S(WIFIMGR_EVT_SCAN_DONE)
+	E2S(WIFIMGR_EVT_CONNECT)
+	E2S(WIFIMGR_EVT_DISCONNECT)
+	E2S(WIFIMGR_EVT_NEW_STATION)
+	default:
+		return "WIFIMGR_EVT_UNKNOWN";
+	}
+}
+
 const char *sta_sts2str(int state)
 {
 	char *str = NULL;
@@ -379,10 +416,24 @@ void sm_sta_step_evt(struct wifimgr_state_machine *sta_sm, unsigned int evt_id)
 
 int sm_sta_init(struct wifimgr_state_machine *sta_sm)
 {
+	struct wifi_manager *mgr =
+	    container_of(sta_sm, struct wifi_manager, sta_sm);
+	struct cmd_processor *prcs = &mgr->prcs;
 	int ret;
 
 	sta_sm->state = sta_sm->old_state = WIFIMGR_SM_STA_NODEV;
 	sem_init(&sta_sm->exclsem, 0, 1);
+
+	/* Register default STA commands */
+	command_processor_register_sender(prcs, WIFIMGR_CMD_SET_STA_CONFIG,
+					  wifi_manager_set_sta_config,
+					  &mgr->sta_conf);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_STA_CONFIG,
+					  wifi_manager_get_sta_config, mgr);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_STA_STATUS,
+					  wifi_manager_get_sta_status, mgr);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_OPEN_STA,
+					  wifi_manager_open_station, mgr);
 
 	ret = sm_sta_timer_init(sta_sm);
 	if (ret < 0)
@@ -469,10 +520,24 @@ void sm_ap_step_cmd(struct wifimgr_state_machine *ap_sm, unsigned int cmd_id)
 
 int sm_ap_init(struct wifimgr_state_machine *ap_sm)
 {
+	struct wifi_manager *mgr =
+	    container_of(ap_sm, struct wifi_manager, ap_sm);
+	struct cmd_processor *prcs = &mgr->prcs;
 	int ret;
 
 	ap_sm->state = ap_sm->old_state = WIFIMGR_SM_AP_NODEV;
 	sem_init(&ap_sm->exclsem, 0, 1);
+
+	/* Register default AP commands */
+	command_processor_register_sender(prcs, WIFIMGR_CMD_SET_AP_CONFIG,
+					  wifi_manager_set_ap_config,
+					  &mgr->ap_conf);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_AP_CONFIG,
+					  wifi_manager_get_ap_config, mgr);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_AP_STATUS,
+					  wifi_manager_get_ap_status, mgr);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_OPEN_AP,
+					  wifi_manager_open_softap, mgr);
 
 	ret = sm_ap_timer_init(ap_sm);
 	if (ret < 0)

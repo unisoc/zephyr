@@ -8,19 +8,6 @@
 
 K_THREAD_STACK_ARRAY_DEFINE(evt_stacks, 1, WIFIMGR_EVT_LISTENER_STACKSIZE);
 
-const char *wifimgr_evt2str(int evt)
-{
-	switch (evt) {
-	E2S(WIFIMGR_EVT_SCAN_RESULT)
-	E2S(WIFIMGR_EVT_SCAN_DONE)
-	E2S(WIFIMGR_EVT_CONNECT)
-	E2S(WIFIMGR_EVT_DISCONNECT)
-	E2S(WIFIMGR_EVT_NEW_STATION)
-	default:
-		return "WIFIMGR_EVT_UNKNOWN";
-	}
-}
-
 static void _event_listener_remove_receiver(struct evt_listener *lsnr,
 					    struct evt_receiver *rcvr)
 {

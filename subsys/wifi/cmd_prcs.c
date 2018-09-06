@@ -8,30 +8,6 @@
 
 K_THREAD_STACK_ARRAY_DEFINE(cmd_stacks, 1, WIFIMGR_CMD_PROCESSOR_STACKSIZE);
 
-const char *wifimgr_cmd2str(int cmd)
-{
-	switch (cmd) {
-	E2S(WIFIMGR_CMD_SET_STA_CONFIG)
-	E2S(WIFIMGR_CMD_SET_AP_CONFIG)
-	E2S(WIFIMGR_CMD_GET_STA_CONFIG)
-	E2S(WIFIMGR_CMD_GET_AP_CONFIG)
-	E2S(WIFIMGR_CMD_GET_STA_STATUS)
-	E2S(WIFIMGR_CMD_GET_AP_STATUS)
-	E2S(WIFIMGR_CMD_OPEN_STA)
-	E2S(WIFIMGR_CMD_CLOSE_STA)
-	E2S(WIFIMGR_CMD_SCAN)
-	E2S(WIFIMGR_CMD_CONNECT)
-	E2S(WIFIMGR_CMD_DISCONNECT)
-	E2S(WIFIMGR_CMD_OPEN_AP)
-	E2S(WIFIMGR_CMD_CLOSE_AP)
-	E2S(WIFIMGR_CMD_START_AP)
-	E2S(WIFIMGR_CMD_STOP_AP)
-	E2S(WIFIMGR_CMD_DEL_STATION)
-	default:
-		return "WIFIMGR_CMD_UNKNOWN";
-	}
-}
-
 int command_processor_register_sender(struct cmd_processor *handle,
 				      unsigned int cmd_id, cmd_func_t fn,
 				      void *arg)
@@ -176,8 +152,6 @@ static void *command_processor(void *handle)
 int wifi_manager_command_processor_init(struct cmd_processor *handle)
 {
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
-	struct wifi_manager *mgr =
-	    container_of(prcs, struct wifi_manager, prcs);
 	struct mq_attr attr;
 	pthread_attr_t tattr;
 	struct sched_param sparam;
@@ -202,26 +176,6 @@ int wifi_manager_command_processor_init(struct cmd_processor *handle)
 	sem_init(&prcs->exclsem, 0, 1);
 	prcs->is_setup = true;
 	prcs->is_started = true;
-
-	/* Register common and open commands by default */
-	command_processor_register_sender(prcs, WIFIMGR_CMD_SET_STA_CONFIG,
-					  wifi_manager_set_sta_config,
-					  &mgr->sta_conf);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_SET_AP_CONFIG,
-					  wifi_manager_set_ap_config,
-					  &mgr->ap_conf);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_STA_CONFIG,
-					  wifi_manager_get_sta_config, mgr);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_AP_CONFIG,
-					  wifi_manager_get_ap_config, mgr);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_STA_STATUS,
-					  wifi_manager_get_sta_status, mgr);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_AP_STATUS,
-					  wifi_manager_get_ap_status, mgr);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_OPEN_STA,
-					  wifi_manager_open_station, mgr);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_OPEN_AP,
-					  wifi_manager_open_softap, mgr);
 
 	/* Starts internal threads to process commands */
 	pthread_attr_init(&tattr);

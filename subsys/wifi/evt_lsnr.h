@@ -72,7 +72,6 @@ struct evt_message {
 	void *buf;		/* Event message pointer */
 };
 
-const char *wifimgr_evt2str(int evt);
 int event_listener_add_receiver(struct evt_listener *handle,
 				unsigned int evt_id,
 				bool oneshot, evt_cb_t cb, void *arg);

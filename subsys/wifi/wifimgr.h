@@ -123,6 +123,8 @@ int wifi_manager_close_softap(void *handle);
 int wifi_manager_start_softap(void *handle);
 int wifi_manager_stop_softap(void *handle);
 
+const char *wifimgr_cmd2str(int cmd);
+const char *wifimgr_evt2str(int evt);
 const char *wifimgr_sts2str_cmd(struct wifi_manager *mgr, unsigned int cmd_id);
 const char *wifimgr_sts2str_evt(struct wifi_manager *mgr, unsigned int cmd_id);
 int wifi_manager_sm_start_timer(struct wifi_manager *mgr, unsigned int cmd_id);

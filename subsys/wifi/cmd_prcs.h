@@ -67,7 +67,6 @@ struct cmd_message {
 	void *buf;		/* Command message pointer */
 };
 
-const char *wifimgr_cmd2str(int cmd);
 int command_processor_register_sender(struct cmd_processor *handle,
 				      unsigned int cmd_id, cmd_func_t fn,
 				      void *arg);
