@@ -330,7 +330,7 @@ int wifi_evt_disconnect(struct wifi_priv *priv, char *data, int len)
 		(struct event_disconnect *)data;
 
 	wifi_drv_iface_disconnect_cb(priv->iface,
-			event->reason_code ? -EIO: 0);
+			event->reason_code);
 
 
 	return 0;

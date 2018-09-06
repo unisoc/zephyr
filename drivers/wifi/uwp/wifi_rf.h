@@ -173,4 +173,5 @@ struct wifi_conf_t {
 };
 
 int get_wifi_config_param(struct wifi_conf_t *p);
+int uwp_wifi_download_ini(void);
 #endif

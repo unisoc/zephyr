@@ -73,7 +73,7 @@ static int uwp_mgmt_open(struct device *dev)
 	ret = uwp_wifi_download_ini();
 	if (ret) {
 		SYS_LOG_ERR("Download wifi ini failed.");
-		return;
+		return ret;
 	}
 
 	priv->opened = true;
@@ -139,7 +139,8 @@ static int uwp_mgmt_scan(struct device *dev, scan_result_cb_t cb)
 }
 
 static int uwp_mgmt_get_station(struct device *dev,
-		struct wifi_get_sta_req_params *params)
+		/*struct wifi_get_sta_req_params *params*/
+        u8_t *signal)
 {
 	return 0;
 }

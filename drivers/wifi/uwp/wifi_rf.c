@@ -393,13 +393,13 @@ static int wifi_nvm_parse(const char *path, void *p_data)
 static bool download_ini_flag = false;
 int uwp_wifi_download_ini(void)
 {
-	int ret;
+	int ret = 0;
 	struct wifi_conf_t conf;
 	struct wifi_conf_sec1_t *sec1;
 	struct wifi_conf_sec2_t *sec2;
 
 	if (download_ini_flag)
-		return;
+		return ret;
 
 	SYS_LOG_INF("Start loading wifi ini.");
 	ret = wifi_nvm_parse(SYSTEM_WIFI_CONFIG_FILE, (void *)&conf);
@@ -429,5 +429,5 @@ int uwp_wifi_download_ini(void)
 
 	SYS_LOG_INF("Load wifi ini success.");
 
-	return 0;
+	return ret;
 }
