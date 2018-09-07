@@ -304,6 +304,7 @@ static void net_rx(struct net_if *iface, struct net_pkt *pkt)
 	net_pkt_print();
 }
 
+#if 0
 static void process_rx_packet(struct k_work *work)
 {
 	struct net_pkt *pkt;
@@ -312,9 +313,12 @@ static void process_rx_packet(struct k_work *work)
 
 	net_rx(net_pkt_iface(pkt), pkt);
 }
+#endif
 
 static void net_queue_rx(struct net_if *iface, struct net_pkt *pkt)
 {
+	net_rx(iface, pkt);
+#if 0
 	u8_t prio = net_pkt_priority(pkt);
 	u8_t tc = net_rx_priority2tc(prio);
 
@@ -333,6 +337,7 @@ static void net_queue_rx(struct net_if *iface, struct net_pkt *pkt)
 #endif
 
 	net_tc_submit_to_rx_queue(tc, pkt);
+#endif
 }
 
 /* Called by driver when an IP packet has been received */

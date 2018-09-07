@@ -213,7 +213,7 @@ int wifi_tx_empty_buf(int num)
 	for (i = 0; i < num; i++) {
 		pkt_buf = net_pkt_get_frag(0, K_NO_WAIT);
 		if(pkt_buf == NULL) {
-			SYS_LOG_ERR("Could not allocate rx packet");
+			SYS_LOG_ERR("Could not allocate rx packet %d.", i);
 			break;
 		}
 		data_ptr = (u32_t)pkt_buf->data;

@@ -235,7 +235,7 @@ struct rx_empty_buff {
 #define SPRDWL_FLUSH_BUFFER 3
 	unsigned char type;
 	unsigned char num;
-#define MAX_EMPTY_BUF_COUNT		(20)
+#define MAX_EMPTY_BUF_COUNT		(80)
 	unsigned char addr[MAX_EMPTY_BUF_COUNT][5];
 }__attribute__ ((packed));
 
