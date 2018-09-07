@@ -18,6 +18,15 @@ static const u16_t CRC_table[] = {
 	0x5000, 0x9C01, 0x8801, 0x4400,
 };
 
+/* 5G channel list */
+static u16_t channels_5g_scan_table[] = {
+	36, 40, 44, 48, 52,
+	56, 60, 64, 100, 104,
+	108, 112, 116, 120, 124,
+	128, 132, 136, 140, 144,
+	149, 153, 157, 161, 165
+};
+
 static u16_t CRC16(u8_t * buf, u16_t len)
 {
 	u16_t CRC = 0xFFFF;
@@ -65,17 +74,38 @@ int wifi_cmd_load_ini(u8_t * data, uint32_t len, u8_t sec_num)
 int wifi_cmd_scan(struct wifi_priv *priv)
 {
 	int ret = 0;
-	struct cmd_scan cmd;
+	int ssid_len = 0;
+	int cmd_len = 0;
+	struct cmd_scan *cmd;
+	u16_t *channels_5g = channels_5g_scan_table;
+	u16_t channels_5g_cnt =
+		sizeof(channels_5g_scan_table) / sizeof(*channels_5g);
 
-	memset(&cmd,0,sizeof(cmd));
-	cmd.channels = 0x3FFF;
+	/* calculate total command length. */
+	cmd_len = sizeof(*cmd) +
+		ssid_len + (channels_5g_cnt * sizeof(*channels_5g));
 
-	ret = wifi_cmd_send(WIFI_CMD_SCAN, (char *)&cmd,
-			sizeof(cmd), NULL, NULL);
-	if (ret < 0){
-		SYS_LOG_ERR("scan cmd fail");
+	cmd = k_malloc(cmd_len);
+	if (cmd == NULL) {
+		SYS_LOG_ERR("cmd is null");
 		return -1;
 	}
+	memset(cmd, 0, cmd_len);
+
+	cmd->channels = 0x3FFF;
+	cmd->channels_5g_cnt = channels_5g_cnt;
+	memcpy(cmd->channels_5g, channels_5g,
+			channels_5g_cnt * sizeof(*channels_5g));
+
+	ret = wifi_cmd_send(WIFI_CMD_SCAN, (char *)cmd,
+			cmd_len, NULL, NULL);
+	if (ret < 0) {
+		SYS_LOG_ERR("scan cmd fail");
+		k_free(cmd);
+		return -1;
+	}
+
+	k_free(cmd);
 
 	return 0;
 }
