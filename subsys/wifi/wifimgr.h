@@ -21,6 +21,7 @@
 #include "sm.h"
 #include "drv_iface.h"
 #include "api.h"
+#include "dhcpc.h"
 
 #define WIFIMGR_DEV_NAME_STA	"UWP_STA"
 #define WIFIMGR_DEV_NAME_AP	"UWP_AP"
@@ -99,6 +100,18 @@ struct wifi_manager {
 	struct wifimgr_evt_new_station evt_new_sta;
 };
 
+const char *wifimgr_cmd2str(int cmd);
+const char *wifimgr_evt2str(int evt);
+const char *wifimgr_sts2str_cmd(struct wifi_manager *mgr, unsigned int cmd_id);
+const char *wifimgr_sts2str_evt(struct wifi_manager *mgr, unsigned int cmd_id);
+int wifi_manager_sm_start_timer(struct wifi_manager *mgr, unsigned int cmd_id);
+int wifi_manager_sm_stop_timer(struct wifi_manager *mgr, unsigned int cmd_id);
+int wifi_manager_sm_query_cmd(struct wifi_manager *mgr, unsigned int cmd_id);
+void wifi_manager_sm_step_cmd(struct wifi_manager *mgr, unsigned int cmd_id);
+void wifi_manager_sm_step_evt(struct wifi_manager *mgr, unsigned int evt_id);
+void wifi_manager_sm_step_back(struct wifi_manager *mgr, unsigned int evt_id);
+int wifi_manager_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id);
+
 int wifi_manager_get_sta_config(void *handle);
 int wifi_manager_set_sta_config(void *handle);
 int wifi_manager_get_sta_status(void *handle);
@@ -115,17 +128,5 @@ int wifi_manager_open_softap(void *handle);
 int wifi_manager_close_softap(void *handle);
 int wifi_manager_start_softap(void *handle);
 int wifi_manager_stop_softap(void *handle);
-
-const char *wifimgr_cmd2str(int cmd);
-const char *wifimgr_evt2str(int evt);
-const char *wifimgr_sts2str_cmd(struct wifi_manager *mgr, unsigned int cmd_id);
-const char *wifimgr_sts2str_evt(struct wifi_manager *mgr, unsigned int cmd_id);
-int wifi_manager_sm_start_timer(struct wifi_manager *mgr, unsigned int cmd_id);
-int wifi_manager_sm_stop_timer(struct wifi_manager *mgr, unsigned int cmd_id);
-int wifi_manager_sm_query_cmd(struct wifi_manager *mgr, unsigned int cmd_id);
-void wifi_manager_sm_step_cmd(struct wifi_manager *mgr, unsigned int cmd_id);
-void wifi_manager_sm_step_evt(struct wifi_manager *mgr, unsigned int evt_id);
-void wifi_manager_sm_step_back(struct wifi_manager *mgr, unsigned int evt_id);
-int wifi_manager_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id);
 
 #endif

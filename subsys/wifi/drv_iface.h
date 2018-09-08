@@ -19,6 +19,7 @@ int wifi_drv_iface_scan(void *iface);
 int wifi_drv_iface_connect(void *iface, char *ssid, char *passwd);
 int wifi_drv_iface_disconnect(void *iface);
 int wifi_drv_iface_get_station(void *iface, char *signal);
+int wifi_drv_iface_notify_ip(void *iface, char *ipaddr, char len);
 int wifi_drv_iface_open_softap(void *iface);
 int wifi_drv_iface_close_softap(void *iface);
 int wifi_drv_iface_start_softap(void *iface, char *ssid, char *passwd,

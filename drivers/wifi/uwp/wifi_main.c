@@ -286,6 +286,7 @@ static const struct net_wifi_mgmt_api uwp_api = {
 	.get_station	= uwp_mgmt_get_station,
 	.connect		= uwp_mgmt_connect,
 	.disconnect		= uwp_mgmt_disconnect,
+	.notify_ip		= uwp_mgmt_set_ip,
 	.start_ap		= uwp_mgmt_start_ap,
 	.stop_ap		= uwp_mgmt_stop_ap,
 	.del_station	= uwp_mgmt_del_station,

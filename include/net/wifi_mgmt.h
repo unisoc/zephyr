@@ -192,6 +192,7 @@ struct net_wifi_mgmt_api{
 		       struct wifi_connect_req_params *params);
 	int (*disconnect)(struct device *dev);
 	int (*get_station)(struct device *dev, u8_t *signal);
+	int (*notify_ip)(struct device *dev, u8_t *ipaddr, u8_t len);
 	int (*start_ap)(struct device *dev,
 			struct wifi_start_ap_req_params *params);
 	int (*stop_ap)(struct device *dev);

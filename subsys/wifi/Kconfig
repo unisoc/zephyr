@@ -22,6 +22,12 @@ config WIFIMGR_CLI
 		A client that can interact with WiFi manger,
 		which can be ran from shell.
 
+config WIFIMGR_DHCPC
+	bool "Enable DHCP client"
+	default y
+	help
+		Start DHCP client by WiFi manger.
+
 endif # WiFi
 
 endmenu

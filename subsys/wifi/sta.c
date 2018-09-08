@@ -11,8 +11,6 @@
 
 #include "wifimgr.h"
 
-#define RECONNECT_TIMEOUT   10	/* s */
-
 int wifi_manager_get_sta_config(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
@@ -100,6 +98,7 @@ static int wifi_manager_disconnect_event(void *arg)
 	    (struct wifimgr_evt_disconnect *)arg;
 	struct wifi_manager *mgr =
 	    container_of(disc, struct wifi_manager, evt_disc);
+	struct net_if *iface = (struct net_if *)mgr->sta_iface;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	int ret = 0;
 
@@ -107,12 +106,9 @@ static int wifi_manager_disconnect_event(void *arg)
 	fflush(stdout);
 
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
-/*
-	if (mgr->sta_iface) {
-		syslog(LOG_INFO, "stop DHCP\n");
-		dhcp_stop(mgr->sta_iface);
-	}
-*/
+
+	if (iface)
+		wifimgr_dhcp_stop(iface);
 
 	/* Notify the external caller */
 	if (cbs && cbs->notify_disconnect)
@@ -143,6 +139,7 @@ static int wifi_manager_connect_event(void *arg)
 	struct wifimgr_evt_connect *conn = (struct wifimgr_evt_connect *)arg;
 	struct wifi_manager *mgr =
 	    container_of(conn, struct wifi_manager, evt_conn);
+	struct net_if *iface = (struct net_if *)mgr->sta_iface;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	int ret = conn->status;
 
@@ -157,12 +154,10 @@ static int wifi_manager_connect_event(void *arg)
 		command_processor_register_sender(&mgr->prcs,
 						  WIFIMGR_CMD_DISCONNECT,
 						  wifi_manager_disconnect, mgr);
-/*
-		if (mgr->sta_iface) {
-			syslog(LOG_INFO, "start DHCP client\n");
-			dhcp_start(mgr->sta_iface);
-		}
-*/
+
+		if (iface)
+			wifimgr_dhcp_start(iface);
+
 	} else {
 		syslog(LOG_ERR, "failed to connect!\n");
 	}
