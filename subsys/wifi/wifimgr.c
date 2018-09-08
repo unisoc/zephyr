@@ -1,4 +1,9 @@
 /*
+ * @file
+ * @brief WiFi manager top layer implementation
+ */
+
+/*
  * Copyright (c) 2018, Unisoc Communications Inc
  *
  * SPDX-License-Identifier: Apache-2.0

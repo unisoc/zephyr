@@ -1,4 +1,9 @@
 /*
+ * @file
+ * @brief Station mode handling
+ */
+
+/*
  * Copyright (c) 2018, Unisoc Communications Inc
  *
  * SPDX-License-Identifier: Apache-2.0

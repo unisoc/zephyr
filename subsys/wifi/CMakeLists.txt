@@ -4,7 +4,7 @@ zephyr_compile_options(
 zephyr_sources_ifdef(
   CONFIG_WIFIMGR
   wifimgr.c
-  state_machine.c
+  sm.c
   cmd_prcs.c
   evt_lsnr.c
   sta.c

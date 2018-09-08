@@ -1,4 +1,9 @@
 /*
+ * @file
+ * @brief Driver interface implementation for Zephyr
+ */
+
+/*
  * Copyright (c) 2018, Unisoc Communications Inc
  *
  * SPDX-License-Identifier: Apache-2.0
