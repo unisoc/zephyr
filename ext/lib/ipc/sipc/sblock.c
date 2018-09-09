@@ -79,60 +79,49 @@ static int sblock_recover(uint8_t dst, uint8_t channel)
 	return 0;
 }
 
-static void sblock_thread(void *p1, void *p2, void *p3)
+static int get_channel_prio(int channel)
 {
-	struct sblock_mgr *sblock = (struct sblock_mgr*)p1;
-	struct smsg mcmd, mrecv;
-	int ret;
-	int recovery = 0;
-	//struct sblock blk;
 	int prio;
-	/*set the thread as a real time thread, and its priority is 90*/
-
-	switch(sblock->channel) {
+	switch(channel) {
 		case SMSG_CH_BT:
-        case SMSG_CH_WIFI_CTRL:
-            prio = QUEUE_PRIO_HIGH;
-            break;
-        default :
+		case SMSG_CH_WIFI_CTRL:
+			prio = QUEUE_PRIO_HIGH;
+			break;
+		default :
 			prio = QUEUE_PRIO_NORMAL;
 			break;
-    }
-
-	ret = smsg_ch_open(sblock->dst, sblock->channel,prio, K_FOREVER);
-	if (ret != 0) {
-		ipc_error("Failed to open channel %d", sblock->channel);
-		//return ret;
 	}
-    while(1)
-    {
-		ipc_debug("wait for channel %d data.", sblock->channel);
-		/* monitor sblock recv smsg */
-		smsg_set(&mrecv, sblock->channel, 0, 0, 0);
-		ret = smsg_recv(sblock->dst, &mrecv, K_FOREVER);
-		if (ret != 0) {
-		/* channel state is FREE */
-			k_sleep(100);
-			continue;
-		}
-		ipc_debug("sblock thread recv msg: dst=%d, channel=%d, "
-				"type=%d, flag=0x%04x, value=0x%08x",
-				sblock->dst, sblock->channel,
-				mrecv.type, mrecv.flag, mrecv.value);
 
-		switch (mrecv.type) {
+	return prio;
+}
+
+//static void sblock_thread(void *p1, void *p2, void *p3)
+void sblock_process(struct smsg *msg)
+{
+	int channel = msg->channel;
+	struct sblock_mgr *sblock = &sblocks[0][channel];
+	struct smsg mcmd;
+	int ret = 0;
+	int recovery = 0;
+	int prio = get_channel_prio(channel);
+
+	ipc_debug("sblock thread recv msg: dst=%d, channel=%d, "
+			"type=%d, flag=0x%04x, value=0x%08x",
+			sblock->dst, sblock->channel,
+			msg->type, msg->flag, msg->value);
+
+	switch (msg->type) {
 		case SMSG_TYPE_OPEN:
 			/* handle channel recovery */
 			if (recovery) {
 				if (sblock->handler) {
-/*这个中断处理是在main.c里面注册的block的中断处理 是通知应用处理sblock的消息的*/
 					sblock->handler(SBLOCK_NOTIFY_CLOSE, sblock->data);
 				}
 				sblock_recover(sblock->dst, sblock->channel);
 			}
 			smsg_open_ack(sblock->dst, sblock->channel);
 			break;
-        case SMSG_TYPE_CLOSE:
+		case SMSG_TYPE_CLOSE:
 			/* handle channel recovery */
 			smsg_close_ack(sblock->dst, sblock->channel);
 			if (sblock->handler) {
@@ -140,7 +129,7 @@ static void sblock_thread(void *p1, void *p2, void *p3)
 			}
 			sblock->state = SBLOCK_STATE_IDLE;
 			break;
-        case SMSG_TYPE_CMD:
+		case SMSG_TYPE_CMD:
 			/* respond cmd done for sblock init */
 			smsg_set(&mcmd, sblock->channel, SMSG_TYPE_DONE,
 					SMSG_DONE_SBLOCK_INIT, sblock->smem_addr);
@@ -148,65 +137,38 @@ static void sblock_thread(void *p1, void *p2, void *p3)
 			sblock->state = SBLOCK_STATE_READY;
 			recovery = 1;
 			ipc_debug("ap cp create %d channel success!",sblock->channel);
- 			if (sblock->channel == SMSG_CH_BT) {
-                sprd_bt_irq_init();
-            }
+			if (sblock->channel == SMSG_CH_BT) {
+				sprd_bt_irq_init();
+			}
 
-/* 			sprd_wifi_send(sblock->channel,prio,cmd_hdr1,sizeof(cmd_hdr1));
-			sleep(1);
-			sprd_wifi_send(sblock->channel,prio,cmd_hdr1,sizeof(cmd_hdr1));
-			sleep(1);
-			sprd_wifi_send(sblock->channel,prio,cmd_hdr1,sizeof(cmd_hdr1));
-			sleep(1);
-			sprd_wifi_send(sblock->channel,prio,cmd_hdr1,sizeof(cmd_hdr1)); */
 			break;
-        case SMSG_TYPE_EVENT:
-			/* handle sblock send/release events */
-			//if (sblock->callback) {
-			//	sblock->callback(sblock->channel, NULL, NULL);
-			//}
-#if 1
-            switch (mrecv.flag) {
-                case SMSG_EVENT_SBLOCK_SEND:
-				//	ret = sblock_receive(0, sblock->channel, &blk, 0);
-				//	recvdata = (uint8_t *)blk.addr;
-				//	ipc_info("sblock recv 0x%x %x %x %x %x %x %x",recvdata[0],recvdata[1],recvdata[2],
-				//	recvdata[3],recvdata[4],recvdata[5],recvdata[6]);
-				//	if (ret != 0) {
-				//		ipc_info("sblock recv error");
-				//	}
-                    if (sblock->callback) {
+		case SMSG_TYPE_EVENT:
+			switch (msg->flag) {
+				case SMSG_EVENT_SBLOCK_SEND:
+					if (sblock->callback) {
 						sblock->callback(sblock->channel);
-                    }
-					//sblock_release(0,sblock->channel, &blk);
-                    break;
+					}
+					break;
 				case SMSG_EVENT_SBLOCK_RECV:
 					break;
-                case SMSG_EVENT_SBLOCK_RELEASE:
-				    //sblock_release(0,sblock->channel, &blk);
-				  // wakeup_smsg_task_all(&(sblock->ring->getwait));
-                    //if (sblock->handler) {
-                      //  sblock->handler(SBLOCK_NOTIFY_GET, sblock->data);
-                    //}
-                    break;
-                default:
-                    ret = 1;
-                    break;
-            }
-#endif
-            break;
+				case SMSG_EVENT_SBLOCK_RELEASE:
+					break;
+				default:
+					ret = 1;
+					break;
+			}
+			break;
 		default:
 			ret = 1;
 			break;
-		};
-		if (ret) {
-			ipc_warn("non-handled sblock msg: %d-%d, %d, %d, %d",
-					sblock->dst, sblock->channel,
-					mrecv.type, mrecv.flag, mrecv.value);
-			ret = 0;
-		}
+	};
+	if (ret) {
+		ipc_warn("non-handled sblock msg: %d-%d, %d, %d, %d",
+				sblock->dst, sblock->channel,
+				msg->type, msg->flag, msg->value);
+		ret = 0;
 	}
-    
+
 }
 
 int sblock_create(uint8_t dst, uint8_t channel,
@@ -219,7 +181,9 @@ int sblock_create(uint8_t dst, uint8_t channel,
 	struct sblock_ring *ring = NULL;
 	u32_t hsize;
 	u32_t block_addr;
+	int prio;
 	int i;
+	int ret;
 
 	sblock = &sblocks[dst][channel];
 
@@ -232,7 +196,7 @@ int sblock_create(uint8_t dst, uint8_t channel,
 	sblock->rxblksz = rxblocksize;
 	sblock->txblknum = txblocknum;
 	sblock->rxblknum = rxblocknum;
-    sblock->handler = NULL;
+	sblock->handler = NULL;
 	sblock->callback = NULL;
 	/* allocate smem */
 	hsize = sizeof(struct sblock_header);
@@ -325,16 +289,13 @@ int sblock_create(uint8_t dst, uint8_t channel,
 	sblock->state = SBLOCK_STATE_READY;
 
 	ipc_debug("r_txblks %p %p %p %p",ring->r_txblks,ring->r_rxblks,ring->p_txblks,ring->p_rxblks);
-
 	
-	sblock->pid = k_thread_create(&sblock->thread,
-			sblock->sblock_stack, SBLOCK_STACK_SIZE,
-			(k_thread_entry_t)sblock_thread, 
-			(void *)sblock, NULL, NULL,
-			 K_PRIO_COOP(7), 0, 0);
-	if(sblock->pid == 0) {
-		ipc_warn("Failed to create kthread: sblock-%d-%d", dst, channel);
-		return -1;
+	prio = get_channel_prio(channel);
+
+	ret = smsg_ch_open(sblock->dst, sblock->channel,prio, K_FOREVER);
+	if (ret != 0) {
+		ipc_error("Failed to open channel %d", sblock->channel);
+		return ret;
 	}
 
 	return 0;
@@ -534,7 +495,7 @@ static int sblock_send_ex(uint8_t dst, uint8_t channel,uint8_t prio, struct sblo
 	ring->r_txblks[txpos].length = blk->length;
     ringhd->txblk_wrptr++;
 
-	ipc_debug("addr:%d len:%dtxpos: %d, wrptr: 0x%x %d ", blk->addr, blk->length, txpos, ringhd->txblk_wrptr,channel);
+	//ipc_debug("addr:%d len:%dtxpos: %d, wrptr: 0x%x %d ", blk->addr, blk->length, txpos, ringhd->txblk_wrptr,channel);
 
 	//extern void read8_cmd_exe(u32_t addr, u32_t len);
 	//read8_cmd_exe((u32_t)blk->addr, blk->length + BLOCK_HEADROOM_SIZE);

@@ -13,7 +13,7 @@
 #include "sipc.h"
 #include "sipc_priv.h"
 
-#define SMSG_STACK_SIZE		(1024)
+#define SMSG_STACK_SIZE		(2048)
 struct k_thread smsg_thread;
 K_THREAD_STACK_MEMBER(smsg_stack, SMSG_STACK_SIZE);
 static struct smsg_ipc smsg_ipcs[SIPC_ID_NR];
@@ -128,6 +128,7 @@ void smsg_clear_queue(struct smsg_ipc *ipc,int prio)
 	smsg_clear_queue_buf(queue);
 }
 
+extern void sblock_process(struct smsg *msg);
 int smsg_msg_dispatch_thread(int argc, char *argv[])
 {
 	int prio;
@@ -135,7 +136,6 @@ int smsg_msg_dispatch_thread(int argc, char *argv[])
 	struct smsg *msg;
 	struct smsg_channel *ch;
 	uintptr_t rxpos;
-	u32_t wr;
 	struct smsg_queue_buf *rx_buf;
 
 	while(1){
@@ -182,25 +182,7 @@ int smsg_msg_dispatch_thread(int argc, char *argv[])
 			}
 			ch = &ipc->channels[msg->channel];
 
-			if((ch->wrptr - ch->rdptr) 
-				>= SMSG_CACHE_NR) {
-				ipc_warn("smsge channel %d full, drop smsg.",
-						msg->channel);
-				continue;
-			}
-
-			k_mutex_lock(&ch->rxlock, K_FOREVER);
-
-			wr = ch->wrptr & (SMSG_CACHE_NR - 1);
-			memcpy(&(ch->caches[wr]), msg, sizeof(struct smsg));
-			ch->wrptr++;
-
-			ipc_debug("ch[%d] rdptr: %d, wrptr: %d", 
-					msg->channel, ch->rdptr, ch->wrptr);
-
-			k_sem_give(&ch->rxsem);
-
-			k_mutex_unlock(&ch->rxlock);
+			sblock_process(msg);
 		}
 	}
 
@@ -255,25 +237,6 @@ int smsg_ch_open(u8_t dst, u8_t channel,int prio, int timeout)
 		return ret;
 	}
 	ipc_debug("send open success");
-
-#if 0
-	smsg_set(&mrecv, channel, 0, 0, 0);
-	ret = smsg_recv(dst, &mrecv, timeout);
-	if (ret != 0) {
-		ipc_warn("smsg_ch_open smsg receive error, errno %d!\n", ret);
-		ch->state = CHAN_STATE_UNUSED;
-
-		return ret;
-	}
-	ipc_debug("recv open ok");
-
-	if (mrecv.type != SMSG_TYPE_OPEN || mrecv.flag != SMSG_OPEN_MAGIC) {
-		ipc_warn("Got bad open msg on channel %d-%d\n", dst, channel);
-		ch->state = CHAN_STATE_UNUSED;
-
-		return -EIO;
-	}
-#endif
 
 	ch->state = CHAN_STATE_OPENED;
 	ipc_debug("open channel success");
@@ -349,6 +312,7 @@ int smsg_send(u8_t dst, u8_t prio,struct smsg *msg, int timeout)
 	if (ch->state != CHAN_STATE_OPENED &&
 			msg->type != SMSG_TYPE_OPEN &&
 			msg->type != SMSG_TYPE_CLOSE &&
+			msg->type != SMSG_TYPE_DONE &&
 			msg->channel != SMSG_CH_IRQ_DIS) {
 		ipc_warn("channel %d not opened!\n", msg->channel);
 		return -EINVAL;
@@ -397,50 +361,6 @@ int smsg_send(u8_t dst, u8_t prio,struct smsg *msg, int timeout)
 	uwp_ipi_irq_trigger();
 
 	return ret;
-}
-
-int smsg_recv(u8_t dst, struct smsg *msg, int timeout)
-{
-	struct smsg_channel *ch;
-	struct smsg_ipc *ipc = &smsg_ipcs[dst];
-	u32_t rd;
-	int ret = 0;
-
-	if(!ipc) {
-		return -ENODEV;
-	}
-
-	ch = &ipc->channels[msg->channel];
-
-	//ipc_debug("dst=%d, channel=%d, timeout=%d",
-	//		dst, msg->channel, timeout);
-
-	if (ch->wrptr == ch->rdptr) {
-		ret = k_sem_take(&ch->rxsem, timeout);
-		if (ret == -EBUSY) {
-			ipc_warn("smsg_recv wait interrupted!");
-			return ret;
-		}
-		ipc_debug("ch[%d] rdptr: %d, wrptr: %d", 
-				msg->channel, ch->rdptr, ch->wrptr);
-
-		if (ch->wrptr == ch->rdptr) {
-			ipc_debug("smsg_recv none data!");
-			return -ETIME;
-		}
-	}
-
-	k_mutex_lock(&ch->rxlock, K_FOREVER);
-	/* read smsg from cache */
-	rd = ch->rdptr & (SMSG_CACHE_NR - 1);
-	memcpy(msg, &(ch->caches[rd]), sizeof(struct smsg));
-	ch->rdptr++;
-	k_mutex_unlock(&ch->rxlock);
-
-	ipc_debug("recv smsg: channel=%d, type=%d, flag=0x%04x, value=0x%08x wrptr=%d, rdptr=%d, rd=%d\n",
-			msg->channel, msg->type, msg->flag, msg->value,ch->wrptr, ch->rdptr, rd);
-
-	return 0;
 }
 
 int smsg_init(u32_t dst, u32_t smsg_base)
