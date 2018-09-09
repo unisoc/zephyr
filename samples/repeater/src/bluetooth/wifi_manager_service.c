@@ -261,6 +261,22 @@ void wifimgr_ctrl_iface_notify_connect(unsigned char result)
     data[1] = res_result;
 
     wifi_manager_notify(data, sizeof(data));
+
+#if defined(CONFIG_WIFI_REPEATER)
+    if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->set_conf)
+        wifimgr_get_ctrl_ops(get_wifimgr_cbs())->set_conf(WIFIMGR_IFACE_NAME_AP,
+							"UNISOC_REPEATER",
+							NULL,
+							NULL,
+							0,
+							6);
+
+    if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->open)
+        wifimgr_get_ctrl_ops(get_wifimgr_cbs())->open(WIFIMGR_IFACE_NAME_AP);
+
+    if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->start_ap)
+        wifimgr_get_ctrl_ops(get_wifimgr_cbs())->start_ap();
+#endif
 }
 
 void wifimgr_ctrl_iface_notify_connect_timeout(void)
