@@ -75,6 +75,7 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 		}
 	}
 
+	free(msg.buf);
 	mq_close(mq);
 
 	return ret;

@@ -212,12 +212,14 @@ static int wifi_drv_iface_notify_event(unsigned int evt_id, void *buf,
 	}
 
 	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
-	if (ret < 0)
+	if (ret < 0) {
+		free(msg.buf);
 		syslog(LOG_ERR, "failed to send [%s]: %d, errno %d!\n",
 		       wifimgr_evt2str(msg.evt_id), ret, errno);
-	else
+	} else {
 		syslog(LOG_DEBUG, "send [%s], buf: 0x%08x\n",
 		       wifimgr_evt2str(msg.evt_id), *(int *)msg.buf);
+	}
 
 	mq_close(mq);
 

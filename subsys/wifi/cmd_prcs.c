@@ -54,8 +54,6 @@ static void command_processor_post_process(void *handle,
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
 	int ret;
 
-	free(msg->buf);
-
 	msg->reply = reply;
 	ret =
 	    mq_send(prcs->mq, (const char *)msg, sizeof(struct cmd_message), 0);
