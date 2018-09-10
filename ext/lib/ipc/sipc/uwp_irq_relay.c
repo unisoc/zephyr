@@ -14,8 +14,6 @@
 #include "sipc.h"
 #include "sipc_priv.h"
 
-#define NVIC_AON_INT_IRQ_REQ_BB_TS   0xb
-
 #if defined(CONFIG_BT_CTLR_WORKER_PRIO)
 #define RADIO_TICKER_USER_ID_WORKER_PRIO CONFIG_BT_CTLR_WORKER_PRIO
 #else
@@ -265,7 +263,16 @@ void sprd_wifi_irq_disable_num(uint32_t num)
 
 
 }
+static int wifi_aon_irq_handler(int ch, void *arg)
+{
+    struct smsg msg;
+    int32_t irq = (int32_t)arg;
 
+    ipc_info("wifi irq aon \n",irq);
+    smsg_set(&msg, SMSG_CH_IRQ_DIS, SMSG_TYPE_EVENT, 0, (irq + 50));
+    smsg_send_irq(SIPC_ID_AP,&msg);
+    return 0;
+}
 static int wifi_int_irq_handler(void *arg)
 {
     struct smsg msg;
@@ -278,6 +285,8 @@ static int wifi_int_irq_handler(void *arg)
     return 0;
 }
 
+typedef void (*uwp_intc_callback_t) (int channel, void *user);
+extern void uwp_aon_intc_set_irq_callback(int channel,uwp_intc_callback_t cb, void *arg);
 int wifi_irq_init(void)
 {
 
@@ -289,6 +298,6 @@ int wifi_irq_init(void)
 				NVIC_INT_DPD, 0);
 	IRQ_CONNECT(NVIC_INT_REQ_COM_TMR, 5,wifi_int_irq_handler,
 				NVIC_INT_REQ_COM_TMR, 0);
-
+    uwp_aon_intc_set_irq_callback(TB_AON_INT_IRQ_REQ_BB_TS, wifi_aon_irq_handler, AON_INT_IRQ_REQ_BB_TS);
     return 0;
 }

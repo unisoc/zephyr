@@ -105,10 +105,10 @@ void sblock_process(struct smsg *msg)
 	int recovery = 0;
 	int prio = get_channel_prio(channel);
 
-	ipc_debug("sblock thread recv msg: dst=%d, channel=%d, "
+/*	ipc_debug("sblock thread recv msg: dst=%d, channel=%d, "
 			"type=%d, flag=0x%04x, value=0x%08x",
 			sblock->dst, sblock->channel,
-			msg->type, msg->flag, msg->value);
+			msg->type, msg->flag, msg->value);*/
 
 	switch (msg->type) {
 		case SMSG_TYPE_OPEN:

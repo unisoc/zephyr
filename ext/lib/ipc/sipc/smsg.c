@@ -134,6 +134,7 @@ int smsg_msg_dispatch_thread(int argc, char *argv[])
 	int prio;
 	struct smsg_ipc *ipc = &smsg_ipcs[0];
 	struct smsg *msg;
+	struct smsg recv_smsg;
 	struct smsg_channel *ch;
 	uintptr_t rxpos;
 	struct smsg_queue_buf *rx_buf;
@@ -157,32 +158,32 @@ int smsg_msg_dispatch_thread(int argc, char *argv[])
 				* sizeof(struct smsg) + rx_buf->addr;
 
 			msg = (struct smsg *)rxpos;
-			//ipc_debug("irq read smsg: channel=%d, type=%d, flag=0x%04x, value=0x%08x",
-			//		msg->channel, msg->type, msg->flag, msg->value);
 
+			memcpy(&recv_smsg, msg, sizeof(struct smsg));
 			sys_write32(sys_read32(rx_buf->rdptr) + 1,
 					rx_buf->rdptr);
-
-			if (msg->channel >= SMSG_CH_NR
-					|| msg->type >= SMSG_TYPE_NR
-					|| msg->type == SMSG_TYPE_DIE) {
+			ipc_debug("read smsg: channel=%d, type=%d, flag=0x%04x, value=0x%08x %d %d\n",
+					msg->channel, msg->type, msg->flag, msg->value,sys_read32(rx_buf->wrptr),sys_read32(rx_buf->rdptr));
+			if (recv_smsg.channel >= SMSG_CH_NR
+					|| recv_smsg.type >= SMSG_TYPE_NR
+					|| recv_smsg.type == SMSG_TYPE_DIE) {
 				ipc_error("invalid smsg: channel=%d, type=%d",
-						msg->channel, msg->type);
+						recv_smsg.channel, recv_smsg.type);
 				continue;
 			}
-			if(msg->type == SMSG_TYPE_WIFI_IRQ){
-				if (SMSG_WIFI_IRQ_OPEN == msg->flag) {
-				   sprd_wifi_irq_enable_num(msg->value);
-				   ipc_debug("wifi irq open\n");
-				} else 	if (SMSG_WIFI_IRQ_CLOSE == msg->flag) {
-				   sprd_wifi_irq_disable_num(msg->value);
-				   ipc_debug("wifi irq close\n");
+			if(recv_smsg.type == SMSG_TYPE_WIFI_IRQ){
+				if (SMSG_WIFI_IRQ_OPEN == recv_smsg.flag) {
+				   sprd_wifi_irq_enable_num(recv_smsg.value);
+				   ipc_debug("wifi irq %d open\n",recv_smsg.value);
+				} else 	if (SMSG_WIFI_IRQ_CLOSE == recv_smsg.flag) {
+				   sprd_wifi_irq_disable_num(recv_smsg.value);
+				   ipc_debug("wifi irq %d close\n",recv_smsg.value);
 				}
 				continue;
 			}
-			ch = &ipc->channels[msg->channel];
+			ch = &ipc->channels[recv_smsg.channel];
 
-			sblock_process(msg);
+			sblock_process(&recv_smsg);
 		}
 	}
 

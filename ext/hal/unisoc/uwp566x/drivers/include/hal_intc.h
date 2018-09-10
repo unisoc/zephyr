@@ -38,6 +38,7 @@ extern "C" {
 #define INT_SOFT		1
 
 #define AON_INT_GPIO0	10
+#define AON_INT_IRQ_REQ_BB_TS  11
 #define AON_INT_UART	12
 
 	static inline void uwp_irq_enable(u32_t channel)
