@@ -268,7 +268,7 @@ static int wifi_aon_irq_handler(int ch, void *arg)
     struct smsg msg;
     int32_t irq = (int32_t)arg;
 
-    ipc_info("wifi irq aon \n",irq);
+    ipc_info("wifi irq aon %d\n",irq);
     smsg_set(&msg, SMSG_CH_IRQ_DIS, SMSG_TYPE_EVENT, 0, (irq + 50));
     smsg_send_irq(SIPC_ID_AP,&msg);
     return 0;
@@ -298,6 +298,6 @@ int wifi_irq_init(void)
 				NVIC_INT_DPD, 0);
 	IRQ_CONNECT(NVIC_INT_REQ_COM_TMR, 5,wifi_int_irq_handler,
 				NVIC_INT_REQ_COM_TMR, 0);
-    uwp_aon_intc_set_irq_callback(TB_AON_INT_IRQ_REQ_BB_TS, wifi_aon_irq_handler, AON_INT_IRQ_REQ_BB_TS);
+    uwp_aon_intc_set_irq_callback(AON_INT_IRQ_REQ_BB_TS, wifi_aon_irq_handler, AON_INT_IRQ_REQ_BB_TS);
     return 0;
 }
