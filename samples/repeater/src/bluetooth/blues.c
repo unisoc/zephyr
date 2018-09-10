@@ -54,6 +54,8 @@ static const struct bt_data sd[] = {
 	BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
 };
 
+extern void get_mac_address(void);
+
 static void bt_ready(int err)
 {
 	if (err) {
@@ -167,6 +169,11 @@ static int wifi_test(int argc, char *argv[])
 	return 0;
 }
 #endif
+static int cmd_btmac(int argc, char *argv[])
+{
+    get_mac_address();
+}
+
 static const struct shell_cmd blues_commands[] = {
 	{ "init", cmd_init, NULL },
 	{ "vlog", cmd_vlog, NULL },
@@ -176,6 +183,7 @@ static const struct shell_cmd blues_commands[] = {
 #if 0
 	{ "wifi", wifi_test, NULL },
 #endif
+	{ "btmac", cmd_btmac, NULL },
 	{ NULL, NULL, NULL}
 };
 

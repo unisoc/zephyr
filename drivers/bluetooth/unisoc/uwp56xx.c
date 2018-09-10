@@ -376,6 +376,12 @@ void set_mac_address(uint8_t *addr)
     }
 }
 
+void get_mac_address(void)
+{
+    uint8_t *p = marlin3_pskey.device_addr;
+    BTD("Current bt addr = %02X:%02X:%02X:%02X:%02X:%02X\n", p[5], p[4], p[3], p[2], p[1], p[0]);
+}
+
 int marlin3_init(void) {
     BTD("%s\n", __func__);
     int ret;
