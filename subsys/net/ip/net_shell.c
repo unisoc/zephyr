@@ -2113,16 +2113,27 @@ int net_shell_cmd_ping(int argc, char *argv[])
 		return 0;
 	}
 
-	ret = _ping_ipv4(host);
-	if (ret) {
-		if (ret == -EIO) {
-			printk("Cannot send IPv4 ping\n");
-		} else if (ret == -EINVAL) {
-			printk("Invalid IP address\n");
+	int times = 1;
+	if (argc == 4) {
+		if (0 == strcmp(argv[2], "-t")) {
+			times = atoi(argv[3]);
 		}
-
-		return 0;
 	}
+	printk("ping times %d\n", times);
+	do { /* For stress test, add parameter "-t" to set ping times. */
+		ret = _ping_ipv4(host);
+		if (ret) {
+			if (ret == -EIO) {
+				printk("Cannot send IPv4 ping\n");
+			} else if (ret == -EINVAL) {
+				printk("Invalid IP address\n");
+			}
+
+			return 0;
+		}
+		printk("times left %d\n", times);
+		k_sleep(1000);
+	} while (times-- > 1);
 
 wait_reply:
 	ret = k_sem_take(&ping_timeout, K_SECONDS(2));
