@@ -2119,8 +2119,8 @@ int net_shell_cmd_ping(int argc, char *argv[])
 			times = atoi(argv[3]);
 		}
 	}
-	printk("ping times %d\n", times);
 	do { /* For stress test, add parameter "-t" to set ping times. */
+		printk("times left %d\n", times);
 		ret = _ping_ipv4(host);
 		if (ret) {
 			if (ret == -EIO) {
@@ -2131,8 +2131,9 @@ int net_shell_cmd_ping(int argc, char *argv[])
 
 			return 0;
 		}
-		printk("times left %d\n", times);
-		k_sleep(1000);
+		if (times > 1) {
+			k_sleep(1000);
+		}
 	} while (times-- > 1);
 
 wait_reply:
