@@ -327,7 +327,7 @@ int wifi_manager_close_station(void *handle)
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_SCAN);
 
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_STA,
-					  wifi_manager_close_station, mgr);
+					  wifi_manager_open_station, mgr);
 
 	return ret;
 }

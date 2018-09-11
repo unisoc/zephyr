@@ -269,7 +269,8 @@ void wifimgr_ctrl_iface_notify_connect(unsigned char result)
 							NULL,
 							NULL,
 							0,
-							6);
+							0);
+	/* Set channel: 0 to tell the firmware using STA channle */
 
     if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->open)
         wifimgr_get_ctrl_ops(get_wifimgr_cbs())->open(WIFIMGR_IFACE_NAME_AP);
