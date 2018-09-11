@@ -12,6 +12,8 @@ int pinmux_initialize(struct device *port)
 {
 	ARG_UNUSED(port);
 
+	pin_gpio0_pull_up();
+
 	return 0;
 }
 

@@ -19,6 +19,15 @@ extern "C" {
 #define REG_PIN_ESMD3	(CTL_PIN_BASE + 0x20)
 #define REG_PIN_ESMD2	(CTL_PIN_BASE + 0x24)
 
+#define FUNC_PULL_UP	(1 << 8)
+#define FUNC_PULL_DOWN	(1 << 7)
+
+	static inline void pin_gpio0_pull_up(void)
+	{
+		sci_write32(REG_PIN_GPIO0,
+				sci_read32(REG_PIN_GPIO0) | FUNC_PULL_UP);
+	}
+
 #ifdef __cplusplus
 }
 #endif
