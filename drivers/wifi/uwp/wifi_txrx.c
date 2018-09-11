@@ -76,6 +76,10 @@ int wifi_tx_complete_handle(void * data,int len)
 		memcpy(&payload_addr, txc_addr->data + (i * SPRDWL_PHYS_LEN), 4);
 
 		payload_addr -= sizeof(struct tx_msdu_dscr);
+
+		__ASSERT(payload_addr > SPRD_CP_DRAM_BEGIN && payload_addr < SPRD_CP_DRAM_END,
+				"Invalid buffer address: %p", payload_addr);
+
 		SPRD_CP_TO_AP_ADDR(payload_addr);
 		pkt = (struct net_pkt *)uwp_get_addr_from_payload(payload_addr);
 
