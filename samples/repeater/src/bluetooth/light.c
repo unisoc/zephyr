@@ -91,7 +91,7 @@ void button_pressed_worker(struct k_work *unused)
 	struct bt_mesh_msg_ctx ctx = {
 		.net_idx = get_net_idx(),
 		.app_idx = get_app_idx(),
-		.addr = 0xFFFF,
+		.addr = GROUP_ADDR,
 		.send_ttl = BT_MESH_TTL_DEFAULT,
 	};
 

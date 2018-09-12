@@ -11,6 +11,7 @@
 
 #include "../../../../drivers/bluetooth/unisoc/uki_utlis.h"
 #include "mesh.h"
+#include "blues.h"
 #include "light.h"
 #include "health.h"
 #include "uwp_hal.h"
@@ -20,16 +21,16 @@
 #endif
 
 static const u8_t net_key[16] = {
-	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
-	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+	0x88, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+	0x88, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
 };
 static const u8_t dev_key[16] = {
-	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
-	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+	0x88, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+	0x88, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
 };
 static const u8_t app_key[16] = {
-	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
-	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+	0x88, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+	0x88, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
 };
 
 static struct {
@@ -47,11 +48,13 @@ static const u16_t net_idx;
 static const u16_t app_idx;
 static const u32_t iv_index;
 static u8_t flags;
-static u16_t addr = NODE_ADDR;
+static u16_t addr = GROUP_ADDR;
 static u16_t target = GROUP_ADDR;
 
 static bt_mesh_input_action_t input_act;
 static u8_t input_size;
+
+extern blues_config_t blues_config;
 
 static struct bt_mesh_cfg_srv cfg_srv = {
 	.relay = BT_MESH_RELAY_DISABLED,
@@ -130,7 +133,7 @@ static const struct bt_mesh_comp comp = {
 
 static void configure(void)
 {
-	printk("Configuring...\n");
+	BTI("Configuring...\n");
 
 	/* Add Application Key */
 	bt_mesh_cfg_app_key_add(net_idx, addr, net_idx, app_idx, app_key, NULL);
@@ -147,8 +150,11 @@ static void configure(void)
 	bt_mesh_cfg_mod_sub_add_vnd(net_idx, addr, addr, GROUP_ADDR,
 				    MOD_ID, BT_COMP_ID, NULL);
 
-	health_init();
-	light_init();
+	if (blues_config.profile_health_enabled)
+		health_init();
+
+	if (blues_config.profile_light_enabled)
+		light_init();
 
 	printk("Configuration complete\n");
 
@@ -344,6 +350,11 @@ static void mesh_enable(int err)
 
 void test() {
 	BTD("%s\n", __func__);
+	do {
+		u16_t value = sys_rand32_get() & 0x7FFF;
+		BTI("0x%04X\n", value);
+		k_sleep(100);
+	} while (1);
 }
 
 
