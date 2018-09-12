@@ -65,5 +65,7 @@ void wifimgr_dhcp_stop(void *handle)
 
 	syslog(LOG_INFO, "stop DHCP client\n");
 
+	net_mgmt_del_event_callback(&mgmt_cb);
+
 	net_dhcpv4_stop(iface);
 }
