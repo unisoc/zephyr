@@ -10,6 +10,7 @@
  */
 
 #include "wifimgr.h"
+#include "led.h"
 
 int wifi_manager_get_ap_config(void *handle)
 {
@@ -143,6 +144,8 @@ int wifi_manager_start_softap(void *handle)
 		return ret;
 	}
 
+	light_turn_on(LED1_GPIO_PIN);
+
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_START_AP);
 
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP,
@@ -166,6 +169,8 @@ int wifi_manager_stop_softap(void *handle)
 		syslog(LOG_ERR, "failed to stop AP!\n");
 		return ret;
 	}
+
+	light_turn_off(LED1_GPIO_PIN);
 
 	event_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_NEW_STATION);
 

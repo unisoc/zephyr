@@ -13,6 +13,7 @@
 #include <shell/shell.h>
 
 #include "wifimgr.h"
+#include "led.h"
 
 #define WIFIMGR_PRIORITY	39
 
@@ -216,6 +217,8 @@ static int wifi_manager_init(struct device *unused)
 	ret = wifi_manager_sm_init(mgr);
 	if (ret < 0)
 		syslog(LOG_ERR, "failed to init WiFi state machine!\n");
+
+	led_init();
 
 /*
 	[>get default config<]

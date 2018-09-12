@@ -10,6 +10,7 @@
  */
 
 #include "wifimgr.h"
+#include "led.h"
 
 int wifi_manager_get_sta_config(void *handle)
 {
@@ -105,6 +106,8 @@ static int wifi_manager_disconnect_event(void *arg)
 	syslog(LOG_INFO, "disconnect, reason_code %d!\n", disc->reason_code);
 	fflush(stdout);
 
+	light_turn_off(LED3_GPIO_PIN);
+
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
 
 	if (iface)
@@ -154,6 +157,8 @@ static int wifi_manager_connect_event(void *arg)
 		command_processor_register_sender(&mgr->prcs,
 						  WIFIMGR_CMD_DISCONNECT,
 						  wifi_manager_disconnect, mgr);
+
+		light_turn_on(LED3_GPIO_PIN);
 
 		if (iface)
 			wifimgr_dhcp_start(iface);
