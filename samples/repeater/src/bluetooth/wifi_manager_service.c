@@ -92,13 +92,13 @@ static void wifimgr_ccc_cfg_changed(const struct bt_gatt_attr *attr,
     wifimgr_is_enabled = (value == BT_GATT_CCC_NOTIFY) ? 1 : 0;
 }
 
-int wifimgr_check_wifi_status(void)
+int wifimgr_check_wifi_status(char *iface_name)
 {
-    BTD("%s\n", __func__);
+    BTD("%s, iface_name = %s\n", __func__,iface_name);
     int ret = -1;
 
     if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->get_status) {
-        ret = wifimgr_get_ctrl_ops(get_wifimgr_cbs())->get_status(WIFIMGR_IFACE_NAME_STA);
+        ret = wifimgr_get_ctrl_ops(get_wifimgr_cbs())->get_status(iface_name);
     } else {
         BTD("%s, get_status = NULL\n", __func__);
         goto error;
@@ -183,11 +183,11 @@ void wifimgr_set_conf_and_connect(const void *buf)
         goto error;
     }
 
-    ret = wifimgr_check_wifi_status();
+    ret = wifimgr_check_wifi_status(WIFIMGR_IFACE_NAME_STA);
     if(0 == ret){
-        switch(cur_wifi_status.status){
+        switch(cur_wifi_status.sta_status){
             case WIFI_STATUS_NODEV:
-                if(0 != wifimgr_do_open()) {
+                if(0 != wifimgr_do_open(WIFIMGR_IFACE_NAME_STA)) {
                     BTD("%s, open fail\n", __func__);
                     res_result = RESULT_FAIL;
                     goto error;
@@ -205,13 +205,13 @@ void wifimgr_set_conf_and_connect(const void *buf)
             case WIFI_STATUS_SCANNING:
             case WIFI_STATUS_CONNECTING:
             case WIFI_STATUS_DISCONNECTING:
-                BTD("%s,status = %d ,wifi is busy\n", __func__, cur_wifi_status.status);
+                BTD("%s,status = %d ,wifi is busy\n", __func__, cur_wifi_status.sta_status);
                 res_result = RESULT_FAIL;
                 goto error;
             break;
 
             default:
-                BTD("%s,status = %d not found\n", __func__, cur_wifi_status.status);
+                BTD("%s,status = %d not found\n", __func__, cur_wifi_status.sta_status);
                 res_result = RESULT_FAIL;
                 goto error;
             break;
@@ -261,23 +261,6 @@ void wifimgr_ctrl_iface_notify_connect(unsigned char result)
     data[1] = res_result;
 
     wifi_manager_notify(data, sizeof(data));
-
-#if defined(CONFIG_WIFI_REPEATER)
-    if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->set_conf)
-        wifimgr_get_ctrl_ops(get_wifimgr_cbs())->set_conf(WIFIMGR_IFACE_NAME_AP,
-							"UNISOC_REPEATER",
-							NULL,
-							NULL,
-							0,
-							0);
-	/* Set channel: 0 to tell the firmware using STA channle */
-
-    if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->open)
-        wifimgr_get_ctrl_ops(get_wifimgr_cbs())->open(WIFIMGR_IFACE_NAME_AP);
-
-    if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->start_ap)
-        wifimgr_get_ctrl_ops(get_wifimgr_cbs())->start_ap();
-#endif
 }
 
 void wifimgr_ctrl_iface_notify_connect_timeout(void)
@@ -407,20 +390,31 @@ void wifimgr_get_status(const void *buf)
 {
     BTD("%s\n", __func__);
     int ret = -1;
-    char data[9] = {0};
+    char data[15] = {0};
     u8_t res_result = RESULT_SUCCESS;
     int data_len = 0;
 
-    ret = wifimgr_check_wifi_status();
+    ret = wifimgr_check_wifi_status(WIFIMGR_IFACE_NAME_STA);
     if(0 != ret){
         data_len = 2;
         res_result = RESULT_FAIL;
+        goto error;
     }else{
-        data_len = 9;
-        data[2] = cur_wifi_status.status;
-        memcpy(&data[3], cur_wifi_status.wifi_mac, 6);
-        res_result = RESULT_SUCCESS;
+        memcpy(&data[3], cur_wifi_status.sta_mac, 6);
     }
+
+    ret = wifimgr_check_wifi_status(WIFIMGR_IFACE_NAME_AP);
+    if(0 != ret){
+        data_len = 2;
+        res_result = RESULT_FAIL;
+        goto error;
+    }else{
+        memcpy(&data[9], cur_wifi_status.ap_mac, 6);
+    }
+    data[2] = cur_wifi_status.sta_status;
+    data_len = 15;
+
+error:
     data[0] = RESULT_GET_STATUS;
     data[1] = res_result;
 
@@ -430,12 +424,18 @@ void wifimgr_get_status(const void *buf)
 void wifimgr_ctrl_iface_get_status_cb(char *iface_name, unsigned char status,
                 char *own_mac, signed char signal)
 {
-    BTD("%s,iface_name:%s,status:%d,own_mac:%s,signal:%d\n", __func__,iface_name,status,own_mac,signal);
+    BTD("%s, iface_name:%s, status:%d, signal:%d\n", __func__,iface_name,status,signal);
+    BTD("%s, %s mac = %02X:%02X:%02X:%02X:%02X:%02X\n", __func__,iface_name,own_mac[0],own_mac[1],own_mac[2],own_mac[3],own_mac[4],own_mac[5]);
 
-    cur_wifi_status.status = status;
-
-    memcpy(cur_wifi_status.wifi_mac, own_mac, 6);
-
+    if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
+        cur_wifi_status.sta_status = status;
+        memcpy(cur_wifi_status.sta_mac, own_mac, 6);
+    } else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP)) {
+        cur_wifi_status.ap_status = status;
+        memcpy(cur_wifi_status.ap_mac, own_mac, 6);
+    } else {
+        BTD("%s,iface_name error\n", __func__);
+    }
     k_sem_give(&get_status_sem);
 }
 
@@ -445,7 +445,7 @@ void wifimgr_open(const void *buf)
     char data[2] = {0};
     u8_t res_result = RESULT_SUCCESS;
 
-    if(0 != wifimgr_do_open()) {
+    if(0 != wifimgr_do_open(WIFIMGR_IFACE_NAME_STA)) {
         BTD("%s, open fail\n", __func__);
         res_result = RESULT_FAIL;
     }else{
@@ -484,6 +484,64 @@ void wifimgr_close(const void *buf)
     wifi_manager_notify(data, sizeof(data));
 }
 
+void wifimgr_start_ap(const void *buf)
+{
+    BTD("%s\n", __func__);
+    char data[2] = {0};
+    u8_t res_result = RESULT_SUCCESS;
+    int ret = -1;
+
+#if defined(CONFIG_WIFI_REPEATER)
+    if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->set_conf) {
+        ret = wifimgr_get_ctrl_ops(get_wifimgr_cbs())->set_conf(WIFIMGR_IFACE_NAME_AP,
+                                                                "UNISOC_REPEATER",
+                                                                NULL,
+                                                                NULL,
+                                                                0,
+                                                                0);
+        /* Set channel: 0 to tell the firmware using STA channle */
+    } else {
+        BTD("%s, set_conf = NULL\n", __func__);
+        res_result = RESULT_FAIL;
+        goto error;
+    }
+
+    if(0 != ret) {
+        BTD("%s, set_conf fail,error = %d\n", __func__,ret);
+        res_result = RESULT_FAIL;
+        goto error;
+    }
+
+    if(0 != wifimgr_do_open(WIFIMGR_IFACE_NAME_AP)) {
+        BTD("%s, open fail\n", __func__);
+        res_result = RESULT_FAIL;
+        goto error;
+    }
+
+    if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->start_ap) {
+        ret = wifimgr_get_ctrl_ops(get_wifimgr_cbs())->start_ap();
+    } else {
+        BTD("%s, start_ap = NULL\n", __func__);
+        res_result = RESULT_FAIL;
+        goto error;
+    }
+
+    if(0 != ret) {
+        BTD("%s, start_ap fail,error = %d\n", __func__,ret);
+        res_result = RESULT_FAIL;
+        goto error;
+    }
+#else
+    BTD("%s,CONFIG_WIFI_REPEATER not defined\n", __func__);
+    res_result = RESULT_FAIL;
+#endif
+
+error:
+    data[0] = RESULT_START_AP;
+    data[1] = res_result;
+
+    wifi_manager_notify(data, sizeof(data));
+}
 
 int wifimgr_do_scan(int retry_num)
 {
@@ -576,13 +634,13 @@ error:
     return ret;
 }
 
-int wifimgr_do_open(void)
+int wifimgr_do_open(char *iface_name)
 {
     BTD("%s\n", __func__);
     int ret = -1;
 
     if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->open) {
-        ret = wifimgr_get_ctrl_ops(get_wifimgr_cbs())->open(WIFIMGR_IFACE_NAME_STA);
+        ret = wifimgr_get_ctrl_ops(get_wifimgr_cbs())->open(iface_name);
     } else {
         BTD("%s, open = NULL\n", __func__);
         goto error;
@@ -703,6 +761,9 @@ static ssize_t wifi_manager_write(struct bt_conn *conn, const struct bt_gatt_att
         break;
         case CMD_DISCONNECT:
             wifimgr_disconnect(&value[1]);
+        break;
+        case CMD_START_AP:
+            wifimgr_start_ap(&value[1]);
         break;
 
         default:

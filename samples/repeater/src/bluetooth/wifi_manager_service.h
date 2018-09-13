@@ -14,6 +14,8 @@
 #define CMD_DISCONNECT                 0x04
 #define CMD_GET_STATUS                 0x05
 #define CMD_GET_CONF                   0x06
+#define CMD_START_AP                   0x07
+
 
 #define RESULT_OPEN                    0x81
 #define RESULT_CLOSE                   0x82
@@ -21,6 +23,8 @@
 #define RESULT_DISCONNECT              0x84
 #define RESULT_GET_STATUS              0x85
 #define RESULT_GET_CONF                0x86
+#define RESULT_START_AP                0x87
+
 
 
 typedef struct {
@@ -32,8 +36,10 @@ typedef struct {
 }wifi_config_type;
 
 typedef struct {
-    unsigned char status;
-    char wifi_mac[6];
+    unsigned char sta_status;
+    unsigned char ap_status;
+    char sta_mac[6];
+    char ap_mac[6];
 }wifi_status_type;
 
 enum {
@@ -55,6 +61,6 @@ void wifi_manager_notify(const void *data, u16_t len);
 int wifimgr_do_scan(int retry_num);
 int wifimgr_do_connect(void);
 int wifimgr_do_disconnect(u8_t flags);
-int wifimgr_do_open(void);
-int wifimgr_check_wifi_status(void);
+int wifimgr_do_open(char *iface_name);
+int wifimgr_check_wifi_status(char *iface_name);
 #endif
