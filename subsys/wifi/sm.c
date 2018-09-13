@@ -308,8 +308,8 @@ const char *sta_sts2str(int state)
 
 bool is_sta_cmd(unsigned int cmd_id)
 {
-	return ((cmd_id >= WIFIMGR_CMD_OPEN_STA)
-		&& (cmd_id < WIFIMGR_CMD_OPEN_AP));
+	return ((cmd_id >= WIFIMGR_CMD_GET_STA_STATUS)
+		&& (cmd_id < WIFIMGR_CMD_GET_AP_STATUS));
 }
 
 bool is_sta_evt(unsigned int evt_id)
@@ -476,7 +476,7 @@ const char *ap_sts2str(int state)
 
 bool is_ap_cmd(unsigned int cmd_id)
 {
-	return ((cmd_id >= WIFIMGR_CMD_OPEN_AP) && (cmd_id < WIFIMGR_CMD_MAX));
+	return ((cmd_id >= WIFIMGR_CMD_GET_AP_STATUS) && (cmd_id < WIFIMGR_CMD_MAX));
 }
 
 int sm_ap_query(struct wifimgr_state_machine *ap_sm)
@@ -557,7 +557,7 @@ int sm_ap_init(struct wifimgr_state_machine *ap_sm)
 	return ret;
 }
 
-bool is_comman_cmd(unsigned int cmd_id)
+bool is_common_cmd(unsigned int cmd_id)
 {
-	return (cmd_id < WIFIMGR_CMD_OPEN_STA);
+	return (cmd_id < WIFIMGR_CMD_GET_STA_STATUS);
 }

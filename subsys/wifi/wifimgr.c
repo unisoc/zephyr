@@ -76,7 +76,7 @@ int wifi_manager_sm_query_cmd(struct wifi_manager *mgr, unsigned int cmd_id)
 	struct wifimgr_state_machine *sta_sm = &mgr->sta_sm;
 	int ret = 0;
 
-	if (is_comman_cmd(cmd_id) == true)
+	if (is_common_cmd(cmd_id) == true)
 		return ret;
 
 	if (is_sta_cmd(cmd_id) == true)
@@ -148,7 +148,7 @@ int wifi_manager_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id)
 	struct net_if *iface = NULL;
 	int ret = 0;
 
-	if (is_comman_cmd(cmd_id) == true)
+	if (is_common_cmd(cmd_id) == true)
 		return ret;
 
 	if (!mgr->sta_iface && is_sta_cmd(cmd_id) == true)

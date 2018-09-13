@@ -23,13 +23,11 @@ int wifi_manager_get_ap_config(void *handle)
 	if (strlen(conf->ssid))
 		syslog(LOG_INFO, "SSID:\t\t%s\n", conf->ssid);
 
-	if (is_zero_ether_addr(conf->bssid)) {
+	if (is_zero_ether_addr(conf->bssid))
 		ret = wifi_drv_iface_get_mac(mgr->ap_iface, conf->bssid);
-	} else {
-		syslog(LOG_INFO, "BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-		       conf->bssid[0], conf->bssid[1], conf->bssid[2],
-		       conf->bssid[3], conf->bssid[4], conf->bssid[5]);
-	}
+	syslog(LOG_INFO, "BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+	       conf->bssid[0], conf->bssid[1], conf->bssid[2],
+	       conf->bssid[3], conf->bssid[4], conf->bssid[5]);
 
 	if (conf->channel)
 		syslog(LOG_INFO, "Channel:\t%d\n", conf->channel);

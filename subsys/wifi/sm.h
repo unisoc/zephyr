@@ -41,7 +41,7 @@ int sm_sta_timer_stop(struct wifimgr_state_machine *sta_sm,
 int sm_ap_timer_start(struct wifimgr_state_machine *ap_sm, unsigned int cmd_id);
 int sm_ap_timer_stop(struct wifimgr_state_machine *ap_sm, unsigned int evt_id);
 
-bool is_comman_cmd(unsigned int cmd_id);
+bool is_common_cmd(unsigned int cmd_id);
 
 const char *sta_sts2str(int state);
 bool is_sta_cmd(unsigned int cmd_id);

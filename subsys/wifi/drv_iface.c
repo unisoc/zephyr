@@ -13,7 +13,7 @@
 
 int wifi_drv_iface_get_mac(void *iface, char *mac)
 {
-	/* TODO */
+	memcpy(mac, net_if_get_link_addr(iface)->addr, WIFIMGR_ETH_ALEN);
 
 	return 0;
 }
