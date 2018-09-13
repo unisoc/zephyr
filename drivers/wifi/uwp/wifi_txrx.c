@@ -8,7 +8,6 @@
 #include "wifi_main.h"
 #define RX_BUF_SIZE	(128)
 static unsigned char rx_buf[RX_BUF_SIZE];
-
 int wifi_rx_complete_handle(struct wifi_priv *priv, void *data,int len)
 {
 	//struct rxc *rx_complete_buf = (struct rxc *)data;
@@ -33,14 +32,21 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data,int len)
 
 	for (i = 0; i < rxc_addr->num; i++) {
 		memcpy(&payload, rxc_addr->addr_addr[i], 4);
+		__ASSERT(payload > SPRD_CP_DRAM_BEGIN && payload < SPRD_CP_DRAM_END,
+				"Invalid buffer address: %p", payload);
+
 		SPRD_CP_TO_AP_ADDR(payload);
 		pkt_buf = (struct net_buf *)uwp_get_addr_from_payload(payload);
+		__ASSERT(pkt_buf > SPRD_AP_DRAM_BEGIN && pkt_buf < SPRD_AP_DRAM_END,
+				"Invalid pkt_buf address: %p", pkt_buf);
 
 		rx_msdu =
 			(struct rx_msdu_desc *)(pkt_buf->data +
 					sizeof(struct rx_mh_desc));
 		ctx_id = rx_msdu->ctx_id;
 		data_len = rx_msdu->msdu_len + rx_msdu->msdu_offset;
+		__ASSERT(data_len > 0 && data_len < CONFIG_NET_BUF_DATA_SIZE,
+				"Invalid data len: %d", data_len);
 
 		net_buf_add(pkt_buf, data_len);
 		net_buf_pull(pkt_buf, rx_msdu->msdu_offset);
@@ -52,7 +58,6 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data,int len)
 		}
 
 		last_buf = pkt_buf;
-
 	}
 	net_recv_data(priv->iface, pkt);
 
@@ -76,12 +81,13 @@ int wifi_tx_complete_handle(void * data,int len)
 		memcpy(&payload_addr, txc_addr->data + (i * SPRDWL_PHYS_LEN), 4);
 
 		payload_addr -= sizeof(struct tx_msdu_dscr);
-
 		__ASSERT(payload_addr > SPRD_CP_DRAM_BEGIN && payload_addr < SPRD_CP_DRAM_END,
 				"Invalid buffer address: %p", payload_addr);
 
 		SPRD_CP_TO_AP_ADDR(payload_addr);
 		pkt = (struct net_pkt *)uwp_get_addr_from_payload(payload_addr);
+		__ASSERT(pkt > SPRD_AP_DRAM_BEGIN && pkt < SPRD_AP_DRAM_END,
+				"Invalid pkt address: %p", pkt);
 
 		net_pkt_unref(pkt);
 	}
