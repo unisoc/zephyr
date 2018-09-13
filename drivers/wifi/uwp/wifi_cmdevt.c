@@ -63,9 +63,9 @@ int wifi_cmd_load_ini(u8_t * data, uint32_t len, u8_t sec_num)
 	ret = wifi_cmd_send(WIFI_CMD_DOWNLOAD_INI, (char *)&ini,
 			sizeof(struct trans_hdr) + len + 4 + 2, NULL, 0);
 			//sizeof(ini) + sizeof(CRC), NULL, 0);
-	if (ret < 0) {
+	if (ret) {
 		SYS_LOG_ERR("load ini fail when call wifi_drv_cmd_send\n");
-		return -1;
+		return ret;
 	}
 
 	return 0;
@@ -99,10 +99,10 @@ int wifi_cmd_scan(struct wifi_priv *priv)
 
 	ret = wifi_cmd_send(WIFI_CMD_SCAN, (char *)cmd,
 			cmd_len, NULL, NULL);
-	if (ret < 0) {
+	if (ret) {
 		SYS_LOG_ERR("scan cmd fail");
 		k_free(cmd);
-		return -1;
+		return ret;
 	}
 
 	k_free(cmd);
@@ -132,9 +132,9 @@ int wifi_cmd_connect(struct wifi_priv *priv,
 
 	ret = wifi_cmd_send(WIFI_CMD_CONNECT, (char *)&cmd,
 			sizeof(cmd), NULL, NULL);
-	if (ret < 0){
+	if (ret) {
 		SYS_LOG_ERR("connect cmd fail");
-		return -1;
+		return ret;
 	}
 
 	return 0;
@@ -149,9 +149,9 @@ int wifi_cmd_disconnect(struct wifi_priv *priv)
 
 	ret = wifi_cmd_send(WIFI_CMD_DISCONNECT, (char *)&cmd,
 			sizeof(cmd), NULL, NULL);
-	if (ret < 0){
+	if (ret) {
 		SYS_LOG_ERR("disconnect cmd fail");
-		return -1;
+		return ret;
 	}
 
 	return 0;
@@ -166,9 +166,9 @@ int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 	memset(&cmd, 0, sizeof(cmd));
 	ret = wifi_cmd_send(WIFI_CMD_GET_CP_INFO, (char *)&cmd, sizeof(cmd),
 			(char *)&cmd, &len);
-	if (ret < 0){
+	if (ret) {
 		SYS_LOG_ERR("get cp info fail");
-		return -1;
+		return ret;
 	}
 
 	priv->cp_version = cmd.version;
@@ -195,9 +195,9 @@ int wifi_cmd_start(struct wifi_priv *priv)
 
 	ret = wifi_cmd_send(WIFI_CMD_OPEN, (char *)&cmd, sizeof(cmd),
 			NULL, NULL);
-	if (ret < 0){
+	if (ret) {
 		SYS_LOG_ERR("start mode %d fail", priv->mode);
-		return -1;
+		return ret;
 	}
 	SYS_LOG_DBG("open mode success.");
 
@@ -215,9 +215,9 @@ int wifi_cmd_stop(struct wifi_priv *priv)
 
 	ret = wifi_cmd_send(WIFI_CMD_CLOSE, (char *)&cmd, sizeof(cmd),
 			NULL, NULL);
-	if (ret < 0){
+	if (ret) {
 		SYS_LOG_ERR("stop mode:%d fail", priv->mode);
-		return -1;
+		return ret;
 	}
 
 	return 0;
@@ -246,9 +246,9 @@ int wifi_cmd_start_ap(struct wifi_priv *priv, struct wifi_start_ap_req_params *p
 	cmd.channel = params->channel;
 	ret = wifi_cmd_send(WIFI_CMD_START_AP, (char *)&cmd,
 			sizeof(cmd), NULL, NULL);
-	if (ret < 0){
+	if (ret) {
 		SYS_LOG_ERR("ap start fail");
-		return -1;
+		return ret;
 	}
 	SYS_LOG_DBG("start ap ok.");
 
@@ -265,9 +265,9 @@ int wifi_cmd_stop_ap(struct wifi_priv *priv)
 	memcpy(cmd.mac, priv->mac, 6);
 	ret = wifi_cmd_send(WIFI_CMD_CLOSE, (char *)&cmd, sizeof(cmd),
 			NULL, NULL);
-	if (ret < 0){
+	if (ret) {
 		SYS_LOG_ERR("ap stop fail");
-		return -1;
+		return ret;
 	}
 
 	return 0;
@@ -287,9 +287,9 @@ int wifi_cmd_npi_send(int ictx_id,char * t_buf,uint32_t t_len,char *r_buf,uint32
 	t_len += sizeof(struct trans_hdr);
 
 	ret = wifi_cmd_send(WIFI_CMD_NPI_MSG, npi_buf, t_len,r_buf,r_len);
-	if (ret < 0){
+	if (ret) {
 		SYS_LOG_ERR("npi_send_command fail");
-		return -1;
+		return ret;
 	}
 
 	if (r_buf != NULL && r_len != 0) {
@@ -328,7 +328,7 @@ int wifi_cmd_set_ip(struct wifi_priv *priv, u8_t *ip_addr, u8_t len)
 
 	ret = wifi_cmd_send(WIFI_CMD_SET_IP, (char *)&cmd,
 			sizeof(cmd), NULL, NULL);
-	if (ret < 0) {
+	if (ret) {
 		SYS_LOG_ERR("set ip fail");
 		return ret;
 	}
@@ -394,7 +394,6 @@ int wifi_evt_disconnect(struct wifi_priv *priv, char *data, int len)
 	wifi_drv_iface_disconnect_cb(priv->iface,
 			event->reason_code);
 
-
 	return 0;
 }
 
@@ -409,10 +408,6 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 
 	/* recieve command response */
 	if(hdr->response == 1) {
-		if(hdr->status != 0) {
-			SYS_LOG_ERR("invalid cmd status: %i", hdr->status);
-		}
-
 		if (len > 0) {
 			memcpy(recv_buf, data, len);
 			recv_len = len;
@@ -485,6 +480,12 @@ int wifi_cmd_send(u8_t cmd,char *data,int len,char * rbuf,int *rlen)
 	if(ret) {
 		SYS_LOG_ERR("wait cmd(%d) timeout.", cmd);
 		return ret;
+	}
+
+	hdr = (struct trans_hdr *)recv_buf;
+	if (hdr->status != 0) {
+		SYS_LOG_ERR("invalid cmd status: %i", hdr->status);
+		return hdr->status;
 	}
 
 	if(rbuf)

@@ -414,14 +414,14 @@ int uwp_wifi_download_ini(void)
 	SYS_LOG_DBG("download the first section of config file");
 	ret = wifi_cmd_load_ini((u8_t *) sec1, sizeof(*sec1), SEC1);
 	if (ret) {
-		SYS_LOG_ERR("download the first section of ini fail,return");
+		SYS_LOG_ERR("download first section ini fail,ret = %d", ret);
 		return ret;
 	}
 
 	SYS_LOG_DBG("download the second section of config file");
 	ret = wifi_cmd_load_ini((u8_t *) sec2, sizeof(*sec2), SEC2);
-	if (ret) {
-		SYS_LOG_ERR("download the second section of ini fail,return");
+	if (ret != 1) { /* FIXME */
+		SYS_LOG_ERR("download second section ini fail,ret = %d", ret);
 		return ret;
 	}
 #endif
@@ -429,5 +429,5 @@ int uwp_wifi_download_ini(void)
 
 	SYS_LOG_DBG("Load wifi ini success.");
 
-	return ret;
+	return 0;
 }
