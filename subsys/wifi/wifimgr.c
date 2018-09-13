@@ -207,12 +207,12 @@ static int wifi_manager_init(struct device *unused)
 
 	ret = wifi_manager_event_listener_init(&mgr->lsnr);
 	if (ret < 0)
-		syslog(LOG_ERR, "failed to init WiFi listener!\n");
+		syslog(LOG_ERR, "failed to init WiFi event listener!\n");
 
 	ret = wifi_manager_command_processor_init(&mgr->prcs);
 	if (ret < 0)
 
-		syslog(LOG_ERR, "failed to init WiFi listener!\n");
+		syslog(LOG_ERR, "failed to init WiFi command processor!\n");
 
 	ret = wifi_manager_sm_init(mgr);
 	if (ret < 0)

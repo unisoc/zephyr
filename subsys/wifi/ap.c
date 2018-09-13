@@ -96,16 +96,11 @@ static int wifi_manager_new_station_event_cb(void *arg)
 	    (struct wifimgr_evt_new_station *)arg;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 
-	if (new_sta->is_connect)
-		syslog(LOG_INFO,
-		       "station (%02x:%02x:%02x:%02x:%02x:%02x) connected!\n",
-		       new_sta->mac[0], new_sta->mac[1], new_sta->mac[2],
-		       new_sta->mac[3], new_sta->mac[4], new_sta->mac[5]);
-	else
-		syslog(LOG_ERR,
-		       "station (%02x:%02x:%02x:%02x:%02x:%02x) disconnected!\n",
-		       new_sta->mac[0], new_sta->mac[1], new_sta->mac[2],
-		       new_sta->mac[3], new_sta->mac[4], new_sta->mac[5]);
+	syslog(LOG_INFO,
+	       "station (%02x:%02x:%02x:%02x:%02x:%02x) %s!\n",
+	       new_sta->mac[0], new_sta->mac[1], new_sta->mac[2],
+	       new_sta->mac[3], new_sta->mac[4], new_sta->mac[5],
+	       new_sta->is_connect ? "connected" : "disconnected");
 	fflush(stdout);
 
 	/* Notify the external caller */
@@ -121,7 +116,7 @@ int wifi_manager_start_softap(void *handle)
 	struct wifimgr_config *conf = &mgr->ap_conf;
 	int ret;
 
-	if (conf->ssid[0] == '\0') {
+	if (!strlen(conf->ssid)) {
 		syslog(LOG_ERR, "no AP config!\n");
 		return -EINVAL;
 	}

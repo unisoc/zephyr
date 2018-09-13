@@ -181,7 +181,7 @@ int wifi_manager_connect(void *handle)
 	struct wifimgr_config *conf = &mgr->sta_conf;
 	int ret;
 
-	if (conf->ssid[0] == '\0') {
+	if (!strlen(conf->ssid)) {
 		syslog(LOG_ERR, "no AP specified!\n");
 		return -EINVAL;
 	}
