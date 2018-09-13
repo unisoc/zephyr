@@ -90,7 +90,7 @@ extern "C" {
 #define SZ_1K                               0x400
 #endif
 
-#define IPC_RING_ADDR       0x001BD000
+#define IPC_RING_ADDR       0x001A0000
 #define IPC_DST             0
 
 #define ipc_error(format, ...)     SYS_LOG_ERR(format,  ##__VA_ARGS__)

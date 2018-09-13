@@ -571,12 +571,12 @@ int sblock_receive(uint8_t dst, uint8_t channel, struct sblock *blk, int timeout
 	ring = &sblock->ring;
 	ringhd = (volatile struct sblock_ring_header *)(&ring->header->ring);
 
-	ipc_debug("sblock_receive: channel=%d,%d, wrptr=%d, rdptr=%d",channel,timeout, ringhd->rxblk_wrptr, ringhd->rxblk_rdptr);
+	ipc_debug("channel=%d,%d, wrptr=%d, rdptr=%d",channel,timeout, ringhd->rxblk_wrptr, ringhd->rxblk_rdptr);
 
 	if (ringhd->rxblk_wrptr == ringhd->rxblk_rdptr) {
 		if (timeout == 0) {
 			/* no wait */
-			ipc_debug("sblock_receive %d-%d is empty!",dst, channel);
+			ipc_debug(" ch %d is empty,please wait!", channel);
 			ret = -ENODATA;
 		} else if (timeout < 0) {
 			/* wait forever */
@@ -620,7 +620,7 @@ int sblock_receive(uint8_t dst, uint8_t channel, struct sblock *blk, int timeout
 		blk->addr = (void *)ring->r_rxblks[rxpos].addr;
 		blk->length = ring->r_rxblks[rxpos].length;
 		ringhd->rxblk_rdptr = ringhd->rxblk_rdptr + 1;
-		ipc_debug("sblock_receive: channel=%d, rxpos=%d, addr=%p, len=%d",
+		ipc_debug("channel=%d, rxpos=%d, addr=%p, len=%d",
 			channel, rxpos, blk->addr, blk->length);
 		index = sblock_get_index((blk->addr - ring->rxblk_virt), sblock->rxblksz);
 		ring->rxrecord[index] = SBLOCK_BLK_STATE_PENDING;
