@@ -6,12 +6,6 @@
 	model = "UNISOC UWP566x EVB";
 	compatible = "unisoc,uwp566x_evb", "unisoc,uwp5", "unisoc,uwp";
 
-	aliases {
-		uart_0 = &uart0;
-		uart_1 = &uart1;
-		uart_2 = &uart2;
-	};
-
 	chosen {
 		zephyr,sram = &sram0;
 		zephyr,console = &uart0;
