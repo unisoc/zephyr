@@ -28,11 +28,6 @@ config WIFIMGR_DHCPC
 	help
 		Start DHCP client by WiFi manger.
 
-config WIFI_REPEATER
-	bool "Start WiFi Repeater"
-	help
-		Start WiFi Repeater by default.
-
 endif # WiFi
 
 endmenu

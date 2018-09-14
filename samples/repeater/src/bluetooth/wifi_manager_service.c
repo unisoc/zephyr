@@ -491,7 +491,6 @@ void wifimgr_start_ap(const void *buf)
     u8_t res_result = RESULT_SUCCESS;
     int ret = -1;
 
-#if defined(CONFIG_WIFI_REPEATER)
     if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->set_conf) {
         ret = wifimgr_get_ctrl_ops(get_wifimgr_cbs())->set_conf(WIFIMGR_IFACE_NAME_AP,
                                                                 "UNISOC_REPEATER",
@@ -531,10 +530,6 @@ void wifimgr_start_ap(const void *buf)
         res_result = RESULT_FAIL;
         goto error;
     }
-#else
-    BTD("%s,CONFIG_WIFI_REPEATER not defined\n", __func__);
-    res_result = RESULT_FAIL;
-#endif
 
 error:
     data[0] = RESULT_START_AP;
