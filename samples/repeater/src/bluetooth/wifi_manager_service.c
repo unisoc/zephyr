@@ -484,16 +484,27 @@ void wifimgr_close(const void *buf)
     wifi_manager_notify(data, sizeof(data));
 }
 
+extern char *net_byte_to_hex(char *ptr, u8_t byte, char base, bool pad);
 void wifimgr_start_ap(const void *buf)
 {
     BTD("%s\n", __func__);
     char data[2] = {0};
+    char *ptr, mac_nic[7] = {0};
+    char ssid[32] = "UNISOC_";
     u8_t res_result = RESULT_SUCCESS;
+    int i;
     int ret = -1;
+
+	ptr = mac_nic;
+	for (i = 0; i < 3; i++) {
+		net_byte_to_hex(ptr, cur_wifi_status.sta_mac[3 + i], 'A', true);
+		ptr += 2;
+	}
+	strcat(ssid, mac_nic);
 
     if(wifimgr_get_ctrl_ops(get_wifimgr_cbs())->set_conf) {
         ret = wifimgr_get_ctrl_ops(get_wifimgr_cbs())->set_conf(WIFIMGR_IFACE_NAME_AP,
-                                                                "UNISOC_REPEATER",
+                                                                ssid,
                                                                 NULL,
                                                                 NULL,
                                                                 0,
