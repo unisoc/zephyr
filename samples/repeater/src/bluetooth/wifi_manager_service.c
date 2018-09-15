@@ -497,7 +497,7 @@ void wifimgr_start_ap(const void *buf)
 
 	ptr = mac_nic;
 	for (i = 0; i < 3; i++) {
-		net_byte_to_hex(ptr, cur_wifi_status.sta_mac[3 + i], 'A', true);
+		net_byte_to_hex(ptr, cur_wifi_status.ap_mac[3 + i], 'A', true);
 		ptr += 2;
 	}
 	strcat(ssid, mac_nic);
