@@ -53,11 +53,35 @@ static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
 };
 
-static const struct bt_data sd[] = {
+static struct bt_data sd[] = {
 	BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
 };
 
-extern void get_mac_address(void);
+extern void get_mac_address(char *addr);
+char bt_name[32] = {0};
+
+static void change_device_name(void)
+{
+	uint8_t addr[6];
+	char mac[10] = {0};
+	int i;
+	char hex_str[]= "0123456789ABCDEF";
+
+	get_mac_address(addr);
+	strcat(bt_name, DEVICE_NAME);
+	strcat(bt_name, "_");
+
+	for (i = 0; i < 2; i++) {
+		mac[(i * 2) + 0] = hex_str[(addr[1-i] >> 4) & 0x0F];
+		mac[(i * 2) + 1] = hex_str[(addr[1-i]     ) & 0x0F];
+	}
+
+	strcat(bt_name, mac);
+
+	BTI("bt_name = %s,len = %d\n", bt_name,strlen(bt_name));
+	sd[0].data = bt_name;
+	sd[0].data_len = strlen(bt_name);
+}
 
 static void bt_ready(int err)
 {
@@ -70,6 +94,7 @@ static void bt_ready(int err)
 
 	throughput_init();
 	wifi_manager_service_init();
+	change_device_name();
 
 	err = bt_le_adv_start(BT_LE_ADV_CONN, ad, ARRAY_SIZE(ad),
 			      sd, ARRAY_SIZE(sd));
@@ -174,7 +199,10 @@ static int wifi_test(int argc, char *argv[])
 #endif
 static int cmd_btmac(int argc, char *argv[])
 {
-    get_mac_address();
+    uint8_t addr[6];
+    get_mac_address(addr);
+    BTI("Current bt addr = %02X:%02X:%02X:%02X:%02X:%02X\n", addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]);
+    return 0;
 }
 
 static const struct shell_cmd blues_commands[] = {
