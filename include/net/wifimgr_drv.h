@@ -19,4 +19,6 @@ void wifi_drv_iface_scan_result_cb(struct net_if *iface, int status,
 void wifi_drv_iface_scan_done_cb(void *iface, int status);
 void wifi_drv_iface_connect_cb(void *iface, int status);
 void wifi_drv_iface_disconnect_cb(void *iface, int status);
+
+void wifi_drv_iface_new_station(void *iface, int status, char *mac);
 #endif

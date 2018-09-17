@@ -268,3 +268,15 @@ void wifi_drv_iface_disconnect_cb(void *iface, int status)
 	wifi_drv_iface_notify_event(WIFIMGR_EVT_DISCONNECT, &disc,
 				    sizeof(disc));
 }
+
+void wifi_drv_iface_new_station(void *iface, int status, char *mac)
+{
+	struct wifimgr_evt_new_station new_sta;
+
+	new_sta.is_connect = status;
+	if (mac && !is_zero_ether_addr(mac))
+		memcpy(new_sta.mac, mac, WIFIMGR_ETH_ALEN);
+
+	wifi_drv_iface_notify_event(WIFIMGR_EVT_NEW_STATION, &new_sta,
+				    sizeof(new_sta));
+}

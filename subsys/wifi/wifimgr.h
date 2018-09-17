@@ -72,7 +72,7 @@ struct wifimgr_evt_scan_result {
 
 struct wifimgr_evt_new_station {
 	uint8_t is_connect;
-	uint8_t mac[6];
+	uint8_t mac[WIFIMGR_ETH_ALEN];
 };
 
 struct wifi_manager {

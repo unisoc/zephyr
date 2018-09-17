@@ -215,7 +215,7 @@ int wifimgr_ctrl_iface_del_station(char *mac)
 	char mac_addr[WIFIMGR_ETH_ALEN];
 
 	if (mac && !is_zero_ether_addr(mac))
-		strncpy(mac_addr, mac, WIFIMGR_ETH_ALEN);
+		memcpy(mac_addr, mac, WIFIMGR_ETH_ALEN);
 	else
 		memset(mac_addr, 0xff, WIFIMGR_ETH_ALEN);
 
