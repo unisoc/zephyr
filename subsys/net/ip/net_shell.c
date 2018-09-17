@@ -2046,7 +2046,8 @@ static enum net_verdict _handle_ipv4_echo_reply(struct net_pkt *pkt)
 	snprintk(addr, sizeof(addr), "%s",
 		 net_sprint_ipv4_addr(&NET_IPV4_HDR(pkt)->dst));
 
-	printk("Received echo reply from %s to %s\n",
+	printk("Received echo reply %d bytes from %s to %s\n",
+			net_pkt_get_len(pkt),
 	       net_sprint_ipv4_addr(&NET_IPV4_HDR(pkt)->src), addr);
 
 	k_sem_give(&ping_timeout);
@@ -2056,7 +2057,7 @@ static enum net_verdict _handle_ipv4_echo_reply(struct net_pkt *pkt)
 	return NET_OK;
 }
 
-static int _ping_ipv4(char *host)
+static int _ping_ipv4(char *host, u32_t data_size)
 {
 	struct in_addr ipv4_target;
 	int ret;
@@ -2070,13 +2071,13 @@ static int _ping_ipv4(char *host)
 	ret = net_icmpv4_send_echo_request(
 		net_if_ipv4_select_src_iface(&ipv4_target),
 		&ipv4_target,
-		1, 2);
+		1, 2, data_size);
 		//sys_rand32_get(),
 		//sys_rand32_get());
 	if (ret) {
 		_remove_ipv4_ping_handler();
 	} else {
-		printk("Sent a ping to %s\n", host);
+		NET_DBG("Sent a ping to %s", host);
 	}
 
 	return ret;
@@ -2113,15 +2114,25 @@ int net_shell_cmd_ping(int argc, char *argv[])
 		return 0;
 	}
 
-	int times = 1;
-	if (argc == 4) {
-		if (0 == strcmp(argv[2], "-t")) {
-			times = atoi(argv[3]);
+	/* Add -t -s to do stress test */
+	unsigned long times = 1;
+	u32_t data_size = 0;
+
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-t") == 0) {/* Ping times */
+			if (i + 1 < argc) {/* Make sure times added */
+				times = strtol(argv[i + 1], (char **)NULL, 10);
+			}
+		} else if (strcmp(argv[i], "-s") == 0) {/* Ping data size */
+			if (i + 1 < argc) {/* Make sure data size added */
+				data_size = atoi(argv[i + 1]);
+			}
 		}
 	}
-	do { /* For stress test, add parameter "-t" to set ping times. */
-		printk("times left %d\n", times);
-		ret = _ping_ipv4(host);
+
+	do {
+		printk("times left %ld\n", times);
+		ret = _ping_ipv4(host, data_size);
 		if (ret) {
 			if (ret == -EIO) {
 				printk("Cannot send IPv4 ping\n");

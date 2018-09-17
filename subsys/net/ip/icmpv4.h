@@ -1,7 +1,7 @@
 /** @file
- @brief ICMPv4 handler
+ *@brief ICMPv4 handler
 
- This is not to be included by the application.
+ *This is not to be included by the application.
  */
 
 /*
@@ -28,6 +28,7 @@
 struct net_icmpv4_echo_req {
 	u16_t identifier;
 	u16_t sequence;
+	u8_t data[0];
 } __packed;
 
 #define NET_ICMPV4_ECHO_REQ(pkt)					\
@@ -67,7 +68,8 @@ int net_icmpv4_send_error(struct net_pkt *pkt, u8_t type, u8_t code);
 int net_icmpv4_send_echo_request(struct net_if *iface,
 				 struct in_addr *dst,
 				 u16_t identifier,
-				 u16_t sequence);
+				 u16_t sequence,
+				 u16_t data_size);
 
 void net_icmpv4_register_handler(struct net_icmpv4_handler *handler);
 

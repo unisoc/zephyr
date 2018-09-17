@@ -155,18 +155,26 @@ static inline enum net_verdict handle_echo_request(struct net_pkt *pkt)
 
 #define NET_ICMPV4_UNUSED_LEN 4
 
-static inline void setup_ipv4_header(struct net_pkt *pkt, u8_t extra_len,
+static inline void setup_ipv4_header(struct net_pkt *pkt, u16_t extra_len,
 				     u8_t ttl, u8_t icmp_type,
 				     u8_t icmp_code)
 {
 	struct net_buf *frag = pkt->frags;
 	u16_t pos;
+	u16_t total_len;
 
 	NET_IPV4_HDR(pkt)->vhl = 0x45;
 	NET_IPV4_HDR(pkt)->tos = 0x00;
-	NET_IPV4_HDR(pkt)->len[0] = 0;
-	NET_IPV4_HDR(pkt)->len[1] = sizeof(struct net_ipv4_hdr) +
+
+	total_len = sizeof(struct net_ipv4_hdr) +
 		NET_ICMPH_LEN + extra_len + NET_ICMPV4_UNUSED_LEN;
+	if (total_len <= 255) {
+		NET_IPV4_HDR(pkt)->len[0] = 0;
+		NET_IPV4_HDR(pkt)->len[1] = total_len & 0x00FF;
+	} else {
+		NET_IPV4_HDR(pkt)->len[0] = (total_len >> 8) & 0x00FF;
+		NET_IPV4_HDR(pkt)->len[1] = total_len & 0x00FF;
+	}
 
 	NET_IPV4_HDR(pkt)->proto = IPPROTO_ICMP;
 	NET_IPV4_HDR(pkt)->ttl = ttl;
@@ -187,7 +195,8 @@ static inline void setup_ipv4_header(struct net_pkt *pkt, u8_t extra_len,
 int net_icmpv4_send_echo_request(struct net_if *iface,
 				 struct in_addr *dst,
 				 u16_t identifier,
-				 u16_t sequence)
+				 u16_t sequence,
+				 u16_t data_size)
 {
 	struct net_if_ipv4 *ipv4 = iface->config.ip.ipv4;
 	const struct in_addr *src;
@@ -217,16 +226,23 @@ int net_icmpv4_send_echo_request(struct net_if *iface,
 
 	net_buf_add(pkt->frags, sizeof(struct net_ipv4_hdr) +
 		    sizeof(struct net_icmp_hdr) +
-		    sizeof(struct net_icmpv4_echo_req));
+		    sizeof(struct net_icmpv4_echo_req) +
+			data_size);
 
 	net_ipaddr_copy(&NET_IPV4_HDR(pkt)->src, src);
 	net_ipaddr_copy(&NET_IPV4_HDR(pkt)->dst, dst);
 
-	setup_ipv4_header(pkt, 0, net_if_ipv4_get_ttl(iface),
+	setup_ipv4_header(pkt, data_size, net_if_ipv4_get_ttl(iface),
 			  NET_ICMPV4_ECHO_REQUEST, 0);
 
 	NET_ICMPV4_ECHO_REQ(pkt)->identifier = htons(identifier);
 	NET_ICMPV4_ECHO_REQ(pkt)->sequence = htons(sequence);
+	/* Fill data filed with 0 */
+	memset(NET_ICMPV4_ECHO_REQ(pkt)->data, 0, data_size);
+
+	printk("Sending ICMPv4 Echo Request %d bytes type %d\n",
+			net_pkt_get_len(pkt), NET_ICMPV4_ECHO_REQUEST);
+
 
 #if defined(CONFIG_NET_DEBUG_ICMPV4)
 	do {
