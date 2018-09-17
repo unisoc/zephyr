@@ -397,6 +397,15 @@ int wifi_evt_disconnect(struct wifi_priv *priv, char *data, int len)
 	return 0;
 }
 
+int wifi_evt_new_sta(struct wifi_priv *priv, char *data, int len)
+{
+	struct event_new_station *event =
+		(struct event_new_station *)data;
+	wifi_drv_iface_new_station(priv->iface,
+			event->is_connect, event->mac);
+	return 0;
+}
+
 int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 {
 	struct trans_hdr *hdr = (struct trans_hdr *)data;
@@ -442,6 +451,9 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 			break;
 		case WIFI_EVENT_CONNECT:
 			wifi_evt_connect(priv, hdr->data, len);
+			break;
+		case WIFI_EVENT_NEW_STATION:
+			wifi_evt_new_sta(priv, hdr->data, len);
 			break;
 		default:
 			break;

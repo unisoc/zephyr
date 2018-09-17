@@ -170,6 +170,17 @@ struct event_disconnect {
 	u8_t reason_code; /* TODO: sync reason_code with cp */
 } __attribute__ ((packed));
 
+struct event_new_station {
+	/* is_connect:
+	 *   1 new station connect,
+	 *   0 station disconnect
+	 */
+	u8_t is_connect;
+	u8_t mac[6];
+	u16_t ie_len;
+	u8_t ie[0];
+} __attribute__ ((packed));
+
 //int wifi_cmd_load_ini(u8_t *pAd);
 extern int wifi_cmd_set_sta_connect_info(u8_t *pAd,char *ssid,char *key);
 extern int wifi_cmd_get_cp_info(struct wifi_priv *priv);
