@@ -10,6 +10,7 @@
  */
 
 #include "wifimgr.h"
+#include "led.h"
 
 static struct net_mgmt_event_callback mgmt_cb;
 
@@ -43,6 +44,8 @@ static void wifimgr_dhcp_handler(struct net_mgmt_event_callback *cb,
 		       net_addr_ntop(AF_INET, netmask, buf, sizeof(buf)));
 		syslog(LOG_INFO, "Router: %s\n",
 		       net_addr_ntop(AF_INET, gateway, buf, sizeof(buf)));
+
+		light_turn_on(LED3_GPIO_PIN);
 	}
 }
 
@@ -68,4 +71,6 @@ void wifimgr_dhcp_stop(void *handle)
 	net_mgmt_del_event_callback(&mgmt_cb);
 
 	net_dhcpv4_stop(iface);
+
+	light_turn_off(LED3_GPIO_PIN);
 }

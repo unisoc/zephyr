@@ -158,8 +158,6 @@ static int wifi_manager_connect_event(void *arg)
 						  WIFIMGR_CMD_DISCONNECT,
 						  wifi_manager_disconnect, mgr);
 
-		light_turn_on(LED3_GPIO_PIN);
-
 		if (iface)
 			wifimgr_dhcp_start(iface);
 

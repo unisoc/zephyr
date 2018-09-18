@@ -10,6 +10,11 @@
  */
 
 
+#ifndef _WIFI_LED_H_
+#define _WIFI_LED_H_
+
+
+
 
 
 #if defined(CONFIG_GPIO_UWP)
@@ -29,3 +34,6 @@ int light_turn_off(u32_t pin);
 #define light_turn_on(...)
 #define light_turn_off(...)
 #endif
+
+
+#endif /* _WIFI_LED_H_ */
