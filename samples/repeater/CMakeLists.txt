@@ -11,6 +11,11 @@ target_sources_ifdef(
   src/bluetooth/light.c
   src/bluetooth/health.c
   src/bluetooth/throughput.c
-  src/bluetooth/wifi_manager_service.c
   src/bluetooth/mesh.c
+  )
+
+target_sources_ifdef(
+  CONFIG_BT_WIFIMGR_SERVICE
+  app PRIVATE
+  src/bluetooth/wifi_manager_service.c
   )
