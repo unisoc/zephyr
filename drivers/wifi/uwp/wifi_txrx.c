@@ -6,7 +6,7 @@
 #include <net/net_pkt.h>
 
 #include "wifi_main.h"
-#define RX_BUF_SIZE	(128)
+#define RX_BUF_SIZE	(2000)
 static unsigned char rx_buf[RX_BUF_SIZE];
 int wifi_rx_complete_handle(struct wifi_priv *priv, void *data,int len)
 {
