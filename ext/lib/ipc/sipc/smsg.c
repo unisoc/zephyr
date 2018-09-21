@@ -18,22 +18,22 @@ struct k_thread smsg_thread;
 K_THREAD_STACK_MEMBER(smsg_stack, SMSG_STACK_SIZE);
 static struct smsg_ipc smsg_ipcs[SIPC_ID_NR];
 
-#define SMSG_IRQ_TXBUF_ADDR         (0)
-#define SMSG_IRQ_TXBUF_SIZE		    (0x200)
-#define SMSG_IRQ_RXBUF_ADDR		    (SMSG_IRQ_TXBUF_ADDR + SMSG_IRQ_TXBUF_SIZE)
-#define SMSG_IRQ_RXBUF_SIZE		    (0x100)
+#define SMSG_IRQ_TXBUF_ADDR  (0)
+#define SMSG_IRQ_TXBUF_SIZE	 (0x200)
+#define SMSG_IRQ_RXBUF_ADDR	 (SMSG_IRQ_TXBUF_ADDR + SMSG_IRQ_TXBUF_SIZE)
+#define SMSG_IRQ_RXBUF_SIZE	 (0x100)
 
-#define SMSG_PRIO_TXBUF_ADDR         (SMSG_IRQ_RXBUF_ADDR + SMSG_IRQ_RXBUF_SIZE)
-#define SMSG_PRIO_TXBUF_SIZE		    (0x200)
-#define SMSG_PRIO_RXBUF_ADDR		    (SMSG_PRIO_TXBUF_ADDR + SMSG_PRIO_TXBUF_SIZE)
-#define SMSG_PRIO_RXBUF_SIZE		    (0x200)
+#define SMSG_PRIO_TXBUF_ADDR  (SMSG_IRQ_RXBUF_ADDR + SMSG_IRQ_RXBUF_SIZE)
+#define SMSG_PRIO_TXBUF_SIZE  (0x200)
+#define SMSG_PRIO_RXBUF_ADDR  (SMSG_PRIO_TXBUF_ADDR + SMSG_PRIO_TXBUF_SIZE)
+#define SMSG_PRIO_RXBUF_SIZE  (0x200)
 
-#define SMSG_TXBUF_ADDR		(SMSG_PRIO_RXBUF_ADDR + SMSG_PRIO_RXBUF_SIZE)
-#define SMSG_TXBUF_SIZE		(SZ_1K)
-#define SMSG_RXBUF_ADDR		(SMSG_TXBUF_ADDR + SMSG_TXBUF_SIZE)
-#define SMSG_RXBUF_SIZE		(SZ_1K)
+#define SMSG_TXBUF_ADDR	 (SMSG_PRIO_RXBUF_ADDR + SMSG_PRIO_RXBUF_SIZE)
+#define SMSG_TXBUF_SIZE	 (SZ_1K)
+#define SMSG_RXBUF_ADDR	 (SMSG_TXBUF_ADDR + SMSG_TXBUF_SIZE)
+#define SMSG_RXBUF_SIZE	 (SZ_1K)
 
-#define SMSG_RINGHDR		(SMSG_TXBUF_ADDR + SMSG_TXBUF_SIZE + SMSG_RXBUF_SIZE)
+#define SMSG_RINGHDR  (SMSG_TXBUF_ADDR + SMSG_TXBUF_SIZE + SMSG_RXBUF_SIZE)
 
 #define SMSG_IRQ_TXBUF_RDPTR	(SMSG_RINGHDR + 0)
 #define SMSG_IRQ_TXBUF_WRPTR	(SMSG_RINGHDR + 4)
@@ -57,20 +57,17 @@ void sipc_init_smsg_queue_buf(struct smsg_queue_buf *buf,
 	buf->addr = addr;
 	buf->rdptr = rdptr;
 	buf->wrptr = wrptr;
-
-//	SYS_LOG_INF("addr: 0x%x, size: %d, rdptr: 0x%x, wrptr: 0x%x",
-//			addr, buf->size, rdptr, wrptr);
 }
 
 static struct smsg_ipc *smsg_set_addr(struct smsg_ipc *ipc, u32_t base)
 {
-	sipc_init_smsg_queue_buf(&ipc->queue[QUEUE_PRIO_IRQ].tx_buf, 
+	sipc_init_smsg_queue_buf(&ipc->queue[QUEUE_PRIO_IRQ].tx_buf,
 			SMSG_IRQ_TXBUF_SIZE,
 			base + SMSG_IRQ_TXBUF_ADDR,
 			base + SMSG_IRQ_TXBUF_RDPTR,
 			base + SMSG_IRQ_TXBUF_WRPTR);
 
-	sipc_init_smsg_queue_buf(&ipc->queue[QUEUE_PRIO_IRQ].rx_buf, 
+	sipc_init_smsg_queue_buf(&ipc->queue[QUEUE_PRIO_IRQ].rx_buf,
 			SMSG_IRQ_RXBUF_SIZE,
 			base + SMSG_IRQ_RXBUF_ADDR,
 			base + SMSG_IRQ_RXBUF_RDPTR,
@@ -102,8 +99,7 @@ static struct smsg_ipc *smsg_set_addr(struct smsg_ipc *ipc, u32_t base)
 			base + SMSG_RXBUF_RDPTR,
 			base + SMSG_RXBUF_WRPTR);
 
-
-    return ipc;
+return ipc;
 }
 
 void smsg_clear_queue_buf(struct smsg_queue *queue)
@@ -114,11 +110,11 @@ void smsg_clear_queue_buf(struct smsg_queue *queue)
 	sci_write32(queue->rx_buf.wrptr, 0);
 }
 
-void smsg_clear_queue(struct smsg_ipc *ipc,int prio)
+void smsg_clear_queue(struct smsg_ipc *ipc, int prio)
 {
 	struct smsg_queue *queue;
 
-	if(prio >= QUEUE_PRIO_MAX) {
+	if (prio >= QUEUE_PRIO_MAX) {
 		ipc_error("Invalid queue priority %d.\n", prio);
 		return;
 	}
@@ -139,21 +135,17 @@ int smsg_msg_dispatch_thread(int argc, char *argv[])
 	uintptr_t rxpos;
 	struct smsg_queue_buf *rx_buf;
 
-	while(1){
-		//ipc_debug("wait for ipc message.");
+	while (1) {
 		k_sem_take(&ipc->irq_sem, K_FOREVER);
 
-		for(prio = QUEUE_PRIO_IRQ; prio < QUEUE_PRIO_MAX; prio++) {
+		for (prio = QUEUE_PRIO_IRQ; prio < QUEUE_PRIO_MAX; prio++) {
 			rx_buf = &(ipc->queue[prio].rx_buf);
-			/*ipc_debug("prio: %d, wrptr: %d, rdptr: %d", prio,
-					sys_read32(rx_buf->wrptr),
-					sys_read32(rx_buf->rdptr));
-			*/
-			if(sys_read32(rx_buf->wrptr) != sys_read32(rx_buf->rdptr))
+			if (sys_read32(rx_buf->wrptr) !=
+					sys_read32(rx_buf->rdptr))
 				break;
 		}
 
-		while(sys_read32(rx_buf->wrptr) != sys_read32(rx_buf->rdptr)) {
+		while (sys_read32(rx_buf->wrptr) != sys_read32(rx_buf->rdptr)) {
 			rxpos = (sys_read32(rx_buf->rdptr) & (rx_buf->size - 1))
 				* sizeof(struct smsg) + rx_buf->addr;
 
@@ -163,21 +155,28 @@ int smsg_msg_dispatch_thread(int argc, char *argv[])
 			sys_write32(sys_read32(rx_buf->rdptr) + 1,
 					rx_buf->rdptr);
 			ipc_debug("read smsg: channel=%d, type=%d, flag=0x%04x, value=0x%08x %d %d\n",
-					msg->channel, msg->type, msg->flag, msg->value,sys_read32(rx_buf->wrptr),sys_read32(rx_buf->rdptr));
+					msg->channel, msg->type, msg->flag,
+					msg->value, sys_read32(rx_buf->wrptr),
+					sys_read32(rx_buf->rdptr));
 			if (recv_smsg.channel >= SMSG_CH_NR
 					|| recv_smsg.type >= SMSG_TYPE_NR
-					|| recv_smsg.type == SMSG_TYPE_DIE) {
+					|| SMSG_TYPE_DIE == recv_smsg.type) {
 				ipc_error("invalid smsg: channel=%d, type=%d",
-						recv_smsg.channel, recv_smsg.type);
+					recv_smsg.channel, recv_smsg.type);
 				continue;
 			}
-			if(recv_smsg.type == SMSG_TYPE_WIFI_IRQ){
-				if (SMSG_WIFI_IRQ_OPEN == recv_smsg.flag) {
-				   sprd_wifi_irq_enable_num(recv_smsg.value);
-				   ipc_debug("wifi irq %d open\n",recv_smsg.value);
-				} else 	if (SMSG_WIFI_IRQ_CLOSE == recv_smsg.flag) {
-				   sprd_wifi_irq_disable_num(recv_smsg.value);
-				   ipc_debug("wifi irq %d close\n",recv_smsg.value);
+			if (recv_smsg.type == SMSG_TYPE_WIFI_IRQ) {
+				if (recv_smsg.flag == SMSG_WIFI_IRQ_OPEN) {
+					sprd_wifi_irq_enable_num(
+						recv_smsg.value);
+					ipc_debug("wifi irq %d open\n",
+					recv_smsg.value);
+				} else if (recv_smsg.flag ==
+						SMSG_WIFI_IRQ_CLOSE) {
+					sprd_wifi_irq_disable_num(
+						recv_smsg.value);
+					ipc_debug("wifi irq %d close\n",
+					recv_smsg.value);
 				}
 				continue;
 			}
@@ -205,7 +204,7 @@ int smsg_ipc_destroy(u8_t dst)
 	return 0;
 }
 
-int smsg_ch_open(u8_t dst, u8_t channel,int prio, int timeout)
+int smsg_ch_open(u8_t dst, u8_t channel, int prio, int timeout)
 {
 	struct smsg_ipc *ipc = &smsg_ipcs[dst];
 	struct smsg_channel *ch;
@@ -214,13 +213,13 @@ int smsg_ch_open(u8_t dst, u8_t channel,int prio, int timeout)
 	int ret = 0;
 
 	ipc_debug("open dst %d channel %d", dst, channel);
-	if(!ipc) {
+	if (!ipc) {
 		ipc_error("get ipc %d failed.\n", dst);
 		return -ENODEV;
 	}
 
 	ch = &ipc->channels[channel];
-	if(ch->state != CHAN_STATE_UNUSED) {
+	if (ch->state != CHAN_STATE_UNUSED) {
 		ipc_error("ipc channel %d had been opened.\n", channel);
 		return -ENODEV;
 	}
@@ -230,9 +229,9 @@ int smsg_ch_open(u8_t dst, u8_t channel,int prio, int timeout)
 	k_mutex_init(&ch->txlock);
 
 	smsg_set(&mopen, channel, SMSG_TYPE_OPEN, SMSG_OPEN_MAGIC, 0);
-	ret = smsg_send(dst,prio, &mopen, timeout);
+	ret = smsg_send(dst, prio, &mopen, timeout);
 	if (ret != 0) {
-		ipc_warn("smsg_ch_open smsg send error, errno %d!\n", ret);
+		ipc_warn("smsg send error, errno %d!\n", ret);
 		ch->state = CHAN_STATE_UNUSED;
 
 		return ret;
@@ -252,7 +251,7 @@ int smsg_ch_close(u8_t dst, u8_t channel, int prio, int timeout)
 	struct smsg mclose;
 
 	smsg_set(&mclose, channel, SMSG_TYPE_CLOSE, SMSG_CLOSE_MAGIC, 0);
-	smsg_send(dst,prio, &mclose, timeout);
+	smsg_send(dst, prio, &mclose, timeout);
 
 	ch->state = CHAN_STATE_FREE;
 
@@ -269,7 +268,7 @@ int smsg_send_irq(u8_t dst, struct smsg *msg)
 	uintptr_t txpos;
 	int ret = 0;
 
-	if(!ipc) {
+	if (!ipc) {
 		return -ENODEV;
 	}
 
@@ -279,7 +278,7 @@ int smsg_send_irq(u8_t dst, struct smsg *msg)
 			>= tx_buf->size) {
 		ipc_warn("smsg irq txbuf is full! %d %d %d\n",
 				sys_read32(tx_buf->wrptr),
-				sys_read32(tx_buf->rdptr),msg->value);
+				sys_read32(tx_buf->rdptr), msg->value);
 		ret = -EBUSY;
 		goto send_failed;
 	}
@@ -287,20 +286,21 @@ int smsg_send_irq(u8_t dst, struct smsg *msg)
 	txpos = (sys_read32(tx_buf->wrptr) & (tx_buf->size - 1)) *
 		sizeof(struct smsg) + tx_buf->addr;
 	memcpy((void *)txpos, msg, sizeof(struct smsg));
-	/* 	ipc_info("write smsg: wrptr=%u, rdptr=%u, txpos=0x%lx %d\n",
-		sys_read32(ipc->queue_irq.tx_buf.wrptr),
-		sys_read32(ipc->queue_irq.tx_buf.rdptr), txpos,msg->value); */
+	/*
+	 *  ipc_info("write smsg: wrptr=%u, rdptr=%u, txpos=0x%lx %d\n",
+	 *	sys_read32(ipc->queue_irq.tx_buf.wrptr),
+	 *	sys_read32(ipc->queue_irq.tx_buf.rdptr), txpos,msg->value);
+	 */
 
 	/* update wrptr */
 	sys_write32(sys_read32(tx_buf->wrptr) + 1, tx_buf->wrptr);
 	uwp_ipi_irq_trigger();
-//	ipi_phy_trig_int_irq();
 
 send_failed:
 	return ret;
 }
 
-int smsg_send(u8_t dst, u8_t prio,struct smsg *msg, int timeout)
+int smsg_send(u8_t dst, u8_t prio, struct smsg *msg, int timeout)
 {
 	struct smsg_channel *ch;
 	struct smsg_queue_buf *tx_buf;
@@ -319,17 +319,13 @@ int smsg_send(u8_t dst, u8_t prio,struct smsg *msg, int timeout)
 		return -EINVAL;
 	}
 
-	//ipc_debug("send smsg:prio=%d channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
-	//		prio,msg->channel, msg->type, msg->flag, msg->value);
-
-	if(prio >= QUEUE_PRIO_MAX) {
+	if (prio >= QUEUE_PRIO_MAX) {
 		ipc_error("Invalid queue priority %d.\n", prio);
 		return -EINVAL;
 	}
 
 	tx_buf = &(ipc->queue[prio].tx_buf);
 
-	//spin_lock_irqsave(&(ipc->txpinlock), flags);
 	ipc_debug("%d smsg txbuf wr %d rd %d!\n", prio,
 			sys_read32(tx_buf->wrptr),
 			sys_read32(tx_buf->rdptr));
@@ -350,10 +346,10 @@ int smsg_send(u8_t dst, u8_t prio,struct smsg *msg, int timeout)
 	memcpy((void *)txpos, msg, sizeof(struct smsg));
 
 	/*
-	ipc_debug("write smsg: wrptr=%u, rdptr=%u, txpos=0x%x\n",
-			sys_read32(tx_buf->wrptr),
-			sys_read32(tx_buf->rdptr), txpos);
-	*/
+	 *  ipc_debug("write smsg: wrptr=%u, rdptr=%u, txpos=0x%x\n",
+	 *		sys_read32(tx_buf->wrptr),
+	 *		sys_read32(tx_buf->rdptr), txpos);
+	 */
 
 	/* update wrptr */
 	sys_write32(sys_read32(tx_buf->wrptr) + 1, tx_buf->wrptr);
@@ -382,7 +378,7 @@ int smsg_init(u32_t dst, u32_t smsg_base)
 
 	ipc->pid = k_thread_create(&smsg_thread,
 			smsg_stack, SMSG_STACK_SIZE,
-			(k_thread_entry_t)smsg_msg_dispatch_thread, 
+			(k_thread_entry_t)smsg_msg_dispatch_thread,
 			NULL, NULL, NULL,
 			 K_PRIO_COOP(7), 0, 0);
 

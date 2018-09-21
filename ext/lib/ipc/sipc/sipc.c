@@ -22,7 +22,7 @@ static int sipc_init(struct device *arg)
 	SYS_LOG_INF("sipc init start.");
 
 	ret = smsg_init(IPC_DST, IPC_RING_ADDR);
-	if(ret) {
+	if (ret) {
 		SYS_LOG_ERR("sipc init failed.");
 		return ret;
 	}
