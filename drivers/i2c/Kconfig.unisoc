@@ -1,0 +1,5 @@
+config I2C_UWP56XX
+	bool "UNISOC I2C driver"
+	default n
+	help
+	  This option enables the I2C driver for Unisoc

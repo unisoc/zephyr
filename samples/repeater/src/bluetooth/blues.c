@@ -23,6 +23,7 @@
 #include <bluetooth/uuid.h>
 #include <bluetooth/gatt.h>
 
+#include <i2c.h>
 
 #include "../../../../drivers/bluetooth/unisoc/uki_utlis.h"
 #include "../../../../drivers/bluetooth/unisoc/uki_config.h"
@@ -207,12 +208,34 @@ static int cmd_btmac(int argc, char *argv[])
     return 0;
 }
 
+
+static int cmd_test(int argc, char *argv[])
+{
+	struct device *i2c = device_get_binding("uwp56xx_i2c");
+
+	u8_t data[] = {0x55};
+	struct i2c_msg msgs[1];
+
+
+	/* Setup I2C messages */
+
+	/* Send the address to read */
+	msgs[0].buf = data;
+	msgs[0].len = sizeof(data);
+	msgs[0].flags = I2C_MSG_WRITE;
+
+	return i2c_transfer(i2c, &msgs[0], 1, 0x34);
+}
+
+
+
 static const struct shell_cmd blues_commands[] = {
 	{ "init", cmd_init, NULL },
 	{ "vlog", cmd_vlog, NULL },
 	{ "slog", cmd_slog, NULL },
 	{ "mesh", cmd_mesh, NULL },
 	{ "led", cmd_led, NULL },
+	{ "test", cmd_test, NULL },
 #if 0
 	{ "wifi", wifi_test, NULL },
 #endif

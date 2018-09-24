@@ -237,4 +237,6 @@ source "drivers/i2c/Kconfig.sbcon"
 
 source "drivers/i2c/Kconfig.stm32"
 
+source "drivers/i2c/Kconfig.unisoc"
+
 endif # I2C
