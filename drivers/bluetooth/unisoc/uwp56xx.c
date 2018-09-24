@@ -171,6 +171,20 @@ static const conf_entry_t marlin3_rf_table[] = {
 
 };
 
+int get_disable_buf(void *buf)
+{
+    uint8_t *p, msg_req[HCI_CMD_MAX_LEN];
+    int size;
+
+    p = msg_req;
+
+    UINT16_TO_STREAM(p, DUAL_MODE);
+    UINT8_TO_STREAM(p, DISABLE_BT);
+    size = p - msg_req;
+    memcpy(buf, msg_req, size);
+    return size;
+}
+
 int get_enable_buf(void *buf)
 {
     uint8_t *p, msg_req[HCI_CMD_MAX_LEN];

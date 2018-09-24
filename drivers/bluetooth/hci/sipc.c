@@ -62,7 +62,10 @@ static int test_cmd = 0;
 static BT_STACK_NOINIT(rx_thread_stack, CONFIG_BT_RX_STACK_SIZE);
 static struct k_thread rx_thread_data;
 static struct k_sem	event_sem;
-
+#if 0
+extern int check_bteut_ready(void);
+extern void bt_npi_recv(unsigned char *data, int len);
+#endif
 static inline int hwdec_write_word(unsigned int word)
 {
   unsigned int *hwdec_addr = (unsigned int *)SPRD_DP_DMA_UARD_SDIO_BUFFER_BASE_ADDR;
@@ -70,7 +73,7 @@ static inline int hwdec_write_word(unsigned int word)
   return WORD_ALIGN;
 }
 
-static int hwdec_write_align(unsigned char *data, int len)
+int hwdec_write_align(unsigned char *data, int len)
 {
   unsigned int *align_p, value;
   unsigned char *p;
@@ -144,6 +147,12 @@ static void rx_thread(void *p1, void *p2, void *p3)
 		}
 
 		HCIDUMP("<- ", blk.addr, blk.length);
+#if 0
+		if(0 != check_bteut_ready()){
+			bt_npi_recv((unsigned char*)blk.addr,blk.length);
+			goto rx_continue;
+		}
+#endif
         if (test_cmd) {
 			test_cmd = 0;
 			BTV("test cmd\n");
