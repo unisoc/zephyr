@@ -12,8 +12,8 @@
 <!--  File-IDAlias: This is  for GUI display can be changed     -->
 <BMAConfig>
 	<ProductList>
-		<Product name="UWP566X_Zephyr">
-			<SchemeName>UWP566X_Zephyr</SchemeName>
+		<Product name="UWP566X_MCU">
+			<SchemeName>UWP566X_MCU</SchemeName>
 			<FlashTypeID>0</FlashTypeID>
 			<Mode>0</Mode>
 			<NVBackup backup="1">
@@ -63,7 +63,7 @@
 		</Product>
 	</ProductList>
 	<SchemeList>
-		<Scheme name="UWP566X_Zephyr">
+		<Scheme name="UWP566X_MCU">
 			<File>
 				<ID>FDL</ID>
 				<IDAlias>NOR_FDL</IDAlias>
@@ -77,11 +77,11 @@
 				<Description>NOR flash download image file</Description>
 			</File>
 			<File>
-				<ID>MCUBoot</ID>
-				<IDAlias>MCUBoot</IDAlias>
+				<ID>Bootloader</ID>
+				<IDAlias>Bootloader</IDAlias>
 				<Type>CODE</Type>
 				<Block>
-					<Base>0x2000000</Base>
+					<Base>0x02000000</Base>
 					<Size>0x30000</Size>
 				</Block>
 				<Flag>1</Flag>
@@ -89,23 +89,23 @@
 				<Description>Bootloader image file</Description>
 			</File>
 			<File>
-				<ID>Zephyr_Kernel</ID>
-				<IDAlias>Zephyr_Kernel</IDAlias>
+				<ID>Kernel</ID>
+				<IDAlias>Kernel</IDAlias>
 				<Type>CODE</Type>
 				<Block>
-					<Base>0x2040000</Base>
+					<Base>0x02040000</Base>
 					<Size>0x80000</Size>
 				</Block>
 				<Flag>1</Flag>
 				<CheckFlag>0</CheckFlag>
-				<Description>Zephyr image file</Description>
+				<Description>Kernel image file</Description>
 			</File>
 			<File>
 				<ID>Modem_WCN</ID>
 				<IDAlias>Modem_WCN</IDAlias>
 				<Type>CODE</Type>
 				<Block>
-					<Base>0x20C0000</Base>
+					<Base>0x020C0000</Base>
 					<Size>0xc0000</Size>
 				</Block>
 				<Flag>1</Flag>
@@ -117,12 +117,12 @@
 				<IDAlias>User_Data</IDAlias>
 				<Type>CODE</Type>
 				<Block>
-					<Base>0x22C0000</Base>
+					<Base>0x022C0000</Base>
 					<Size>0x140000</Size>
 				</Block>
 				<Flag>1</Flag>
 				<CheckFlag>0</CheckFlag>
-				<Description>Reserved for user usage</Description>
+				<Description>Reserved for User Data</Description>
 			</File>
 		</Scheme>
 	</SchemeList>
