@@ -7,7 +7,6 @@
 #define OPCODE_BYTE   1
 #define LEN_BYTE   2
 
-
 #define CMD_OPEN                       0x01
 #define CMD_CLOSE                      0x02
 #define CMD_SET_CONF_AND_CONNECT       0x03
@@ -15,7 +14,7 @@
 #define CMD_GET_STATUS                 0x05
 #define CMD_GET_CONF                   0x06
 #define CMD_START_AP                   0x07
-
+#define CMD_DISABLE_BT                 0x08
 
 #define RESULT_OPEN                    0x81
 #define RESULT_CLOSE                   0x82
@@ -25,35 +24,33 @@
 #define RESULT_GET_CONF                0x86
 #define RESULT_START_AP                0x87
 
-
-
 typedef struct {
-    char ssid[MAX_SSID_LEN+1];
-    char bssid[BSSID_LEN+1];
-    char passwd[MAX_PSWD_LEN+1];
-    unsigned char band;
-    unsigned char channel;
+	char ssid[MAX_SSID_LEN+1];
+	char bssid[BSSID_LEN+1];
+	char passwd[MAX_PSWD_LEN+1];
+	unsigned char band;
+	unsigned char channel;
 }wifi_config_type;
 
 typedef struct {
-    unsigned char sta_status;
-    unsigned char ap_status;
-    char sta_mac[6];
-    char ap_mac[6];
+	unsigned char sta_status;
+	unsigned char ap_status;
+	char sta_mac[6];
+	char ap_mac[6];
 }wifi_status_type;
 
 enum {
-    WIFI_STATUS_NODEV,
-    WIFI_STATUS_READY,
-    WIFI_STATUS_SCANNING,
-    WIFI_STATUS_CONNECTING,
-    WIFI_STATUS_CONNECTED,
-    WIFI_STATUS_DISCONNECTING,
+	WIFI_STATUS_NODEV,
+	WIFI_STATUS_READY,
+	WIFI_STATUS_SCANNING,
+	WIFI_STATUS_CONNECTING,
+	WIFI_STATUS_CONNECTED,
+	WIFI_STATUS_DISCONNECTING,
 };
 
 enum {
-    RESULT_SUCCESS,
-    RESULT_FAIL,
+	RESULT_SUCCESS,
+	RESULT_FAIL,
 };
 
 void wifi_manager_service_init(void);
