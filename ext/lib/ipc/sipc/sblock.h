@@ -109,11 +109,6 @@ struct sblock_ring {
 	int 			txrecord[MAX_BLOCK_COUNT]; /* record the state of every txblk */
 	int 			rxrecord[MAX_BLOCK_COUNT]; /* record the state of every rxblk */
     int             yell; /* need to notify cp */
-//	spinlock_t		r_txlock; /* send *///
-//	spinlock_t		r_rxlock; /* recv *//
-//	spinlock_t 		p_txlock; /* get */
-//	spinlock_t 		p_rxlock; /* release */
-
 	struct k_sem	getwait;
 	struct k_sem	recvwait;
 };
@@ -135,10 +130,6 @@ struct sblock_mgr {
 
 	struct sblock_ring	ring;
 	//struct tcb_s	*thread;
-
-    k_tid_t			pid;
-	struct k_thread	thread;
-	K_THREAD_STACK_MEMBER(sblock_stack, SBLOCK_STACK_SIZE);
 
 	void			(*handler)(int event, void *data);
 	void		    (*callback)(int ch);

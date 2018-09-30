@@ -323,10 +323,6 @@ void sblock_destroy(uint8_t dst, uint8_t channel)
     sblock->state = SBLOCK_STATE_IDLE;
 	smsg_ch_close(dst, channel,prio, -1);
 
-    	/* stop sblock thread if it's created successfully and still alive */
-	if ((sblock->pid > 0)) {
-		k_thread_abort(sblock->pid);
-	}
 #if 0
 	if (sblock->ring) {
 		wakeup_smsg_task_all(&sblock->ring->recvwait);
@@ -340,9 +336,6 @@ void sblock_destroy(uint8_t dst, uint8_t channel)
 		free(sblock->ring);
 	}
 #endif
-
-    //smem_free(sblock->smem_addr, sblock->smem_size);
-
 }
 
 int sblock_unregister_callback(uint8_t channel)

@@ -19,7 +19,6 @@ extern "C" {
 	/* sipc processor ID definition */
 	enum {
 		SIPC_ID_AP = 0,		/* Application Processor */
-		SIPC_ID_WCN,		/* Wireless Connectivity */
 		SIPC_ID_NR,		/* total processor number */
 	};
 
