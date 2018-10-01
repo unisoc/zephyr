@@ -33,6 +33,18 @@ void uki_hexdump(char *tag, unsigned char *bin, size_t binsz)
 		printk("%s\n", str);
 }
 
+void uki_hex(char *dst, unsigned char *src, size_t binsz)
+{
+	static const char hex_str[] = "0123456789abcdef";
+	size_t i;
+
+	for (i = 0; i < binsz; i++) {
+		dst[(i * 2) + 0] = hex_str[(src[i] >> 4) & 0x0F];
+		dst[(i * 2) + 1] = hex_str[(src[i]     ) & 0x0F];
+	}
+}
+
+
 void uki_hex_dump_block(char *tag, unsigned char *bin, size_t binsz)
 {
 	int loop = binsz / HEX_DUMP_BLOCK_SIZE;

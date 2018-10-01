@@ -50,7 +50,8 @@
 #define EVT_HEADER_SIZE		2
 #define EVT_VENDOR_CODE_LSB	3
 #define EVT_VENDOR_CODE_MSB	4
-
+#define EVT_LE_META_SUBEVT  3
+#define EVT_ADV_LENGTH     13
 
 #define SPRD_DP_RW_REG_SHIFT_BYTE 14
 #define SPRD_DP_DMA_READ_BUFFER_BASE_ADDR 0x40280000
@@ -66,6 +67,13 @@ static struct k_sem	event_sem;
 extern int check_bteut_ready(void);
 extern void bt_npi_recv(unsigned char *data, int len);
 #endif
+
+#define LE_ADV_REPORT_COUNT 40
+#define LE_ADV_REPORT_SIZE 50
+
+NET_BUF_POOL_DEFINE(le_adv_report_pool, LE_ADV_REPORT_COUNT,
+		    LE_ADV_REPORT_SIZE, BT_BUF_USER_DATA_MIN, NULL);
+
 static inline int hwdec_write_word(unsigned int word)
 {
   unsigned int *hwdec_addr = (unsigned int *)SPRD_DP_DMA_UARD_SDIO_BUFFER_BASE_ADDR;
@@ -125,6 +133,34 @@ static void bt_spi_handle_vendor_evt(u8_t *rxmsg)
 
 }
 
+
+static u8_t adv_cache[50] = {0};
+#define ADV_RECV_TIMEOUT K_SECONDS(1)
+static struct net_buf *alloc_adv_buf(unsigned char *src)
+{
+	struct net_buf *buf = NULL;
+	u8_t length = src[EVT_ADV_LENGTH];
+
+	if (!memcmp(adv_cache, src + EVT_ADV_LENGTH, length + 1)) {
+		//BTD("dropped surplus adv\n");
+		return buf;
+	} else {
+		memcpy(adv_cache, src + EVT_ADV_LENGTH, length + 1);
+		adv_cache[length + 1] = 0;
+	}
+	//BTD("ADV REPORT, avail: %d, total: %d\n", le_adv_report_pool.avail_count, le_adv_report_pool.buf_count);
+	buf = net_buf_alloc(&le_adv_report_pool, ADV_RECV_TIMEOUT);
+	if (buf == NULL) {
+		BTE("alloc adv buffer failed\n");
+		adv_cache[0] = 0;
+		return buf;
+	}
+	net_buf_reserve(buf, CONFIG_BT_HCI_RESERVE);
+	bt_buf_set_type(buf, BT_BUF_EVT);
+
+	return buf;
+}
+
 static void rx_thread(void *p1, void *p2, void *p3)
 {
 	ARG_UNUSED(p1);
@@ -165,7 +201,7 @@ static void rx_thread(void *p1, void *p2, void *p3)
 
 			rxmsg = ((unsigned char*)blk.addr) + blk.length - left_length;
 
-
+			//BTD("handle rx data +++\n");
 			switch (rxmsg[PACKET_TYPE]) {
 			case HCI_EVT:
 				switch (rxmsg[EVT_HEADER_EVENT]) {
@@ -185,7 +221,19 @@ static void rx_thread(void *p1, void *p2, void *p3)
 					buf = bt_buf_get_cmd_complete(K_FOREVER);
 					break;
 				default:
-					buf = bt_buf_get_rx(BT_BUF_EVT, K_FOREVER);
+					if (rxmsg[EVT_HEADER_EVENT] == BT_HCI_EVT_LE_META_EVENT
+						&& rxmsg[EVT_LE_META_SUBEVT] == BT_HCI_EVT_LE_ADVERTISING_REPORT) {
+						buf = alloc_adv_buf(rxmsg);
+						if (!buf) {
+							left_length -= rxmsg[EVT_HEADER_SIZE] + 3;
+							if (!left_length)
+								goto rx_continue;
+							else
+								continue;
+						}
+					} else {
+						buf = bt_buf_get_rx(BT_BUF_EVT, K_FOREVER);
+					}
 					break;
 				}
 
@@ -203,10 +251,11 @@ static void rx_thread(void *p1, void *p2, void *p3)
 				left_length -= sys_le16_to_cpu(acl_hdr.len) + 5;
 				break;
 			default:
-				BTE("Unknown BT buf type %d", rxmsg[0]);
+				BTE("Unknown BT buf type %d\n", rxmsg[0]);
 				goto rx_continue;
 			}
 
+			//BTD("handle rx data ---\n");
 			if (rxmsg[PACKET_TYPE] == HCI_EVT &&
 			    bt_hci_evt_is_prio(rxmsg[EVT_HEADER_EVENT])) {
 				bt_recv_prio(buf);

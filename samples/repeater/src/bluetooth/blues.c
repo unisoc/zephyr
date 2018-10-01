@@ -40,13 +40,20 @@ static const conf_entry_t blues_config_table[] = {
 	CONF_ITEM_TABLE(role, 0, blues_config, 1),
 	CONF_ITEM_TABLE(address, 0, blues_config, 6),
 	CONF_ITEM_TABLE(auto_run, 0, blues_config, 1),
+	CONF_ITEM_TABLE(mesh_proved, 0, blues_config, 1),
 	CONF_ITEM_TABLE(profile_health_enabled, 0, blues_config, 1),
 	CONF_ITEM_TABLE(profile_light_enabled, 0, blues_config, 1),
 	CONF_ITEM_TABLE(net_key, 0, blues_config, 16),
 	CONF_ITEM_TABLE(device_key, 0, blues_config, 16),
 	CONF_ITEM_TABLE(app_key, 0, blues_config, 16),
-	CONF_ITEM_TABLE(node_address, 0, blues_config, 2),
-	CONF_ITEM_TABLE(firmware_log_level, 0, blues_config, 2),
+	CONF_ITEM_TABLE(node_address, 0, blues_config, 1),
+	CONF_ITEM_TABLE(firmware_log_level, 0, blues_config, 1),
+
+	CONF_ITEM_TABLE(ali_mesh, 0, blues_config, 1),
+	CONF_ITEM_TABLE(ali_pid, 0, blues_config, 1),
+	CONF_ITEM_TABLE(ali_mac, 0, blues_config, 6),
+	CONF_ITEM_TABLE(ali_secret, 0, blues_config, 16),
+
 	{0, 0, 0, 0, 0}
 };
 

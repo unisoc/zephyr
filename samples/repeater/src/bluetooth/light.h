@@ -46,4 +46,5 @@ void light_onoff_set_unack(struct bt_mesh_model *model,
 
 int cmd_led(int argc, char *argv[]);
 
+
 #endif

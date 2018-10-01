@@ -13,6 +13,7 @@
 #define PUBLISHER_ADDR  0x000f
 
 #define BT_COMP_ID           0x01EC
+#define ALI_COMP_ID           0x01A8
 #define MOD_ID 0x1688
 #define OP_VENDOR_ACTION BT_MESH_MODEL_OP_3(0x00, BT_COMP_ID)
 

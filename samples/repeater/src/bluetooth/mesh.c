@@ -9,7 +9,12 @@
 #include <logging/sys_log.h>
 #include <stdbool.h>
 
+#include <tinycrypt/sha256.h>
+#include <tinycrypt/constants.h>
+
+
 #include "../../../../drivers/bluetooth/unisoc/uki_utlis.h"
+#include "../../../../drivers/bluetooth/unisoc/uki_config.h"
 #include "mesh.h"
 #include "blues.h"
 #include "light.h"
@@ -38,7 +43,7 @@ static struct {
 	u16_t dst;
 	u16_t net_idx;
 	u16_t app_idx;
-} net = {
+} local_net = {
 	.local = BT_MESH_ADDR_UNASSIGNED,
 	.dst = BT_MESH_ADDR_UNASSIGNED,
 };
@@ -53,6 +58,8 @@ static u16_t target = GROUP_ADDR;
 
 static bt_mesh_input_action_t input_act;
 static u8_t input_size;
+
+static const u8_t dev_uuid[16] = {0};
 
 extern blues_config_t blues_config;
 
@@ -100,6 +107,12 @@ BT_MESH_MODEL_PUB_DEFINE(unisoc_light_onoff_pub_srv, NULL, 2 + 2);
 extern struct bt_mesh_health_srv unisoc_health_srv;
 BT_MESH_HEALTH_PUB_DEFINE(unisoc_health_pub, CUR_FAULTS_MAX);
 
+extern const struct bt_mesh_model_op lightness_srv_op[];
+BT_MESH_HEALTH_PUB_DEFINE(lightness_srv_pub, CUR_FAULTS_MAX);
+
+extern const struct bt_mesh_model_op lightness_setup_srv_op[];
+BT_MESH_HEALTH_PUB_DEFINE(lightness_setup_srv_pub, CUR_FAULTS_MAX);
+
 extern struct onoff_state unisoc_leds[];
 
 static struct bt_mesh_model root_models[] = {
@@ -108,6 +121,10 @@ static struct bt_mesh_model root_models[] = {
 	BT_MESH_MODEL_HEALTH_SRV(&unisoc_health_srv, &unisoc_health_pub),
 	BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_ONOFF_SRV, unisoc_light_onoff_srv_op,
 			  &unisoc_light_onoff_pub_srv, &unisoc_leds[0]),
+	BT_MESH_MODEL(BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SRV, lightness_srv_op,
+    &lightness_srv_pub, NULL),
+    BT_MESH_MODEL(BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SETUP_SRV, lightness_setup_srv_op,
+    &lightness_setup_srv_pub, NULL),
 };
 
 
@@ -149,31 +166,29 @@ static void configure(void)
 	/* Add model subscription */
 	bt_mesh_cfg_mod_sub_add_vnd(net_idx, addr, addr, GROUP_ADDR,
 				    MOD_ID, BT_COMP_ID, NULL);
+	BTV("Configuration complete\n");
+
+}
+
+static void prov_complete(u16_t net_idx, u16_t addr)
+{
+	BTI("Local node provisioned, net_idx 0x%04x address 0x%04x\n",
+	       net_idx, addr);
+	local_net.net_idx = net_idx,
+	local_net.local = addr;
+	//local_net.dst = addr;
 
 	if (blues_config.profile_health_enabled)
 		health_init();
 
 	if (blues_config.profile_light_enabled)
 		light_init();
-
-	printk("Configuration complete\n");
-
-}
-
-static const u8_t dev_uuid[16] = { 0xdd, 0xdd };
-
-static void prov_complete(u16_t net_idx, u16_t addr)
-{
-	printk("Local node provisioned, net_idx 0x%04x address 0x%04x\n",
-	       net_idx, addr);
-	net.net_idx = net_idx,
-	net.local = addr;
-	net.dst = addr;
 }
 
 static void prov_reset(void)
 {
 	printk("The local node has been reset and needs reprovisioning\n");
+	bt_mesh_prov_enable(BT_MESH_PROV_GATT | BT_MESH_PROV_ADV);
 }
 
 static int output_number(bt_mesh_output_action_t action, uint32_t number)
@@ -232,6 +247,9 @@ static int input(bt_mesh_input_action_t act, u8_t size)
 	return 0;
 }
 
+//static u8_t static_auth[] = {0xbe, 0xb5, 0xb9, 0xc9, 0x98, 0x2d, 0x9b, 0x08,
+//				 0x79, 0x4b, 0x72, 0xbd, 0x83, 0xc6, 0x12, 0x1a};
+static u8_t static_auth[16] = {0};
 
 static struct bt_mesh_prov prov = {
 	.uuid = dev_uuid,
@@ -239,14 +257,14 @@ static struct bt_mesh_prov prov = {
 	.link_close = link_close,
 	.complete = prov_complete,
 	.reset = prov_reset,
-	.static_val = NULL,
-	.static_val_len = 0,
-	.output_size = 6,
-	.output_actions = (BT_MESH_DISPLAY_NUMBER | BT_MESH_DISPLAY_STRING),
+	.static_val = static_auth,
+	.static_val_len = sizeof(static_auth),
+	.output_size = 0,
+	.output_actions = 0,
+	.input_size = 0,
+	.input_actions = 0,
 	.output_number = output_number,
 	.output_string = output_string,
-	.input_size = 6,
-	.input_actions = (BT_MESH_ENTER_NUMBER | BT_MESH_ENTER_STRING),
 	.input = input,
 };
 
@@ -313,6 +331,56 @@ void vendor_led_on_send(void)
 
 }
 
+static void alimesh_init(void)
+{
+	static struct tc_sha256_state_struct sha256_ctx;
+	uint8_t *p = dev_uuid;
+	int ret;
+	char static_value[100] = {0};
+	uint8_t result[100] = {0};
+
+	UINT16_TO_STREAM(p, ALI_COMP_ID);
+	*p++ = 0x71;
+	UINT32_TO_STREAM(p, blues_config.ali_pid);
+	sys_memcpy_swap(p, blues_config.ali_mac, sizeof(blues_config.ali_mac));
+	p += sizeof(blues_config.ali_mac);
+	memset(p, 0, dev_uuid + sizeof(dev_uuid) - p);
+	uki_hexdump("UUID:", dev_uuid, sizeof(dev_uuid));
+
+	p = static_value;
+
+	ret = snprintf(p, sizeof(static_value),
+		"%08x,", blues_config.ali_pid);
+	p += ret;
+	uki_hex(p, blues_config.ali_mac, sizeof(blues_config.ali_mac));
+	p += sizeof(blues_config.ali_mac) * 2;
+
+	*p++ = ',';
+
+	uki_hex(p, blues_config.ali_secret, sizeof(blues_config.ali_secret));
+	BTE("ALI KEY: %s\n", static_value);
+
+	ret = tc_sha256_init(&sha256_ctx);
+    if (ret != TC_CRYPTO_SUCCESS) {
+        BTE("sha256 init fail\n");
+    }
+
+    ret = tc_sha256_update(&sha256_ctx, static_value, strlen(static_value));
+    if (ret != TC_CRYPTO_SUCCESS) {
+        BTE("sha256 udpate fail\n");
+    }
+
+    ret = tc_sha256_final(result, &sha256_ctx);
+    if (ret != TC_CRYPTO_SUCCESS) {
+        BTE("sha256 final fail\n");
+    }
+
+	memcpy(static_auth, result, sizeof(static_auth));
+
+	uki_hexdump("static value:", static_auth, sizeof(static_auth));
+}
+
+
 static void mesh_enable(int err)
 {
 	if (err) {
@@ -321,6 +389,10 @@ static void mesh_enable(int err)
 	}
 
 	printk("Bluetooth initialized\n");
+
+	if (blues_config.ali_mesh) {
+		alimesh_init();
+	}
 
 	err = bt_mesh_init(&prov, &comp);
 	if (err) {
@@ -335,17 +407,24 @@ static void mesh_enable(int err)
 		settings_load();
 	}
 
-	err = bt_mesh_provision(net_key, net_idx, flags, iv_index, addr,
-				dev_key);
-	if (err == -EALREADY) {
-		printk("Using stored settings\n");
-	} else if (err) {
-		printk("Provisioning failed (err %d)\n", err);
-		return;
+	if (blues_config.mesh_proved) {
+		BTI("provision local node\n");
+
+		err = bt_mesh_provision(net_key, net_idx, flags, iv_index, addr,
+					dev_key);
+		if (err == -EALREADY) {
+			printk("Using stored settings\n");
+		} else if (err) {
+			printk("Provisioning failed (err %d)\n", err);
+			return;
+		} else {
+			printk("Provisioning completed\n");
+			configure();
+		}
 	} else {
-		printk("Provisioning completed\n");
-		configure();
+		bt_mesh_prov_enable(BT_MESH_PROV_GATT | BT_MESH_PROV_ADV);
 	}
+
 }
 
 void test() {

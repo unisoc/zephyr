@@ -7,6 +7,7 @@ typedef struct {
     uint32_t  role;
     uint8_t  address[6];
     uint8_t  auto_run;
+    uint8_t  mesh_proved;
     uint8_t  profile_health_enabled;
     uint8_t  profile_light_enabled;
     uint8_t  net_key[16];
@@ -14,6 +15,14 @@ typedef struct {
     uint8_t  app_key[16];
     uint16_t  node_address;
     uint16_t firmware_log_level;
+
+/*
+* Ali Genie
+*/
+	uint8_t ali_mesh;
+	uint32_t ali_pid;
+	uint8_t ali_mac[6];
+    uint8_t  ali_secret[16];
 }blues_config_t;
 
 
