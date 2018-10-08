@@ -1,7 +1,13 @@
+/*
+ * Copyright (c) 2018, UNISOC Incorporated
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #define SYS_LOG_LEVEL CONFIG_SYS_LOG_WIFI_LEVEL
 #define SYS_LOG_DOMAIN "dev/wifi"
 #if (SYS_LOG_LEVEL > SYS_LOG_LEVEL_OFF)
-#define NET_LOG_ENABLED 1
+#define NET_LOG_ENABLED (1)
 #endif
 
 #include <logging/sys_log.h>
@@ -22,36 +28,39 @@
 #include "wifi_main.h"
 #include "sipc.h"
 
-/* We do not need <socket/include/socket.h>
+/*
+ * We do not need <socket/include/socket.h>
  * It seems there is a bug in ASF side: if OS is already defining sockaddr
  * and all, ASF will not need to define it. Unfortunately its socket.h does
  * but also defines some NM API functions there (??), so we need to redefine
  * those here.
  */
 #define __SOCKET_H__
-#define HOSTNAME_MAX_SIZE	(64)
+#define HOSTNAME_MAX_SIZE (64)
+#define MTU (1500 \
+		+ sizeof(struct tx_msdu_dscr) \
+		+ 14 /* link layer header length */)
+#define SEC1 (1)
+#define SEC2 (2)
 static struct wifi_priv uwp_wifi_sta_priv;
 static struct wifi_priv uwp_wifi_ap_priv;
 #define DEV_DATA(dev) \
 	((struct wifi_priv *)(dev)->driver_data)
 
-typedef enum cp_runing_bit_t{
-	CP_RUNNING_BIT = 0,
-	CP_WIFI_RUNNING_BIT = 1,
-}cp_runing_bit_t;
-
-int wifi_get_mac(u8_t *mac,int idx)
+int wifi_get_mac(u8_t *mac, int idx)
 {
-	//1 get mac address from flash.
-	//2 copy to mac
-	// if idx == 0,get sta mac,
-	// if idx == 1,get ap mac
-	mac[0]=0x46;
-	mac[1]=0xd1;
-	mac[2]=0xf9;
-	mac[3]=0x44;
-	mac[4]=0x73;
-	mac[5]=0x2c;
+	/*
+	 * 1 get mac address from flash.
+	 * 2 copy to mac
+	 * if idx == 0,get sta mac,
+	 * if idx == 1,get ap mac
+	 */
+	mac[0] = 0x46;
+	mac[1] = 0xd1;
+	mac[2] = 0xf9;
+	mac[3] = 0x44;
+	mac[4] = 0x73;
+	mac[5] = 0x2c;
 
 	return 0;
 }
@@ -59,16 +68,20 @@ int wifi_get_mac(u8_t *mac,int idx)
 static int uwp_mgmt_open(struct device *dev)
 {
 	int ret;
-	struct wifi_priv *priv=DEV_DATA(dev);
+	struct wifi_priv *priv = DEV_DATA(dev);
 
-	if (priv->opened)
+	if (priv->opened) {
 		return -EAGAIN;
+	}
 
 	ret = wifi_cmd_start(priv);
-	if (ret) return ret;
+	if (ret) {
+		return ret;
+	}
 
-	if (priv->mode == WIFI_MODE_STA)
+	if (priv->mode == WIFI_MODE_STA) {
 		wifi_tx_empty_buf(MAX_EMPTY_BUF_COUNT);
+	}
 
 	ret = uwp_wifi_download_ini();
 	if (ret) {
@@ -84,45 +97,48 @@ static int uwp_mgmt_open(struct device *dev)
 static int uwp_mgmt_close(struct device *dev)
 {
 	int ret;
-	struct wifi_priv *priv=DEV_DATA(dev);
+	struct wifi_priv *priv = DEV_DATA(dev);
 
-	if (!priv->opened)
+	if (!priv->opened) {
 		return -EAGAIN;
+	}
 
 	ret = wifi_cmd_stop(priv);
-	if (ret) return ret;
+	if (ret) {
+		return ret;
+	}
 
 	priv->opened = false;
 
-	/*FIXME need to release all buffer which has been sent to CP. */
+	/* FIXME need to release all buffer which has been sent to CP. */
 
 	return 0;
 }
 
 static int uwp_mgmt_start_ap(struct device *dev,
-		struct wifi_start_ap_req_params *params)
+			     struct wifi_start_ap_req_params *params)
 {
-	struct wifi_priv *priv=DEV_DATA(dev);
+	struct wifi_priv *priv = DEV_DATA(dev);
 
 	return wifi_cmd_start_ap(priv, params);
 }
 
 static int uwp_mgmt_stop_ap(struct device *dev)
 {
-	struct wifi_priv *priv=DEV_DATA(dev);
+	struct wifi_priv *priv = DEV_DATA(dev);
 
 	return wifi_cmd_stop_ap(priv);
 }
 
 static int uwp_mgmt_del_station(struct device *dev,
-		u8_t *mac)
+				u8_t *mac)
 {
 	return 0;
 }
 
 static int uwp_mgmt_scan(struct device *dev, scan_result_cb_t cb)
 {
-	struct wifi_priv *priv=DEV_DATA(dev);
+	struct wifi_priv *priv = DEV_DATA(dev);
 
 	if (priv->scan_cb) {
 		return -EALREADY;
@@ -139,23 +155,23 @@ static int uwp_mgmt_scan(struct device *dev, scan_result_cb_t cb)
 }
 
 static int uwp_mgmt_get_station(struct device *dev,
-		/*struct wifi_get_sta_req_params *params*/
-        u8_t *signal)
+		/* struct wifi_get_sta_req_params *params */
+		u8_t *signal)
 {
 	return 0;
 }
 
 static int uwp_mgmt_connect(struct device *dev,
-		struct wifi_connect_req_params *params)
+			    struct wifi_connect_req_params *params)
 {
-	struct wifi_priv *priv=DEV_DATA(dev);
+	struct wifi_priv *priv = DEV_DATA(dev);
 
 	return wifi_cmd_connect(priv, params);
 }
 
 static int uwp_mgmt_disconnect(struct device *dev)
 {
-	struct wifi_priv *priv=DEV_DATA(dev);
+	struct wifi_priv *priv = DEV_DATA(dev);
 
 	return wifi_cmd_disconnect(priv);
 }
@@ -169,29 +185,30 @@ static int uwp_mgmt_set_ip(struct device *dev, u8_t *ip, u8_t len)
 
 static void uwp_iface_init(struct net_if *iface)
 {
-	struct wifi_priv *priv=DEV_DATA(iface->if_dev->dev);
+	struct wifi_priv *priv = DEV_DATA(iface->if_dev->dev);
 
 	k_sleep(50);
 	wifi_cmd_get_cp_info(priv);
 
 	SYS_LOG_WRN("mode: %d, cp version: 0x%x.",
-			priv->mode, priv->cp_version);
+		    priv->mode, priv->cp_version);
 
 	net_if_set_link_addr(iface, priv->mac, sizeof(priv->mac),
-			NET_LINK_ETHERNET);
+			     NET_LINK_ETHERNET);
 
 	priv->iface = iface;
 }
 
 int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
-		struct net_pkt *pkt, u8_t type, u8_t offset)
+			   struct net_pkt *pkt, u8_t type, u8_t offset)
 {
 	u32_t addr = 0;
 	u32_t reserve_len = net_pkt_ll_reserve(pkt);
 	struct tx_msdu_dscr *dscr = NULL;
 
 	net_pkt_set_ll_reserve(pkt,
-			sizeof(struct tx_msdu_dscr) + net_pkt_ll_reserve(pkt));
+			sizeof(struct tx_msdu_dscr) +
+			net_pkt_ll_reserve(pkt));
 	SYS_LOG_DBG("size msdu: %d", sizeof(struct tx_msdu_dscr));
 
 	dscr = (struct tx_msdu_dscr *)net_pkt_ll(pkt);
@@ -211,7 +228,7 @@ int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
 
 	dscr->pkt_len = reserve_len + net_pkt_get_len(pkt);
 	dscr->offset = 11;
-	/*TODO*/
+	/* TODO */
 	dscr->tx_ctrl.sw_rate = (type == SPRDWL_TYPE_DATA_SPECIAL ? 1 : 0);
 	dscr->tx_ctrl.wds = 0;
 	/*TBD*/ dscr->tx_ctrl.swq_flag = 0;
@@ -244,8 +261,7 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 	total_len = net_pkt_ll_reserve(pkt) + net_pkt_get_len(pkt);
 
 	SYS_LOG_DBG("wifi tx data: %d bytes, reserve: %d bytes",
-			total_len, net_pkt_ll_reserve(pkt));
-
+		    total_len, net_pkt_ll_reserve(pkt));
 
 	for (frag = pkt->frags; frag; frag = frag->frags) {
 		if (first_frag) {
@@ -263,6 +279,12 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 		uwp_save_addr_before_payload(addr, (void *)pkt);
 
 		SPRD_AP_TO_CP_ADDR(addr);
+
+		if (data_len > MTU) {
+			SYS_LOG_ERR("Exceed MTU %d data_len %d", MTU, data_len);
+			return -1;
+		}
+
 		wifi_tx_data((void *)addr, data_len);
 	}
 
@@ -277,43 +299,39 @@ static enum ethernet_hw_caps uwp_iface_get_capabilities(struct device *dev)
 }
 
 static const struct net_wifi_mgmt_api uwp_api = {
-	.iface_api.init = uwp_iface_init,
-	.iface_api.send = uwp_iface_tx,
-	.get_capabilities = uwp_iface_get_capabilities,
-	.open			= uwp_mgmt_open,
-	.close			= uwp_mgmt_close,
-	.scan			= uwp_mgmt_scan,
-	.get_station	= uwp_mgmt_get_station,
-	.connect		= uwp_mgmt_connect,
-	.disconnect		= uwp_mgmt_disconnect,
-	.notify_ip		= uwp_mgmt_set_ip,
-	.start_ap		= uwp_mgmt_start_ap,
-	.stop_ap		= uwp_mgmt_stop_ap,
-	.del_station	= uwp_mgmt_del_station,
+	.iface_api.init			= uwp_iface_init,
+	.iface_api.send			= uwp_iface_tx,
+	.get_capabilities		= uwp_iface_get_capabilities,
+	.open					= uwp_mgmt_open,
+	.close					= uwp_mgmt_close,
+	.scan                   = uwp_mgmt_scan,
+	.get_station			= uwp_mgmt_get_station,
+	.connect                = uwp_mgmt_connect,
+	.disconnect             = uwp_mgmt_disconnect,
+	.notify_ip              = uwp_mgmt_set_ip,
+	.start_ap               = uwp_mgmt_start_ap,
+	.stop_ap                = uwp_mgmt_stop_ap,
+	.del_station			= uwp_mgmt_del_station,
 };
 
-#define SEC1    1
-#define SEC2    2
-extern int cp_mcu_init(void);
 static int uwp_init(struct device *dev)
 {
 	int ret;
-	struct wifi_priv *priv=DEV_DATA(dev);
-	static bool wifi_init = false;
+	struct wifi_priv *priv = DEV_DATA(dev);
+	static bool wifi_init;
 
-	if (!strcmp(dev->config->name, "UWP_STA"))
+	if (!strcmp(dev->config->name, CONFIG_WIFI_UWP_STA_NAME)) {
 		priv->mode = WIFI_MODE_STA;
-	else if (!strcmp(dev->config->name, "UWP_AP"))
+	} else if (!strcmp(dev->config->name, CONFIG_WIFI_UWP_AP_NAME)) {
 		priv->mode = WIFI_MODE_AP;
-	else {
+	} else {
 		SYS_LOG_ERR("Unknown WIFI DEV NAME: %s",
-				dev->config->name);
+			    dev->config->name);
 	}
 
 	if (!wifi_init && (priv->mode == WIFI_MODE_STA)) {
-
-		priv->connecting = false;
-		priv->connected = false;
+		/* priv->connecting = false; */
+		/* priv->connected = false; */
 		priv->opened = false;
 
 		ret = cp_mcu_init();
@@ -339,11 +357,11 @@ NET_DEVICE_INIT(uwp_sta, CONFIG_WIFI_UWP_STA_NAME,
 		CONFIG_WIFI_INIT_PRIORITY,
 		&uwp_api,
 		ETHERNET_L2, NET_L2_GET_CTX_TYPE(ETHERNET_L2),
-		1550);
+		MTU);
 
 NET_DEVICE_INIT(uwp_ap, CONFIG_WIFI_UWP_AP_NAME,
 		uwp_init, &uwp_wifi_ap_priv, NULL,
 		CONFIG_WIFI_INIT_PRIORITY,
 		&uwp_api,
 		ETHERNET_L2, NET_L2_GET_CTX_TYPE(ETHERNET_L2),
-		1550);
+		MTU);

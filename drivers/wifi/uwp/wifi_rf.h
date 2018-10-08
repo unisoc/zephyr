@@ -172,6 +172,6 @@ struct wifi_conf_t {
 	struct coex_config_t coex_config;
 };
 
-int get_wifi_config_param(struct wifi_conf_t *p);
+/* int get_wifi_config_param(struct wifi_conf_t *p); */
 int uwp_wifi_download_ini(void);
 #endif

@@ -1,8 +1,7 @@
 /*
- * (C) Copyright 2017
- * Dong Xiang, <dong.xiang@spreadtrum.com>
+ * Copyright (c) 2018, UNISOC Incorporated
  *
- * SPDX-License-Identifier:	GPL-2.0+
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 #ifndef __WIFI_MAIN_H_
@@ -12,18 +11,18 @@
 #include <net/wifi_mgmt.h>
 #include "wifi_cmdevt.h"
 #include "wifi_txrx.h"
-//#include "wifi_msg.h"
+/* #include "wifi_msg.h" */
 #include "wifi_ipc.h"
 #include "wifi_rf.h"
 
-#define ETH_ALEN 6
-#define IPV4_LEN 4
+#define ETH_ALEN (6)
+#define IPV4_LEN (4)
 
-#define WIFI_MODE_NONE		0
-#define WIFI_MODE_STA       1
-#define WIFI_MODE_AP        2
-#define WIFI_MODE_APSTA     3
-#define WIFI_MODE_MONITOR   4
+#define WIFI_MODE_NONE		(0)
+#define WIFI_MODE_STA       (1)
+#define WIFI_MODE_AP        (2)
+/* #define WIFI_MODE_APSTA     (3) */
+/* #define WIFI_MODE_MONITOR   (4) */
 
 
 struct wifi_priv {
@@ -34,8 +33,8 @@ struct wifi_priv {
 	u8_t ipv4_addr[IPV4_LEN];
 	scan_result_cb_t scan_cb;
 	u8_t scan_result;
-	bool connecting;
-	bool connected;
+	/* bool connecting; */
+	/* bool connected; */
 	bool opened;
 
 	struct wifi_conf_t conf;
@@ -51,18 +50,21 @@ static inline void uwp_save_addr_before_payload(u32_t payload, void *addr)
 
 static inline u32_t uwp_get_addr_from_payload(u32_t payload)
 {
-	u32_t * ptr;
+	u32_t *ptr;
+
 	ptr = (u32_t *)(payload - 4);
 
 	return *ptr;
 }
-//extern struct adapter wifi_pAd;
+/* extern struct adapter wifi_pAd; */
 
-//int wifi_ifnet_sta_init(struct adapter *pAd);
-//int wifi_ifnet_ap_init(struct adapter *pAd);
-//struct netif *wifi_ifnet_get_interface(struct adapter *pAd,int ctx_id);
-extern int wifi_ipc_send(int ch,int prio,void *data,int len, int offset);
-extern int wifi_get_mac(u8_t *mac,int idx);
-extern int wifi_ipc_init(void);
+
+int wifi_get_mac(u8_t *mac, int idx);
+/* int wifi_ifnet_sta_init(struct adapter *pAd); */
+/* int wifi_ifnet_ap_init(struct adapter *pAd); */
+/* struct netif *wifi_ifnet_get_interface(struct adapter *pAd,int ctx_id); */
+
+/* Import external interface. */
+extern int cp_mcu_init(void);
 
 #endif /* __WIFI_MAIN_H_ */

@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2018, UNISOC Incorporated
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <zephyr.h>
 #include <logging/sys_log.h>
 #include <string.h>
@@ -7,10 +13,13 @@
 
 #include "wifi_main.h"
 
-#define RECV_BUF_SIZE 128
+#define RECV_BUF_SIZE (128)
 static unsigned char recv_buf[RECV_BUF_SIZE];
+static unsigned char npi_buf[RECV_BUF_SIZE];
 static unsigned int recv_len;
-static struct k_sem	cmd_sem;
+static unsigned int seq = 1;
+static struct k_sem cmd_sem;
+static struct cmd_download_ini ini;
 
 static const u16_t CRC_table[] = {
 	0x0000, 0xCC01, 0xD801, 0x1400, 0xF001, 0x3C00,
@@ -18,8 +27,8 @@ static const u16_t CRC_table[] = {
 	0x5000, 0x9C01, 0x8801, 0x4400,
 };
 
-/* 5G channel list */
-static u16_t channels_5g_scan_table[] = {
+/* 5G channel list. */
+static const u16_t channels_5g_scan_table[] = {
 	36, 40, 44, 48, 52,
 	56, 60, 64, 100, 104,
 	108, 112, 116, 120, 124,
@@ -27,7 +36,7 @@ static u16_t channels_5g_scan_table[] = {
 	149, 153, 157, 161, 165
 };
 
-static u16_t CRC16(u8_t * buf, u16_t len)
+static u16_t CRC16(u8_t *buf, u16_t len)
 {
 	u16_t CRC = 0xFFFF;
 	u16_t i;
@@ -41,28 +50,38 @@ static u16_t CRC16(u8_t * buf, u16_t len)
 	return CRC;
 }
 
-static struct cmd_download_ini ini;
-int wifi_cmd_load_ini(u8_t * data, uint32_t len, u8_t sec_num)
+static int check_cmdevt_len(int input_len, int expected_len)
+{
+	if (input_len != expected_len) {
+		SYS_LOG_ERR("Invalid len %d, expected len %d",
+				input_len, expected_len);
+		return -1;
+	}
+
+	return 0;
+}
+
+int wifi_cmd_load_ini(u8_t *data, u32_t len, u8_t sec_num)
 {
 	int ret = 0;
 	u16_t CRC = 0;
 
-	/*calc CRC value */
+	/* Calc CRC value. */
 	CRC = CRC16(data, len);
 	SYS_LOG_DBG("sec: %d, len: %d, CRC value: 0x%x",
-			sec_num, len, CRC);
+		    sec_num, len, CRC);
 
 	memset(&ini, 0, sizeof(ini));
 	ini.sec_num = sec_num;
 
-	/*copy data after section num */
+	/* Copy data after section num. */
 	memcpy(ini.data, data, len);
-	/*put CRC value at the tail of INI data */
+	/* Put CRC value at the tail of INI data. */
 	memcpy((ini.data + len), &CRC, sizeof(CRC));
 
 	ret = wifi_cmd_send(WIFI_CMD_DOWNLOAD_INI, (char *)&ini,
-			sizeof(struct trans_hdr) + len + 4 + 2, NULL, 0);
-			//sizeof(ini) + sizeof(CRC), NULL, 0);
+			    sizeof(struct trans_hdr) + len + 4 + 2, NULL, 0);
+	/* sizeof(ini) + sizeof(CRC), NULL, 0); */
 	if (ret) {
 		SYS_LOG_ERR("load ini fail when call wifi_drv_cmd_send\n");
 		return ret;
@@ -73,32 +92,30 @@ int wifi_cmd_load_ini(u8_t * data, uint32_t len, u8_t sec_num)
 
 int wifi_cmd_scan(struct wifi_priv *priv)
 {
-	int ret = 0;
+	int ret = -1;
 	int ssid_len = 0;
 	int cmd_len = 0;
 	struct cmd_scan *cmd;
-	u16_t *channels_5g = channels_5g_scan_table;
-	u16_t channels_5g_cnt =
-		sizeof(channels_5g_scan_table) / sizeof(*channels_5g);
+	u16_t channels_5g_cnt = ARRAY_SIZE(channels_5g_scan_table);
 
-	/* calculate total command length. */
+	/* Calculate total command length. */
 	cmd_len = sizeof(*cmd) +
-		ssid_len + (channels_5g_cnt * sizeof(*channels_5g));
+		  ssid_len + sizeof(channels_5g_scan_table);
 
 	cmd = k_malloc(cmd_len);
 	if (cmd == NULL) {
 		SYS_LOG_ERR("cmd is null");
-		return -1;
+		return ret;
 	}
 	memset(cmd, 0, cmd_len);
 
 	cmd->channels = 0x3FFF;
 	cmd->channels_5g_cnt = channels_5g_cnt;
-	memcpy(cmd->channels_5g, channels_5g,
-			channels_5g_cnt * sizeof(*channels_5g));
+	memcpy(cmd->channels_5g, channels_5g_scan_table,
+	       sizeof(channels_5g_scan_table));
 
 	ret = wifi_cmd_send(WIFI_CMD_SCAN, (char *)cmd,
-			cmd_len, NULL, NULL);
+			    cmd_len, NULL, NULL);
 	if (ret) {
 		SYS_LOG_ERR("scan cmd fail");
 		k_free(cmd);
@@ -110,8 +127,8 @@ int wifi_cmd_scan(struct wifi_priv *priv)
 	return 0;
 }
 
-int wifi_cmd_connect(struct wifi_priv *priv, 
-		struct wifi_connect_req_params *params)
+int wifi_cmd_connect(struct wifi_priv *priv,
+		     struct wifi_connect_req_params *params)
 {
 	int ret;
 	struct cmd_connect cmd;
@@ -131,7 +148,7 @@ int wifi_cmd_connect(struct wifi_priv *priv,
 	memcpy(cmd.passphrase, params->psk, cmd.passphrase_len);
 
 	ret = wifi_cmd_send(WIFI_CMD_CONNECT, (char *)&cmd,
-			sizeof(cmd), NULL, NULL);
+			    sizeof(cmd), NULL, NULL);
 	if (ret) {
 		SYS_LOG_ERR("connect cmd fail");
 		return ret;
@@ -148,7 +165,7 @@ int wifi_cmd_disconnect(struct wifi_priv *priv)
 	cmd.reason_code = 0;
 
 	ret = wifi_cmd_send(WIFI_CMD_DISCONNECT, (char *)&cmd,
-			sizeof(cmd), NULL, NULL);
+			    sizeof(cmd), NULL, NULL);
 	if (ret) {
 		SYS_LOG_ERR("disconnect cmd fail");
 		return ret;
@@ -160,21 +177,21 @@ int wifi_cmd_disconnect(struct wifi_priv *priv)
 int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 {
 	struct cmd_get_cp_info cmd;
-	int ret = 0;
+	int ret;
 	int len;
 
 	memset(&cmd, 0, sizeof(cmd));
 	ret = wifi_cmd_send(WIFI_CMD_GET_CP_INFO, (char *)&cmd, sizeof(cmd),
-			(char *)&cmd, &len);
+			    (char *)&cmd, &len);
 	if (ret) {
 		SYS_LOG_ERR("get cp info fail");
 		return ret;
 	}
 
 	priv->cp_version = cmd.version;
-	if (priv->mode == WIFI_MODE_STA)
+	if (priv->mode == WIFI_MODE_STA) {
 		memcpy(priv->mac, cmd.mac, 6);
-	else if (priv->mode == WIFI_MODE_AP) {
+	} else if (priv->mode == WIFI_MODE_AP) {
 		cmd.mac[4] ^= 0x80;
 		memcpy(priv->mac, cmd.mac, 6);
 	}
@@ -185,7 +202,7 @@ int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 int wifi_cmd_start(struct wifi_priv *priv)
 {
 	struct cmd_start cmd;
-	int ret = 0;
+	int ret;
 
 	SYS_LOG_DBG("open mode %d", priv->mode);
 
@@ -194,7 +211,7 @@ int wifi_cmd_start(struct wifi_priv *priv)
 	memcpy(cmd.mac, priv->mac, 6);
 
 	ret = wifi_cmd_send(WIFI_CMD_OPEN, (char *)&cmd, sizeof(cmd),
-			NULL, NULL);
+			    NULL, NULL);
 	if (ret) {
 		SYS_LOG_ERR("start mode %d fail", priv->mode);
 		return ret;
@@ -207,14 +224,14 @@ int wifi_cmd_start(struct wifi_priv *priv)
 int wifi_cmd_stop(struct wifi_priv *priv)
 {
 	struct cmd_stop cmd;
-	int ret = 0;
+	int ret;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.mode = priv->mode;
 	memcpy(cmd.mac, priv->mac, 6);
 
 	ret = wifi_cmd_send(WIFI_CMD_CLOSE, (char *)&cmd, sizeof(cmd),
-			NULL, NULL);
+			    NULL, NULL);
 	if (ret) {
 		SYS_LOG_ERR("stop mode:%d fail", priv->mode);
 		return ret;
@@ -223,15 +240,16 @@ int wifi_cmd_stop(struct wifi_priv *priv)
 	return 0;
 }
 
-int wifi_cmd_start_ap(struct wifi_priv *priv, struct wifi_start_ap_req_params *params)
+int wifi_cmd_start_ap(struct wifi_priv *priv,
+		struct wifi_start_ap_req_params *params)
 {
 	struct cmd_start_ap cmd;
-	int ret = 0;
+	int ret;
 
 	SYS_LOG_DBG("start ap at channel: %d.", params->channel);
 	memset(&cmd, 0, sizeof(cmd));
 
-	//memcpy(cmd.mac, priv->mac, 6);
+	/* memcpy(cmd.mac, priv->mac, 6); */
 	if (params->ssid_length > 0) {
 		memcpy(cmd.ssid, params->ssid, params->ssid_length);
 		cmd.ssid_len = params->ssid_length;
@@ -245,7 +263,7 @@ int wifi_cmd_start_ap(struct wifi_priv *priv, struct wifi_start_ap_req_params *p
 
 	cmd.channel = params->channel;
 	ret = wifi_cmd_send(WIFI_CMD_START_AP, (char *)&cmd,
-			sizeof(cmd), NULL, NULL);
+			    sizeof(cmd), NULL, NULL);
 	if (ret) {
 		SYS_LOG_ERR("ap start fail");
 		return ret;
@@ -258,13 +276,13 @@ int wifi_cmd_start_ap(struct wifi_priv *priv, struct wifi_start_ap_req_params *p
 int wifi_cmd_stop_ap(struct wifi_priv *priv)
 {
 	struct cmd_stop cmd;
-	int ret = 0;
+	int ret;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.mode = WIFI_MODE_AP;
 	memcpy(cmd.mac, priv->mac, 6);
 	ret = wifi_cmd_send(WIFI_CMD_CLOSE, (char *)&cmd, sizeof(cmd),
-			NULL, NULL);
+			    NULL, NULL);
 	if (ret) {
 		SYS_LOG_ERR("ap stop fail");
 		return ret;
@@ -275,18 +293,19 @@ int wifi_cmd_stop_ap(struct wifi_priv *priv)
 
 
 /*
- * return value is the real len sent to upper layer or -1 while error.
+ * @param r_buf: address of return value
+ * @param r_len: length of return value
  */
-static unsigned char npi_buf[128];
-int wifi_cmd_npi_send(int ictx_id,char * t_buf,uint32_t t_len,char *r_buf,uint32_t *r_len)
+int wifi_cmd_npi_send(int ictx_id, char *t_buf,
+		u32_t t_len, char *r_buf, u32_t *r_len)
 {
-	int ret = 0;
+	int ret;
 
-	/*FIXME add cmd header buffer.*/
+	/* FIXME add cmd header buffer. */
 	memcpy(npi_buf + sizeof(struct trans_hdr), t_buf, t_len);
 	t_len += sizeof(struct trans_hdr);
 
-	ret = wifi_cmd_send(WIFI_CMD_NPI_MSG, npi_buf, t_len,r_buf,r_len);
+	ret = wifi_cmd_send(WIFI_CMD_NPI_MSG, npi_buf, t_len, r_buf, r_len);
 	if (ret) {
 		SYS_LOG_ERR("npi_send_command fail");
 		return ret;
@@ -294,40 +313,40 @@ int wifi_cmd_npi_send(int ictx_id,char * t_buf,uint32_t t_len,char *r_buf,uint32
 
 	if (r_buf != NULL && r_len != 0) {
 		*r_len = *r_len - sizeof(struct trans_hdr);
-		/* No need to copy trans_hdr */
+		/* No need to copy trans_hdr. */
 		memcpy(r_buf, r_buf + sizeof(struct trans_hdr), *r_len);
 	}
 
 	return 0;
 }
 
-int wifi_cmd_npi_get_mac(int ictx_id,char * buf)
+int wifi_cmd_npi_get_mac(int ictx_id, char *buf)
 {
-	return wifi_get_mac((u8_t *)buf,ictx_id);
+	return wifi_get_mac((u8_t *)buf, ictx_id);
 }
 
 
 int wifi_cmd_set_ip(struct wifi_priv *priv, u8_t *ip_addr, u8_t len)
 {
-	int ret = 0;
+	int ret = -1;
 	struct cmd_set_ip cmd;
 
 	memset(&cmd, 0, sizeof(cmd));
 	if (len == IPV4_LEN) {
 		/*
-		 ** Temporarily supported 4-byte ipv4 address.
-		 ** TODO: support ipv6 address, need to reserve more bytes.
+		 * Temporarily supported 4-byte ipv4 address.
+		 * TODO: support ipv6 address, need to reserve more bytes.
 		 */
 		memcpy(cmd.ip, ip_addr, len);
 		/* Store ipv4 address in wifi_priv. */
 		memcpy(priv->ipv4_addr, ip_addr, len);
 	} else {
 		SYS_LOG_WRN("Currently only ipv4, 4 bytes.");
-		return -1;
+		return ret;
 	}
 
 	ret = wifi_cmd_send(WIFI_CMD_SET_IP, (char *)&cmd,
-			sizeof(cmd), NULL, NULL);
+			    sizeof(cmd), NULL, NULL);
 	if (ret) {
 		SYS_LOG_ERR("set ip fail");
 		return ret;
@@ -338,26 +357,30 @@ int wifi_cmd_set_ip(struct wifi_priv *priv, u8_t *ip_addr, u8_t len)
 	return 0;
 }
 
-static struct wifi_scan_result result;
 int wifi_evt_scan_result(struct wifi_priv *priv, char *data, int len)
 {
-	struct event_scan_result *event = 
+	struct event_scan_result *event =
 		(struct event_scan_result *)data;
+	struct wifi_scan_result scan_result;
 
-	memset(&result, 0, sizeof(result));
-	
-	result.security = WIFI_SECURITY_TYPE_NONE;
-	memcpy(result.ssid, event->ssid, MAX_SSID_LEN);
-	result.ssid_length = strlen(result.ssid);
-	memcpy(result.bssid, event->bssid, ETH_ALEN);
+	memset(&scan_result, 0, sizeof(scan_result));
 
-	result.channel = event->channel;
-	result.rssi = event->rssi;
+	if (check_cmdevt_len(len, sizeof(struct event_scan_result))) {
+		return -1;
+	}
+
+	scan_result.security = WIFI_SECURITY_TYPE_NONE;
+	memcpy(scan_result.ssid, event->ssid, MAX_SSID_LEN);
+	scan_result.ssid_length = strlen(scan_result.ssid);
+	memcpy(scan_result.bssid, event->bssid, ETH_ALEN);
+
+	scan_result.channel = event->channel;
+	scan_result.rssi = event->rssi;
 
 	SYS_LOG_DBG("ssid: %s", event->ssid);
 
 	if (priv->scan_cb) {
-		priv->scan_cb(priv->iface, 0, &result);
+		priv->scan_cb(priv->iface, 0, &scan_result);
 
 		k_yield();
 	}
@@ -365,13 +388,20 @@ int wifi_evt_scan_result(struct wifi_priv *priv, char *data, int len)
 	return 0;
 }
 
-int wifi_evt_scan_done(struct wifi_priv *priv)
+int wifi_evt_scan_done(struct wifi_priv *priv, char *data, int len)
 {
+	struct event_scan_done *event =
+		(struct event_scan_done *)data;
+
+	if (check_cmdevt_len(len, sizeof(struct event_scan_done))) {
+		return -1;
+	}
+
 	if (!priv->scan_cb) {
 		return 0;
 	}
 
-	wifi_drv_iface_scan_done_cb(priv->iface, 0);
+	wifi_drv_iface_scan_done_cb(priv->iface, event->status);
 	priv->scan_cb = NULL;
 
 	return 0;
@@ -381,6 +411,11 @@ int wifi_evt_connect(struct wifi_priv *priv, char *data, int len)
 {
 	struct event_connect *event =
 		(struct event_connect *)data;
+
+	if (check_cmdevt_len(len, sizeof(struct event_connect))) {
+		return -1;
+	}
+
 	wifi_drv_iface_connect_cb(priv->iface, event->status);
 
 	return 0;
@@ -391,8 +426,12 @@ int wifi_evt_disconnect(struct wifi_priv *priv, char *data, int len)
 	struct event_disconnect *event =
 		(struct event_disconnect *)data;
 
+	if (check_cmdevt_len(len, sizeof(struct event_disconnect))) {
+		return -1;
+	}
+
 	wifi_drv_iface_disconnect_cb(priv->iface,
-			event->reason_code);
+				     event->reason_code);
 
 	return 0;
 }
@@ -401,8 +440,13 @@ int wifi_evt_new_sta(struct wifi_priv *priv, char *data, int len)
 {
 	struct event_new_station *event =
 		(struct event_new_station *)data;
+
+	if (check_cmdevt_len(len, sizeof(struct event_new_station))) {
+		return -1;
+	}
+
 	wifi_drv_iface_new_station(priv->iface,
-			event->is_connect, event->mac);
+				   event->is_connect, event->mac);
 	return 0;
 }
 
@@ -410,13 +454,13 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 {
 	struct trans_hdr *hdr = (struct trans_hdr *)data;
 
-	if(len > RECV_BUF_SIZE) {
+	if (len > RECV_BUF_SIZE) {
 		SYS_LOG_ERR("invalid data len %d.", len);
 		return -1;
 	}
 
-	/* recieve command response */
-	if(hdr->response == 1) {
+	/* Recieve command response. */
+	if (hdr->response == 1) {
 		if (len > 0) {
 			memcpy(recv_buf, data, len);
 			recv_len = len;
@@ -440,41 +484,40 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 
 	/* Recieve Events */
 	switch (hdr->type) {
-		case WIFI_EVENT_SCAN_RESULT:
-			wifi_evt_scan_result(priv, hdr->data, len);
-			break;
-		case WIFI_EVENT_SCAN_DONE:
-			wifi_evt_scan_done(priv);
-			break;
-		case WIFI_EVENT_DISCONNECT:
-			wifi_evt_disconnect(priv, hdr->data, len);
-			break;
-		case WIFI_EVENT_CONNECT:
-			wifi_evt_connect(priv, hdr->data, len);
-			break;
-		case WIFI_EVENT_NEW_STATION:
-			wifi_evt_new_sta(priv, hdr->data, len);
-			break;
-		default:
-			break;
+	case WIFI_EVENT_SCAN_RESULT:
+		wifi_evt_scan_result(priv, hdr->data, len);
+		break;
+	case WIFI_EVENT_SCAN_DONE:
+		wifi_evt_scan_done(priv, hdr->data, len);
+		break;
+	case WIFI_EVENT_DISCONNECT:
+		wifi_evt_disconnect(priv, hdr->data, len);
+		break;
+	case WIFI_EVENT_CONNECT:
+		wifi_evt_connect(priv, hdr->data, len);
+		break;
+	case WIFI_EVENT_NEW_STATION:
+		wifi_evt_new_sta(priv, hdr->data, len);
+		break;
+	default:
+		break;
 	}
 	return 0;
 }
 
-static unsigned int seq = 1;
-int wifi_cmd_send(u8_t cmd,char *data,int len,char * rbuf,int *rlen)
+int wifi_cmd_send(u8_t cmd, char *data, int len, char *rbuf, int *rlen)
 {
 	int ret = 0;
 
 	struct trans_hdr *hdr = (struct trans_hdr *)data;
 
-	if (cmd > WIFI_CMD_MAX || cmd < WIFI_CMD_BEGIN){
+	if (cmd > WIFI_CMD_MAX || cmd < WIFI_CMD_BEGIN) {
 		SYS_LOG_ERR("Invalid command %d ", cmd);
 		return -1;
 	}
 
-	if (data != NULL && len ==0){
-		SYS_LOG_ERR("data len Invalid,data=%p,len=%d",data,len);
+	if (data != NULL && len == 0) {
+		SYS_LOG_ERR("data len Invalid,data=%p,len=%d", data, len);
 		return -1;
 	}
 
@@ -483,13 +526,13 @@ int wifi_cmd_send(u8_t cmd,char *data,int len,char * rbuf,int *rlen)
 	hdr->seq = seq++;
 
 	ret = wifi_tx_cmd(data, len);
-	if (ret < 0){
-		SYS_LOG_ERR("wifi_cmd_send fail");
+	if (ret < 0) {
+		SYS_LOG_ERR("wifi send cmd fail");
 		return -1;
 	}
 
 	ret = k_sem_take(&cmd_sem, 3000);
-	if(ret) {
+	if (ret) {
 		SYS_LOG_ERR("wait cmd(%d) timeout.", cmd);
 		return ret;
 	}
@@ -500,10 +543,12 @@ int wifi_cmd_send(u8_t cmd,char *data,int len,char * rbuf,int *rlen)
 		return hdr->status;
 	}
 
-	if(rbuf)
+	if (rbuf) {
 		memcpy(rbuf, recv_buf, recv_len);
-	if(rlen)
+	}
+	if (rlen) {
 		*rlen = recv_len;
+	}
 
 	SYS_LOG_DBG("get command response success");
 	return 0;
