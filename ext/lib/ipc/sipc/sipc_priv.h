@@ -17,7 +17,6 @@ extern "C" {
 
 	struct smsg_channel {
 		/* wait queue for recv-buffer */
-		//wait_queue_head_t	rxwait;
 		struct k_sem	    rxsem;
 		struct k_mutex		rxlock;
 		struct k_mutex		txlock;
@@ -53,42 +52,35 @@ extern "C" {
 
 		struct smsg_queue   queue[QUEUE_PRIO_MAX];
 
-		//struct smsg_queue   queue_irq;
-		//struct smsg_queue   queue_priority;
-		//struct smsg_queue   queue_normal;
-
-#ifdef 	CONFIG_SPRD_MAILBOX
+#ifdef	CONFIG_SPRD_MAILBOX
 		/* target core_id over mailbox */
-		int 			core_id;
+		int			core_id;
 #endif
 
 		/* sipc irq related */
 		int			irq;
-		//xcpt_t		irq_handler;
-		//xcpt_t		irq_threadfn;
 
-		u32_t 		(*rxirq_status)(void);
-		void			(*rxirq_clear)(void);
-		void			(*txirq_trigger)(void);
+		u32_t		(*rxirq_status)(void);
+		void		(*rxirq_clear)(void);
+		void		(*txirq_trigger)(void);
 
 		/* sipc ctrl thread */
 		struct tcb_s	*thread;
 		k_tid_t			 pid;
 		struct k_sem    irq_sem;
 		/* lock for send-buffer */
-		//spinlock_t		txpinlock;
 		u32_t            txpinlock;
 		/* all fixed channels receivers */
 		struct smsg_channel	channels[SMSG_CH_NR];
 	};
 
 #define CHAN_STATE_UNUSED	0
-#define CHAN_STATE_WAITING 	1
+#define CHAN_STATE_WAITING	1
 #define CHAN_STATE_OPENED	2
-#define CHAN_STATE_FREE 	3
+#define CHAN_STATE_FREE		3
 
 	/* create/destroy smsg ipc between AP/CP */
-	struct smsg_ipc * smsg_ipc_create(u8_t dst);
+	struct smsg_ipc *smsg_ipc_create(u8_t dst);
 	int smsg_ipc_destroy(u8_t dst);
 	int  smsg_suspend_init(void);
 

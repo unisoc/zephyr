@@ -32,9 +32,9 @@ extern "C" {
 
 	/* share-mem ring buffer short message */
 	struct smsg {
-		u8_t			channel;	/* channel index */
-		u8_t			type;		/* msg type */
-		uint16_t		flag;		/* msg flag */
+		u8_t		channel;	/* channel index */
+		u8_t		type;		/* msg type */
+		u16_t		flag;		/* msg flag */
 		u32_t		value;		/* msg value */
 	};
 
@@ -42,7 +42,7 @@ extern "C" {
 	enum {
 		SMSG_CH_CTRL = 0,	/* some emergency control */
 		SMSG_CH_COMM,		/* general communication channel */
-		SMSG_CH_WIFI_CTRL=12,
+		SMSG_CH_WIFI_CTRL = 12,
 		SMSG_CH_WIFI_DATA_NOR,
 		SMSG_CH_WIFI_DATA_SPEC,
 		SMSG_CH_BT,
@@ -98,85 +98,88 @@ extern "C" {
 #define ipc_debug(format, ...)     SYS_LOG_DBG(format,  ##__VA_ARGS__)
 
 int wifi_irq_init(void);
-void sprd_wifi_irq_disable_num(uint32_t num);
-void sprd_wifi_irq_enable_num(uint32_t num);
-	/**
-	 * smsg_ch_open -- open a channel for smsg
-	 *
-	 * @dst: dest processor ID
-	 * @channel: channel ID
-	 * @timeout: milliseconds, 0 means no wait, -1 means unlimited
-	 * @return: 0 on success, <0 on failue
-	 */
-	int smsg_ch_open(u8_t dst, u8_t channel, int prio, int timeout);
+void sprd_wifi_irq_disable_num(u32_t num);
+void sprd_wifi_irq_enable_num(u32_t num);
+/**
+ * smsg_ch_open -- open a channel for smsg
+ *
+ * @dst: dest processor ID
+ * @channel: channel ID
+ * @timeout: milliseconds, 0 means no wait, -1 means unlimited
+ * @return: 0 on success, <0 on failue
+ */
+int smsg_ch_open(u8_t dst, u8_t channel, int prio, int timeout);
 
-	/**
-	 * smsg_ch_close -- close a channel for smsg
-	 *
-	 * @dst: dest processor ID
-	 * @channel: channel ID
-	 * @timeout: milliseconds, 0 means no wait, -1 means unlimited
-	 * @return: 0 on success, <0 on failue
-	 */
-	int smsg_ch_close(u8_t dst, u8_t channel, int prio, int timeout);
+/**
+ * smsg_ch_close -- close a channel for smsg
+ *
+ * @dst: dest processor ID
+ * @channel: channel ID
+ * @timeout: milliseconds, 0 means no wait, -1 means unlimited
+ * @return: 0 on success, <0 on failue
+ */
+int smsg_ch_close(u8_t dst, u8_t channel, int prio, int timeout);
 
-	/**
-	 * smsg_send -- send smsg
-	 *
-	 * @dst: dest processor ID
-	 * @msg: smsg body to be sent
-	 * @timeout: milliseconds, 0 means no wait, -1 means unlimited
-	 * @return: 0 on success, <0 on failue
-	 */
-	int smsg_send(u8_t dst,u8_t prio, struct smsg *msg, int timeout);
-	int smsg_send_irq(u8_t dst,struct smsg *msg);
-	/**
-	 * smsg_recv -- poll and recv smsg
-	 *
-	 * @dst: dest processor ID
-	 * @msg: smsg body to be received, channel should be filled as input
-	 * @timeout: milliseconds, 0 means no wait, -1 means unlimited
-	 * @return: 0 on success, <0 on failue
-	 */
-	int smsg_recv(u8_t dst, struct smsg *msg, int timeout);
+/**
+ * smsg_send -- send smsg
+ *
+ * @dst: dest processor ID
+ * @msg: smsg body to be sent
+ * @timeout: milliseconds, 0 means no wait, -1 means unlimited
+ * @return: 0 on success, <0 on failue
+ */
+int smsg_send(u8_t dst, u8_t prio, struct smsg *msg, int timeout);
+int smsg_send_irq(u8_t dst, struct smsg *msg);
+/**
+ * smsg_recv -- poll and recv smsg
+ *
+ * @dst: dest processor ID
+ * @msg: smsg body to be received, channel should be filled as input
+ * @timeout: milliseconds, 0 means no wait, -1 means unlimited
+ * @return: 0 on success, <0 on failue
+ */
+int smsg_recv(u8_t dst, struct smsg *msg, int timeout);
 
-	void wakeup_smsg_task_all(struct k_sem *sem);
+void wakeup_smsg_task_all(struct k_sem *sem);
 
-	/* quickly fill a smsg body */
-	static inline void smsg_set(struct smsg *msg, u8_t channel,
-			u8_t type, uint16_t flag, u32_t value)
-	{
-		msg->channel = channel;
-		msg->type = type;
-		msg->flag = flag;
-		msg->value = value;
-	}
+/* quickly fill a smsg body */
+static inline void smsg_set(struct smsg *msg, u8_t channel,
+		u8_t type, uint16_t flag, u32_t value)
+{
+	msg->channel = channel;
+	msg->type = type;
+	msg->flag = flag;
+	msg->value = value;
+}
 
-	/* ack an open msg for modem recovery */
-	static inline void smsg_open_ack(u8_t dst, uint16_t channel)
-	{
-		struct smsg mopen;
-		smsg_set(&mopen, channel, SMSG_TYPE_OPEN, SMSG_OPEN_MAGIC, 0);
-		smsg_send(dst,QUEUE_PRIO_HIGH, &mopen, -1);
-	}
+/* ack an open msg for modem recovery */
+static inline void smsg_open_ack(u8_t dst, uint16_t channel)
+{
+	struct smsg mopen;
 
-	/* ack an close msg for modem recovery */
-	static inline void smsg_close_ack(u8_t dst, uint16_t channel)
-	{
-		struct smsg mclose;
-		smsg_set(&mclose, channel, SMSG_TYPE_CLOSE, SMSG_CLOSE_MAGIC, 0);
-		smsg_send(dst,QUEUE_PRIO_HIGH, &mclose, -1);
-	}
+	smsg_set(&mopen, channel, SMSG_TYPE_OPEN, SMSG_OPEN_MAGIC, 0);
+	smsg_send(dst, QUEUE_PRIO_HIGH, &mopen, -1);
+}
 
-	/* sblock structure: addr is the uncached virtual address */
-	struct sblock {
-		void		*addr;
-		u32_t	length;
+/* ack an close msg for modem recovery */
+static inline void smsg_close_ack(u8_t dst, uint16_t channel)
+{
+	struct smsg mclose;
+
+	smsg_set(&mclose, channel, SMSG_TYPE_CLOSE,
+		SMSG_CLOSE_MAGIC, 0);
+	smsg_send(dst, QUEUE_PRIO_HIGH, &mclose, -1);
+}
+
+/* sblock structure: addr is the uncached virtual address */
+struct sblock {
+	void		*addr;
+	u32_t	length;
 #ifdef CONFIG_ZERO_COPY_SIPX
-		uint16_t        index;
-		uint16_t        offset;
+	u16_t        index;
+	u16_t        offset;
 #endif
-	};
+};
 
 #define	SBLOCK_NOTIFY_GET	0x01
 #define	SBLOCK_NOTIFY_RECV	0x02
