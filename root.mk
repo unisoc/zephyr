@@ -25,6 +25,7 @@ boot_DIR	:= $(PRJDIR)/$(BOOT)
 fdl_DIR		:= $(PRJDIR)/u-boot
 kernel_DIR	:= $(PRJDIR)/$(KERNEL)
 toolchain_DIR	:= $(PRJDIR)/toolchain
+dloader_DIR	:= $(toolchain_DIR)/LinuxDloader
 
 BUILD_DIR		:= $(PRJDIR)/build
 boot_BUILD_DIR		:= $(BUILD_DIR)/$(BOOT)
@@ -36,6 +37,7 @@ kernel_debug_BUILD_DIR	:= $(BUILD_DIR)/$(KERNEL)_debug
 BOOT_BIN	:= $(boot_BUILD_DIR)/$(KERNEL)/$(KERNEL).bin
 KERNEL_BIN	:= $(kernel_BUILD_DIR)/$(KERNEL)/$(KERNEL).bin
 FDL_BIN		:= $(fdl_DIR)/u-boot.bin
+DLOADER_BIN	:= $(dloader_DIR)/Bin/sprd_dloader/dloader
 
 DIST_DIR	:= $(PRJDIR)/build/images
 BOOT_DIST_BIN	:= $(DIST_DIR)/$(BOOT)-pubkey.bin
@@ -157,7 +159,7 @@ endef
 ################################################################
 ENV_TARGETS		:= cmake sdk
 DEFAULT_TARGETS		:= boot kernel
-DIST_TARGETS		:= $(DEFAULT_TARGETS) fdl
+DIST_TARGETS		:= $(DEFAULT_TARGETS) fdl dloader
 DEBUG_TARGETS		:= $(addsuffix _debug,$(DEFAULT_TARGETS))
 ALL_TARGETS		:= $(DEFAULT_TARGETS) $(DEBUG_TARGETS)
 CLEAN_TARGETS		:= $(addsuffix -clean,$(ALL_TARGETS))
@@ -261,6 +263,13 @@ $(FDL_BIN):
 
 .PHONY: fdl
 fdl: $(ENV_TARGETS) $(FDL_BIN)
+
+$(DLOADER_BIN):
+	@ $(call MESSAGE,"Building dloader")
+	$(MAKE) -C $(dloader_DIR)/Source
+
+.PHONY: dloader
+dloader: $(DLOADER_BIN)
 
 # Clean Targets
 $(foreach target,$(ALL_TARGETS),$(eval $(call CLEAN_TARGET,$(target),clean)))
