@@ -18,26 +18,25 @@
 #define ETH_ALEN (6)
 #define IPV4_LEN (4)
 
-#define WIFI_MODE_NONE		(0)
-#define WIFI_MODE_STA       (1)
-#define WIFI_MODE_AP        (2)
-/* #define WIFI_MODE_APSTA     (3) */
-/* #define WIFI_MODE_MONITOR   (4) */
+#define WIFI_MODE_NONE (0)
+#define WIFI_MODE_STA (1)
+#define WIFI_MODE_AP (2)
+/* #define WIFI_MODE_APSTA (3) */
+/* #define WIFI_MODE_MONITOR (4) */
 
 
 struct wifi_priv {
 	struct net_if *iface;
+	struct wifi_conf_t conf;
 	u32_t cp_version;
 	u8_t mode;
-	unsigned char mac[ETH_ALEN];
+	u8_t mac[ETH_ALEN];
 	u8_t ipv4_addr[IPV4_LEN];
-	scan_result_cb_t scan_cb;
 	u8_t scan_result;
 	/* bool connecting; */
 	/* bool connected; */
 	bool opened;
-
-	struct wifi_conf_t conf;
+	scan_result_cb_t scan_cb;
 };
 
 static inline void uwp_save_addr_before_payload(u32_t payload, void *addr)
@@ -60,6 +59,11 @@ static inline u32_t uwp_get_addr_from_payload(u32_t payload)
 
 
 int wifi_get_mac(u8_t *mac, int idx);
+#ifdef CONFIG_WIFI_UWP_USE_SRAM
+void wifi_mem_init(void);
+#else
+#define wifi_mem_init(...)
+#endif /* CONFIG_WIFI_UWP_USE_SRAM */
 /* int wifi_ifnet_sta_init(struct adapter *pAd); */
 /* int wifi_ifnet_ap_init(struct adapter *pAd); */
 /* struct netif *wifi_ifnet_get_interface(struct adapter *pAd,int ctx_id); */

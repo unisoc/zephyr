@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2018, UNISOC Incorporated
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <zephyr.h>
 #include <stdlib.h>
 #include <logging/sys_log.h>
@@ -17,7 +23,6 @@
 
 #define SEC1 (1)
 #define SEC2 (2)
-static bool download_ini_flag;
 
 static struct nvm_name_table g_config_table[] = {
 	/* [Section 1: Version]
@@ -416,6 +421,7 @@ int uwp_wifi_download_ini(void)
 	struct wifi_conf_t conf;
 	struct wifi_conf_sec1_t *sec1;
 	struct wifi_conf_sec2_t *sec2;
+	static bool download_ini_flag;
 
 	if (download_ini_flag) {
 		return ret;

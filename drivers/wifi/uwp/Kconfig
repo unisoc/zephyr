@@ -6,9 +6,12 @@ menuconfig WIFI_UWP
 
 if WIFI_UWP
 config WIFI_UWP_STA_NAME
-	string "STA deivce name"
+	string "STA device name"
 	default "UWP_STA"
 config WIFI_UWP_AP_NAME
-	string "SoftAP deivce name"
+	string "SoftAP device name"
 	default "UWP_AP"
+config WIFI_UWP_USE_SRAM
+	bool "Wifi use sram"
+	default n
 endif

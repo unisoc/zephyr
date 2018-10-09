@@ -5,7 +5,7 @@ if(CONFIG_WIFI_UWP)
 	wifi_cmdevt.c
 	wifi_txrx.c
 	wifi_ipc.c
-    wifi_main.c
+	wifi_main.c
 	wifi_rf.c
     )
 endif()

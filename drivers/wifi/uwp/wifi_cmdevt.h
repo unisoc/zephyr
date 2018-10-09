@@ -58,9 +58,9 @@ enum event_type {
 /* These structures are shared by command and event. */
 struct trans_hdr {
 	u8_t type;      /* Which command or event will be transferred. */
-	u8_t seq;       /* Event sequece. */
+	u8_t seq;       /* Event sequence. */
 	u8_t response;  /* 1 for command response. 0 for cp event. */
-	char status;    /* 0 for reponse success, other for fail. */
+	char status;    /* 0 for response success, other for fail. */
 	u16_t len;      /* Message length. */
 	char data[0];   /* The start of message data. */
 } __packed;

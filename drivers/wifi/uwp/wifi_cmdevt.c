@@ -50,7 +50,7 @@ static u16_t CRC16(u8_t *buf, u16_t len)
 	return CRC;
 }
 
-static int check_cmdevt_len(int input_len, int expected_len)
+static inline int check_cmdevt_len(int input_len, int expected_len)
 {
 	if (input_len != expected_len) {
 		SYS_LOG_ERR("Invalid len %d, expected len %d",
@@ -459,7 +459,7 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 		return -1;
 	}
 
-	/* Recieve command response. */
+	/* Receive command response. */
 	if (hdr->response == 1) {
 		if (len > 0) {
 			memcpy(recv_buf, data, len);
@@ -470,7 +470,7 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 
 		/*
 		 * Release command wait semaphore, and switch current thread to
-		 * command process thread. This rountine could prevent the send
+		 * command process thread. This routine could prevent the send
 		 * command timeout if there are many data recived from CP.
 		 */
 		k_yield();
@@ -478,11 +478,11 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 		return 0;
 	}
 
-	SYS_LOG_DBG("Recieve event type 0x%x.", hdr->type);
+	SYS_LOG_DBG("Receive event type 0x%x.", hdr->type);
 
 	len -= sizeof(*hdr);
 
-	/* Recieve Events */
+	/* Receive Events */
 	switch (hdr->type) {
 	case WIFI_EVENT_SCAN_RESULT:
 		wifi_evt_scan_result(priv, hdr->data, len);

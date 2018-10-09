@@ -12,8 +12,11 @@
 #include <net/net_pkt.h>
 
 #include "wifi_main.h"
+
 #define RX_BUF_SIZE (2000)
+
 static unsigned char rx_buf[RX_BUF_SIZE];
+
 int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 {
 	/* struct rxc *rx_complete_buf = (struct rxc *)data; */
@@ -158,7 +161,7 @@ static void txrx_thread(void *p1)
 			memset(addr, 0, RX_BUF_SIZE);
 			ret = wifi_ipc_recv(SMSG_CH_WIFI_CTRL, addr, &len, 0);
 			if (ret == 0) {
-				SYS_LOG_DBG("Recieve cmd/evt %p len %i",
+				SYS_LOG_DBG("Receive cmd/evt %p len %i",
 						addr, len);
 
 				wifi_cmdevt_process(priv, addr, len);
@@ -171,7 +174,7 @@ static void txrx_thread(void *p1)
 			ret = wifi_ipc_recv(SMSG_CH_WIFI_DATA_NOR,
 					addr, &len, 0);
 			if (ret == 0) {
-				SYS_LOG_DBG("Recieve data %p len %i",
+				SYS_LOG_DBG("Receive data %p len %i",
 						addr, len);
 				wifi_data_process(priv, addr, len);
 			} else {
@@ -191,6 +194,8 @@ static void wifi_rx_event(int ch)
 
 int wifi_tx_data(void *data, int len)
 {
+	ARG_UNUSED(len);
+
 	int ret;
 	struct hw_addr_buff_t addr_buf;
 

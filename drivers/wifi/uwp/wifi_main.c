@@ -37,15 +37,30 @@
  */
 #define __SOCKET_H__
 #define HOSTNAME_MAX_SIZE (64)
-#define MTU (1500 \
-		+ sizeof(struct tx_msdu_dscr) \
-		+ 14 /* link layer header length */)
+
+#define MTU (1500)
+
 #define SEC1 (1)
 #define SEC2 (2)
-static struct wifi_priv uwp_wifi_sta_priv;
-static struct wifi_priv uwp_wifi_ap_priv;
+
 #define DEV_DATA(dev) \
 	((struct wifi_priv *)(dev)->driver_data)
+
+#ifdef CONFIG_WIFI_UWP_USE_SRAM
+#define put_reg32(val, reg) sys_write32(val, reg)
+#define get_reg32(reg) sys_read32(reg)
+
+#define DELAY(time) \
+do { \
+	unsigned int delay_time; \
+	for (delay_time = 0; delay_time < (time * 208); delay_time++) { \
+		*(volatile unsigned int *)0x100000; \
+	} \
+} while (0)
+#endif /* CONFIG_WIFI_UWP_USE_SRAM */
+
+static struct wifi_priv uwp_wifi_sta_priv;
+static struct wifi_priv uwp_wifi_ap_priv;
 
 int wifi_get_mac(u8_t *mac, int idx)
 {
@@ -190,7 +205,7 @@ static void uwp_iface_init(struct net_if *iface)
 	k_sleep(50);
 	wifi_cmd_get_cp_info(priv);
 
-	SYS_LOG_WRN("mode: %d, cp version: 0x%x.",
+	SYS_LOG_INF("mode: %d, cp version: 0x%x.",
 		    priv->mode, priv->cp_version);
 
 	net_if_set_link_addr(iface, priv->mac, sizeof(priv->mac),
@@ -255,6 +270,7 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 	u16_t data_len;
 	u16_t total_len;
 	u32_t addr;
+	u16_t max_len;
 
 	wifi_tx_fill_msdu_dscr(priv, pkt, SPRDWL_TYPE_DATA, 0);
 
@@ -280,8 +296,11 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 
 		SPRD_AP_TO_CP_ADDR(addr);
 
-		if (data_len > MTU) {
-			SYS_LOG_ERR("Exceed MTU %d data_len %d", MTU, data_len);
+		max_len = MTU + sizeof(struct tx_msdu_dscr)
+			+ 14 /* link layer header length */;
+		if (data_len > max_len) {
+			SYS_LOG_ERR("Exceed max length %d data_len %d",
+					max_len, data_len);
 			return -1;
 		}
 
@@ -314,6 +333,42 @@ static const struct net_wifi_mgmt_api uwp_api = {
 	.del_station			= uwp_mgmt_del_station,
 };
 
+#ifdef CONFIG_WIFI_UWP_USE_SRAM
+void wifi_mem_init(void)
+{
+	SYS_LOG_INF("power on sram start");
+
+	unsigned int val;
+
+	val = get_reg32(0x40130004); /* enable */
+	val |= 0x220;
+	put_reg32(val, 0x40130004);
+	DELAY(1000);
+
+	val = get_reg32(0x4083c088); /* power on WRAP */
+	val &= ~(0x2);
+	put_reg32(val, 0x4083c088);
+	while (!(get_reg32(0x4083c00c) & (0x1 << 14))) {
+	}
+
+	val = get_reg32(0x4083c0a8);
+	val &= ~(0x4);
+	put_reg32(val, 0x4083c0a8);
+	while (!(get_reg32(0x4083c00c) & (0x1 << 16))) {
+	}
+
+	val = get_reg32(0x4083c134); /* close MEM PD */
+	val &= 0xffffff;
+	put_reg32(val, 0x4083c134);
+
+	val = get_reg32(0x4083c130);
+	val &= 0xfffffff0;
+	put_reg32(val, 0x4083c130);
+
+	SYS_LOG_INF("power on sram done");
+}
+#endif /* CONFIG_WIFI_UWP_USE_SRAM */
+
 static int uwp_init(struct device *dev)
 {
 	int ret;
@@ -333,6 +388,8 @@ static int uwp_init(struct device *dev)
 		/* priv->connecting = false; */
 		/* priv->connected = false; */
 		priv->opened = false;
+
+		wifi_mem_init();
 
 		ret = cp_mcu_init();
 		if (ret) {

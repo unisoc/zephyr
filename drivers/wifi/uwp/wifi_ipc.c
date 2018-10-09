@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2018, UNISOC Incorporated
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <zephyr.h>
 #include <logging/sys_log.h>
 #include <string.h>
