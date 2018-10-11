@@ -216,6 +216,7 @@ dist: $(DIST_TARGETS)
 	sed -i 's/bootm 0x......../bootm $(KERNEL_BOOT_ADDR)/' $(uboot_DIR)/include/configs/$(BOARD).h; \
 	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(uboot_DIR) $(BOARD)_defconfig; \
 	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(uboot_DIR); \
+	$(call SIGN_BOOT_IMAGE,$(uboot_DIR)/u-boot.bin,$(DIST_DIR)/mcuboot-pubkey.bin); \
 	fi
 #	sign kernel for u-boot loading
 	@ mv $(KERNEL_BIN) $(KERNEL_BIN).orig
@@ -223,9 +224,7 @@ dist: $(DIST_TARGETS)
 	$(call SIGN_OS_IMAGE,none,$(KERNEL_LOAD_ADDR),$(KERNEL_ENTRY_ADDR),$(KEY_DIR),$(KEY_NAME))
 	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(uboot_DIR) EXT_DTB=$(KEY_DTB)
 	@ mv $(KERNEL_BIN).orig $(KERNEL_BIN)
-#	sign boot for ROM loading
-	$(call SIGN_BOOT_IMAGE,$(uboot_DIR)/u-boot.bin,$(DIST_DIR)/u-boot-pubkey-dtb.bin)
-	install $(ITB) $(DIST_DIR)/zephyr-signed-fit-uImage-ota.itb
+	install $(ITB) $(DIST_DIR)/zephyr-signed-ota.bin
 
 .PHONY: debug
 debug: $(DEBUG_TARGETS)
