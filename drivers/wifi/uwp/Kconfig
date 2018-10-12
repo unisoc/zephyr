@@ -1,0 +1,17 @@
+menuconfig WIFI_UWP
+	bool "Unisoc uwp wifi driver support"
+	default y
+	select WIFI_OFFLOAD
+	select NET_L2_WIFI_MGMT
+
+if WIFI_UWP
+config WIFI_UWP_STA_NAME
+	string "STA device name"
+	default "UWP_STA"
+config WIFI_UWP_AP_NAME
+	string "SoftAP device name"
+	default "UWP_AP"
+config WIFI_UWP_USE_SRAM
+	bool "Wifi use sram"
+	default n
+endif
