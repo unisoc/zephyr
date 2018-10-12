@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2018, UNISOC Incorporated
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <zephyr.h>
 #include <stdlib.h>
 #include <logging/sys_log.h>
@@ -10,10 +16,13 @@
 #define SYSTEM_WIFI_CONFIG_FILE "/NAND:/WIFI_B~1.INI"
 
 #define CF_TAB(NAME, MEM_OFFSET, TYPE) \
-{ NAME, (size_t)(&(((struct wifi_conf_t *)(0))->MEM_OFFSET)), TYPE}
+	{ NAME, (size_t)(&(((struct wifi_conf_t *)(0))->MEM_OFFSET)), TYPE }
 
-#define OFS_MARK_STRING \
+#define OFS_MARK_STRING	\
 	"#-----------------------------------------------------------------\r\n"
+
+#define SEC1 (1)
+#define SEC2 (2)
 
 static struct nvm_name_table g_config_table[] = {
 	/* [Section 1: Version]
@@ -51,26 +60,26 @@ static struct nvm_name_table g_config_table[] = {
 	CF_TAB("Chain1_LUT_6", tpc_lut.chain1_lut[6], 1),
 	CF_TAB("Chain1_LUT_7", tpc_lut.chain1_lut[7], 1),
 
-	/*[SETCTION 5]Board Config Frequency Compensation:
+	/* [SETCTION 5]Board Config Frequency Compensation:
 	 * board_conf_freq_comp_t
 	 */
 	CF_TAB("2G_Channel_Chain0",
-			board_conf_freq_comp.channel_2g_chain0[0], 1),
+	       board_conf_freq_comp.channel_2g_chain0[0], 1),
 	CF_TAB("2G_Channel_Chain1",
-			board_conf_freq_comp.channel_2g_chain1[0], 1),
+	       board_conf_freq_comp.channel_2g_chain1[0], 1),
 	CF_TAB("5G_Channel_Chain0",
-			board_conf_freq_comp.channel_5g_chain0[0], 1),
+	       board_conf_freq_comp.channel_5g_chain0[0], 1),
 	CF_TAB("5G_Channel_Chain1",
-			board_conf_freq_comp.channel_5g_chain1[0], 1),
+	       board_conf_freq_comp.channel_5g_chain1[0], 1),
 
-	/*[SETCTION 6]Rate To Power with BW 20M: power_20m_t
+	/* [SETCTION 6]Rate To Power with BW 20M: power_20m_t
 	 */
 	CF_TAB("11b_Power", power_20m.power_11b[0], 1),
 	CF_TAB("11ag_Power", power_20m.power_11ag[0], 1),
 	CF_TAB("11n_Power", power_20m.power_11n[0], 1),
 	CF_TAB("11ac_Power", power_20m.power_11ac[0], 1),
 
-	/*[SETCTION 7]Power Backoff:power_backoff_t
+	/* [SETCTION 7]Power Backoff:power_backoff_t
 	 */
 	CF_TAB("Green_WIFI_offset", power_backoff.green_wifi_offset, 1),
 	CF_TAB("HT40_Power_offset", power_backoff.ht40_power_offset, 1),
@@ -79,19 +88,19 @@ static struct nvm_name_table g_config_table[] = {
 	CF_TAB("SAR_Power_offset", power_backoff.sar_power_offset, 1),
 	CF_TAB("Mean_Power_offset", power_backoff.mean_power_offset, 1),
 
-	/*[SETCTION 8]Reg Domain:reg_domain_t
+	/* [SETCTION 8]Reg Domain:reg_domain_t
 	 */
 	CF_TAB("reg_domain1", reg_domain.reg_domain1, 4),
 	CF_TAB("reg_domain2", reg_domain.reg_domain2, 4),
 
-	/*[SETCTION 9]Band Edge Power offset(MKK, FCC, ETSI):
+	/* [SETCTION 9]Band Edge Power offset(MKK, FCC, ETSI):
 	 * band_edge_power_offset_t
 	 */
 	CF_TAB("BW20M", band_edge_power_offset.bw20m[0], 1),
 	CF_TAB("BW40M", band_edge_power_offset.bw40m[0], 1),
 	CF_TAB("BW80M", band_edge_power_offset.bw80m[0], 1),
 
-	/*[SETCTION 10]TX Scale:tx_scale_t
+	/* [SETCTION 10]TX Scale:tx_scale_t
 	 */
 	CF_TAB("Chain0_1", tx_scale.chain0[0][0], 1),
 	CF_TAB("Chain1_1", tx_scale.chain1[0][0], 1),
@@ -172,19 +181,19 @@ static struct nvm_name_table g_config_table[] = {
 	CF_TAB("Chain0_165", tx_scale.chain0[38][0], 1),
 	CF_TAB("Chain1_165", tx_scale.chain1[38][0], 1),
 
-	/*[SETCTION 11]misc:misc_t
+	/* [SETCTION 11]misc:misc_t
 	 */
 	CF_TAB("DFS_switch", misc.dfs_switch, 1),
 	CF_TAB("power_save_switch", misc.power_save_switch, 1),
 	CF_TAB("ex-Fem_and_ex-LNA_param_setup", misc.fem_lan_param_setup, 1),
 	CF_TAB("rssi_report_diff", misc.rssi_report_diff, 1),
 
-	/*[SETCTION 12]debug reg:debug_reg_t
+	/* [SETCTION 12]debug reg:debug_reg_t
 	 */
 	CF_TAB("address", debug_reg.address[0], 4),
 	CF_TAB("value", debug_reg.value[0], 4),
 
-	/*[SETCTION 13]coex_config:coex_config_t
+	/* [SETCTION 13]coex_config:coex_config_t
 	 */
 	CF_TAB("bt_performance_cfg0", coex_config.bt_performance_cfg0, 4),
 	CF_TAB("bt_performance_cfg1", coex_config.bt_performance_cfg1, 4),
@@ -212,45 +221,55 @@ static struct nvm_name_table g_config_table[] = {
 static int find_type(char key)
 {
 	if ((key >= 'a' && key <= 'w') ||
-			(key >= 'y' && key <= 'z') ||
-			(key >= 'A' && key <= 'W') ||
-			(key >= 'Y' && key <= 'Z') || ('_' == key))
+	    (key >= 'y' && key <= 'z') ||
+	    (key >= 'A' && key <= 'W') ||
+	    (key >= 'Y' && key <= 'Z') || (key == '_')) {
 		return 1;
-	if ((key >= '0' && key <= '9') || ('-' == key))
+	}
+	if ((key >= '0' && key <= '9') || (key == '-')) {
 		return 2;
-	if (('x' == key) || ('X' == key) || ('.' == key))
+	}
+	if ((key == 'x') || (key == 'X') || (key == '.')) {
 		return 3;
-	if ((key == '\0') || ('\r' == key) || ('\n' == key) || ('#' == key))
+	}
+	if ((key == '\0') || (key == '\r') || (key == '\n') || (key == '#')) {
 		return 4;
+	}
 	return 0;
 }
 
 static int wifi_nvm_set_cmd(struct nvm_name_table *pTable,
-		struct nvm_cali_cmd *cmd, void *p_data)
+			    struct nvm_cali_cmd *cmd, void *p_data)
 {
 	int i;
 	unsigned char *p;
 
-	if ((1 != pTable->type) && (2 != pTable->type) && (4 != pTable->type))
+	if ((pTable->type != 1) && (pTable->type != 2) && (pTable->type != 4)) {
 		return -1;
+	}
 
 	p = (unsigned char *)(p_data) + pTable->mem_offset;
 
-	/*SYS_LOG_INF("[g_table]%s, offset:%u, num:%u, value:\
-	%d %d %d %d %d %d %d %d %d %d \n", pTable->itm, pTable->mem_offset, cmd->num, cmd->par[0], cmd->par[1], cmd->par[2], cmd->par[3], cmd->par[4], cmd->par[5], cmd->par[6], cmd->par[7], cmd->par[8], cmd->par[9]);*/
+	/* SYS_LOG_INF("[g_table]%s, offset:%u, num:%u, value:
+	 * %d %d %d %d %d %d %d %d %d %d \n", pTable->itm,
+	 * pTable->mem_offset, cmd->num, cmd->par[0], cmd->par[1],
+	 * cmd->par[2], cmd->par[3], cmd->par[4], cmd->par[5],
+	 * cmd->par[6], cmd->par[7], cmd->par[8], cmd->par[9]);
+	 */
 
 	for (i = 0; i < cmd->num; i++) {
-		if (1 == pTable->type)
+		if (pTable->type == 1) {
 			*((unsigned char *)p + i)
 				= (unsigned char)(cmd->par[i]);
-		else if (2 == pTable->type)
+		} else if (pTable->type == 2) {
 			*((unsigned short *)p + i)
 				= (unsigned short)(cmd->par[i]);
-		else if (4 == pTable->type)
+		} else if (pTable->type == 4) {
 			*((unsigned int *)p + i)
 				= (unsigned int)(cmd->par[i]);
-		else
-			SYS_LOG_INF("%s, type err\n", __func__);
+		} else {
+			SYS_LOG_ERR("%s, type err\n", __func__);
+		}
 	}
 	return 0;
 }
@@ -270,40 +289,44 @@ static void get_cmd_par(char *str, struct nvm_cali_cmd *cmd)
 	for (i = 0, j = 0;; i++) {
 		c = str[i];
 		cType = find_type(c);
-		if ((1 == cType) || (2 == cType) || (3 == cType)) {
+		if ((cType == 1) || (cType == 2) || (cType == 3)) {
 			tmp[j] = c;
 			j++;
-			if (-1 == bufType) {
-				if (2 == cType)
+			if (bufType == -1) {
+				if (cType == 2) {
 					bufType = 2;
-				else
+				} else {
 					bufType = 1;
-			} else if (2 == bufType) {
-				if (1 == cType)
+				}
+			} else if (bufType == 2) {
+				if (cType == 1) {
 					bufType = 1;
+				}
 			}
 			continue;
 		}
-		if (-1 != bufType) {
+		if (bufType != -1) {
 			tmp[j] = '\0';
 
-			if ((1 == bufType) && (0 == flag)) {
+			if ((bufType == 1) && (flag == 0)) {
 				strcpy(cmd->itm, tmp);
 				flag = 1;
 			} else {
 				val = strtol(tmp, NULL, 0);
-				//	SYS_LOG_INF(" %s ", tmp);
-				/* SYS_LOG_ERR("strtol %s: error\n", tmp); */
+				/*	SYS_LOG_INF(" %s ", tmp); */
+				/*  SYS_LOG_ERR("strtol %s: error\n", tmp); */
 				cmd->par[cmd->num] = val & 0xFFFFFFFF;
 				cmd->num++;
 			}
 			bufType = -1;
 			j = 0;
 		}
-		if (0 == cType)
+		if (cType == 0) {
 			continue;
-		if (4 == cType)
+		}
+		if (cType == 4) {
 			return;
+		}
 	}
 }
 
@@ -313,13 +336,16 @@ static struct nvm_name_table *cf_table_match(struct nvm_cali_cmd *cmd)
 	struct nvm_name_table *pTable = NULL;
 	int len = sizeof(g_config_table) / sizeof(struct nvm_name_table);
 
-	if ((NULL == cmd) || (NULL == cmd->itm))
+	if ((!cmd) || (!cmd->itm)) {
 		return NULL;
+	}
 	for (i = 0; i < len; i++) {
-		if (NULL == g_config_table[i].itm)
+		if (!g_config_table[i].itm) {
 			continue;
-		if (0 != strcmp(g_config_table[i].itm, cmd->itm))
+		}
+		if (strcmp(g_config_table[i].itm, cmd->itm)) {
 			continue;
+		}
 		pTable = &g_config_table[i];
 		break;
 	}
@@ -332,17 +358,19 @@ static int wifi_nvm_buf_operate(char *pBuf, int file_len, void *p_data)
 	struct nvm_cali_cmd cmd;
 	struct nvm_name_table *pTable = NULL;
 
-	if ((NULL == pBuf) || (0 == file_len))
+	if ((!pBuf) || (file_len == 0)) {
 		return -1;
+	}
 	for (i = 0, p = 0; i < file_len; i++) {
 		if (('\n' == *(pBuf + i)) ||
-				('\r' == *(pBuf + i)) || ('\0' == *(pBuf + i))) {
+		    ('\r' == *(pBuf + i)) || ('\0' == *(pBuf + i))) {
 			if (5 <= (i - p)) {
 				get_cmd_par((pBuf + p), &cmd);
 				pTable = cf_table_match(&cmd);
 
-				if (NULL != pTable)
+				if (pTable) {
 					wifi_nvm_set_cmd(pTable, &cmd, p_data);
+				}
 			}
 			p = i + 1;
 		}
@@ -358,7 +386,7 @@ static int wifi_nvm_parse(const char *path, void *p_data)
 	unsigned char *p_buf = buffer;
 	unsigned int file_size = 0;
 
-	SYS_LOG_INF("%s()...", __func__);
+	SYS_LOG_DBG("%s()...", __func__);
 	if (fs_open(&file, path)) {
 		SYS_LOG_ERR("open file %s error", path);
 		return -1;
@@ -368,7 +396,7 @@ static int wifi_nvm_parse(const char *path, void *p_data)
 	file_size = fs_tell(&file);
 	fs_seek(&file, 0, FS_SEEK_SET);
 	buffer_len = 0;
-	SYS_LOG_INF("file size: %d", file_size);
+	SYS_LOG_DBG("file size: %d", file_size);
 
 	do {
 		read_len = fs_read(&file, p_buf, file_size);
@@ -381,23 +409,25 @@ static int wifi_nvm_parse(const char *path, void *p_data)
 
 	fs_close(&file);
 
-	SYS_LOG_INF("%s read %s data_len:0x%x", __func__, path, buffer_len);
+	SYS_LOG_DBG("%s read %s data_len:0x%x", __func__, path, buffer_len);
 	wifi_nvm_buf_operate(buffer, buffer_len, p_data);
-	//free(buffer);
-	SYS_LOG_INF("%s(), ok!", __func__);
+	SYS_LOG_DBG("%s(), ok!", __func__);
 	return 0;
 }
 
-#define SEC1    1
-#define SEC2    2
 int uwp_wifi_download_ini(void)
 {
-	int ret;
+	int ret = 0;
 	struct wifi_conf_t conf;
 	struct wifi_conf_sec1_t *sec1;
 	struct wifi_conf_sec2_t *sec2;
+	static bool download_ini_flag;
 
-	SYS_LOG_INF("Start loading wifi ini.");
+	if (download_ini_flag) {
+		return ret;
+	}
+
+	SYS_LOG_DBG("Start loading wifi ini.");
 	ret = wifi_nvm_parse(SYSTEM_WIFI_CONFIG_FILE, (void *)&conf);
 	if (ret) {
 		return ret;
@@ -407,22 +437,23 @@ int uwp_wifi_download_ini(void)
 	sec1 = (struct wifi_conf_sec1_t *)&conf;
 	sec2 = (struct wifi_conf_sec2_t *)&conf.tx_scale;
 
-	SYS_LOG_INF("download the first section of config file");
+	SYS_LOG_DBG("download the first section of config file");
 	ret = wifi_cmd_load_ini((u8_t *) sec1, sizeof(*sec1), SEC1);
 	if (ret) {
-		SYS_LOG_ERR("download the first section of ini fail,return");
+		SYS_LOG_ERR("download first section ini fail,ret = %d", ret);
 		return ret;
 	}
 
-	SYS_LOG_INF("download the second section of config file");
+	SYS_LOG_DBG("download the second section of config file");
 	ret = wifi_cmd_load_ini((u8_t *) sec2, sizeof(*sec2), SEC2);
-	if (ret) {
-		SYS_LOG_ERR("download the second section of ini fail,return");
+	if (ret != 1) { /* FIXME */
+		SYS_LOG_ERR("download second section ini fail,ret = %d", ret);
 		return ret;
 	}
 #endif
+	download_ini_flag = true;
 
-	SYS_LOG_INF("Load wifi ini success.");
+	SYS_LOG_DBG("Load wifi ini success.");
 
 	return 0;
 }
