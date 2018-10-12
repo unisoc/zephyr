@@ -19,7 +19,7 @@ static int sm_timer_start(timer_t timerid, unsigned int sec)
 	int ret;
 
 	/* Start, restart, or stop the timer */
-	todelay.it_interval.tv_sec = 0;	/* Nonrepeating */
+	todelay.it_interval.tv_sec = 0; /* Nonrepeating */
 	todelay.it_interval.tv_nsec = 0;
 	todelay.it_value.tv_sec = sec;
 	todelay.it_value.tv_nsec = 0;

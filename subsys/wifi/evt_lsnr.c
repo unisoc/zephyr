@@ -222,7 +222,7 @@ int wifi_manager_event_listener_init(struct evt_listener *handle)
 	wifimgr_slist_init(&lsnr->free_evt_list);
 	for (i = 0; i < WIFIMGR_EVT_RECEIVER_NR; i++)
 		wifimgr_slist_append(&lsnr->free_evt_list,
-				     (wifimgr_snode_t *) & lsnr->evt_pool[i]);
+				     (wifimgr_snode_t *) &lsnr->evt_pool[i]);
 
 	sem_init(&lsnr->exclsem, 0, 1);
 	lsnr->is_setup = true;

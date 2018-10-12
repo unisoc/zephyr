@@ -143,12 +143,9 @@ int wifi_manager_start_softap(void *handle)
 
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP,
 					  wifi_manager_stop_softap, mgr);
-/*
-	if (mgr->ap_iface) {
-		syslog(LOG_INFO, "start DHCP server\n");
-		dhcpd_start();
-	}
-*/
+
+	/* TODO: Start DHCP server */
+
 	return ret;
 }
 

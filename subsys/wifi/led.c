@@ -1,5 +1,5 @@
 /*
- *@file
+   *@file
  * @brief LED lighting
  */
 
@@ -33,8 +33,8 @@ int light_turn_on(u32_t pin)
 
 	if (gpio) {
 		ret = gpio_pin_write(gpio,
-				pin,
-				LED_ON_VALUE);
+				     pin,
+				     LED_ON_VALUE);
 	}
 
 	return ret;
@@ -46,8 +46,8 @@ int light_turn_off(u32_t pin)
 
 	if (gpio) {
 		ret = gpio_pin_write(gpio,
-				pin,
-				LED_OFF_VALUE);
+				     pin,
+				     LED_OFF_VALUE);
 	}
 
 	return ret;

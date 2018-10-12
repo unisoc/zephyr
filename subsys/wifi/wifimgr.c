@@ -170,12 +170,6 @@ int wifi_manager_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id)
 	else if (!mgr->ap_iface && is_ap_cmd(cmd_id) == true)
 		mgr->ap_iface = iface;
 
-/*
-	[> Register driver callback for WiFi events <]
-	wifi_drv_iface_register_event_cb(wifi_drv_iface_notify_event,
-					 mgr->lsnr.mq);
-*/
-
 	return ret;
 }
 
@@ -220,10 +214,6 @@ static int wifi_manager_init(struct device *unused)
 
 	led_init();
 
-/*
-	[>get default config<]
-	ret = wifimgr_get_connect_config(NULL);
-*/
 	return ret;
 }
 
