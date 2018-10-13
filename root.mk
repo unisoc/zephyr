@@ -164,18 +164,6 @@ DEBUG_TARGETS		:= $(addsuffix _debug,$(DEFAULT_TARGETS))
 ALL_TARGETS		:= $(DEFAULT_TARGETS) $(DEBUG_TARGETS)
 CLEAN_TARGETS		:= $(addsuffix -clean,$(ALL_TARGETS))
 
-# Macro of Signing Boot Image
-# $(1): Source binary
-# $(2): Destination binary
-define SIGN_BOOT_IMAGE
-	@ MAGIC_NR=0x5a5a6ec0; \
-	IMAGE_SIZE=$$(stat -c "%s" $(1)); \
-	printf "0: %.8x" "$$MAGIC_NR" | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 |tee $$MAGIC_NR.bin 1>/dev/null; \
-	printf "0: %.8x" $$IMAGE_SIZE | sed -E 's/0: (..)(..)(..)(..)/0: \4\3\2\1/' | xxd -r -g0 |tee $$IMAGE_SIZE.bin 1>/dev/null; \
-	cat $$MAGIC_NR.bin $$IMAGE_SIZE.bin $(1) > $(2); \
-	rm $$MAGIC_NR.bin $$IMAGE_SIZE.bin
-endef
-
 uboot_DIR	:= $(PRJDIR)/u-boot
 KEY_DIR		:= $(uboot_DIR)/rsa-keypair
 KEY_NAME	:= dev
@@ -216,7 +204,8 @@ dist: $(DIST_TARGETS)
 	sed -i 's/bootm 0x......../bootm $(KERNEL_BOOT_ADDR)/' $(uboot_DIR)/include/configs/$(BOARD).h; \
 	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(uboot_DIR) $(BOARD)_defconfig; \
 	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(uboot_DIR); \
-	$(call SIGN_BOOT_IMAGE,$(uboot_DIR)/u-boot.bin,$(DIST_DIR)/mcuboot-pubkey.bin); \
+	install $(uboot_DIR)/u-boot.bin $(DIST_DIR)/u-boot-pubkey-dtb.bin; \
+	install $(DIST_DIR)/u-boot-pubkey-dtb.bin $(DIST_DIR)/mcuboot-pubkey.bin; \
 	fi
 #	sign kernel for u-boot loading
 	@ mv $(KERNEL_BIN) $(KERNEL_BIN).orig
