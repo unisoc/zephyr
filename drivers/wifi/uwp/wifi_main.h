@@ -32,12 +32,10 @@ struct wifi_priv {
 	u8_t mode;
 	u8_t mac[ETH_ALEN];
 	u8_t ipv4_addr[IPV4_LEN];
-	u8_t scan_result;
 	/* bool connecting; */
 	/* bool connected; */
 	bool opened;
 	bool initialized;
-	scan_result_cb_t scan_cb;
 };
 
 static inline void uwp_save_addr_before_payload(u32_t payload, void *addr)

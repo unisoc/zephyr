@@ -379,11 +379,9 @@ int wifi_evt_scan_result(struct wifi_priv *priv, char *data, int len)
 
 	SYS_LOG_DBG("ssid: %s", event->ssid);
 
-	if (priv->scan_cb) {
-		priv->scan_cb(priv->iface, 0, &scan_result);
+	wifi_drv_iface_scan_result_cb(priv->iface, 0, &scan_result);
 
-		k_yield();
-	}
+	k_yield();
 
 	return 0;
 }
@@ -397,12 +395,7 @@ int wifi_evt_scan_done(struct wifi_priv *priv, char *data, int len)
 		return -1;
 	}
 
-	if (!priv->scan_cb) {
-		return 0;
-	}
-
 	wifi_drv_iface_scan_done_cb(priv->iface, event->status);
-	priv->scan_cb = NULL;
 
 	return 0;
 }

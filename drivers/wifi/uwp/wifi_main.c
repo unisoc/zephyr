@@ -153,20 +153,11 @@ static int uwp_mgmt_del_station(struct device *dev,
 
 static int uwp_mgmt_scan(struct device *dev, scan_result_cb_t cb)
 {
+	ARG_UNUSED(cb);
+
 	struct wifi_priv *priv = DEV_DATA(dev);
 
-	if (priv->scan_cb) {
-		return -EALREADY;
-	}
-
-	priv->scan_cb = cb;
-
-	if (wifi_cmd_scan(priv)) {
-		priv->scan_cb = NULL;
-		return -EIO;
-	}
-
-	return 0;
+	return wifi_cmd_scan(priv);
 }
 
 static int uwp_mgmt_get_station(struct device *dev,
