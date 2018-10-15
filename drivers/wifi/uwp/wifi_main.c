@@ -373,7 +373,6 @@ static int uwp_init(struct device *dev)
 {
 	int ret;
 	struct wifi_priv *priv = DEV_DATA(dev);
-	static bool wifi_init;
 
 	if (!strcmp(dev->config->name, CONFIG_WIFI_UWP_STA_NAME)) {
 		priv->mode = WIFI_MODE_STA;
@@ -384,24 +383,30 @@ static int uwp_init(struct device *dev)
 			    dev->config->name);
 	}
 
-	if (!wifi_init && (priv->mode == WIFI_MODE_STA)) {
-		/* priv->connecting = false; */
-		/* priv->connected = false; */
-		priv->opened = false;
+	if (!priv->initialized) {
+		if (priv->mode == WIFI_MODE_STA) {
+			/* priv->connecting = false; */
+			/* priv->connected = false; */
 
-		wifi_mem_init();
+			wifi_mem_init();
 
-		ret = cp_mcu_init();
-		if (ret) {
-			SYS_LOG_ERR("firmware download failed %i.", ret);
-			return ret;
+			ret = cp_mcu_init();
+			if (ret) {
+				SYS_LOG_ERR("firmware download failed %i.",
+						ret);
+				return ret;
+			}
+
+			wifi_cmdevt_init();
+			wifi_txrx_init(priv);
+			wifi_irq_init();
 		}
 
-		wifi_cmdevt_init();
-		wifi_txrx_init(priv);
-		wifi_irq_init();
-
-		wifi_init = true;
+		/* CP does not need to do initialization twice
+		 * because softap and sta are initialized at one time.
+		 */
+		priv->opened = false;
+		priv->initialized = true;
 	}
 
 	SYS_LOG_DBG("UWP WIFI driver Initialized");

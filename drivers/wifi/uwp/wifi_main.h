@@ -36,6 +36,7 @@ struct wifi_priv {
 	/* bool connecting; */
 	/* bool connected; */
 	bool opened;
+	bool initialized;
 	scan_result_cb_t scan_cb;
 };
 
