@@ -276,9 +276,9 @@ int smsg_send_irq(u8_t dst, struct smsg *msg)
 
 	if (sys_read32(tx_buf->wrptr) - sys_read32(tx_buf->rdptr)
 			>= tx_buf->size) {
-		ipc_warn("smsg irq txbuf is full! %d %d %d\n",
+ 		ipc_debug("smsg irq txbuf is full! %d %d %d\n",
 				sys_read32(tx_buf->wrptr),
-				sys_read32(tx_buf->rdptr), msg->value);
+				sys_read32(tx_buf->rdptr), msg->value); 
 		ret = -EBUSY;
 		goto send_failed;
 	}

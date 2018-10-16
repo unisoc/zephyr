@@ -107,7 +107,7 @@ struct sblock_header {
 };
 
 
-#define MAX_BLOCK_COUNT		(16)
+#define MAX_BLOCK_COUNT		DATAPATH_NOR_RX_BLOCK_NUM
 struct sblock_ring {
 	struct sblock_header	*header;
 	void			*txblk_virt; /* virt of header->txblk_addr */
@@ -125,7 +125,6 @@ struct sblock_ring {
 	struct k_sem	recvwait;
 };
 
-#define SBLOCK_STACK_SIZE		(1024)
 struct sblock_mgr {
 	u8_t			dst;
 	u8_t			channel;
