@@ -98,12 +98,6 @@ static int uwp_mgmt_open(struct device *dev)
 		wifi_tx_empty_buf(MAX_EMPTY_BUF_COUNT);
 	}
 
-	ret = uwp_wifi_download_ini();
-	if (ret) {
-		SYS_LOG_ERR("Download wifi ini failed.");
-		return ret;
-	}
-
 	priv->opened = true;
 
 	return 0;
@@ -391,6 +385,12 @@ static int uwp_init(struct device *dev)
 			wifi_cmdevt_init();
 			wifi_txrx_init(priv);
 			wifi_irq_init();
+
+			ret = wifi_rf_init();
+			if (ret) {
+				SYS_LOG_ERR("wifi rf init failed.");
+				return ret;
+			}
 		}
 
 		/* CP does not need to do initialization twice

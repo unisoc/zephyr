@@ -13,7 +13,6 @@
 #include "wifi_txrx.h"
 /* #include "wifi_msg.h" */
 #include "wifi_ipc.h"
-#include "wifi_rf.h"
 
 #define ETH_ALEN (6)
 #define IPV4_LEN (4)
@@ -27,7 +26,6 @@
 
 struct wifi_priv {
 	struct net_if *iface;
-	struct wifi_conf_t conf;
 	u32_t cp_version;
 	u8_t mode;
 	u8_t mac[ETH_ALEN];
