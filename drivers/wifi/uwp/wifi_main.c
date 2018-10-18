@@ -386,6 +386,7 @@ static int uwp_init(struct device *dev)
 			wifi_txrx_init(priv);
 			wifi_irq_init();
 
+			k_sleep(400); /* FIXME: workaround */
 			ret = wifi_rf_init();
 			if (ret) {
 				SYS_LOG_ERR("wifi rf init failed.");

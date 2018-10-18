@@ -14,8 +14,12 @@
 #include "wifi_main.h"
 
 #define RX_BUF_SIZE (2000)
+#define TXRX_STACK_SIZE (1024)
 
-static unsigned char rx_buf[RX_BUF_SIZE];
+K_THREAD_STACK_MEMBER(txrx_stack, TXRX_STACK_SIZE);
+static struct k_thread txrx_thread_data;
+static struct k_sem event_sem;
+static u8_t rx_buf[RX_BUF_SIZE];
 
 int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 {
@@ -140,12 +144,6 @@ int wifi_data_process(struct wifi_priv *priv, char *data, int len)
 	return 0;
 }
 
-
-#define TXRX_STACK_SIZE (1024)
-K_THREAD_STACK_MEMBER(txrx_stack, TXRX_STACK_SIZE);
-static struct k_thread txrx_thread_data;
-
-static struct k_sem event_sem;
 static void txrx_thread(void *p1)
 {
 	int ret;
@@ -244,7 +242,7 @@ int wifi_tx_empty_buf(int num)
 
 	for (i = 0; i < num; i++) {
 		pkt_buf = net_pkt_get_frag(0, K_NO_WAIT);
-		if (pkt_buf == NULL) {
+		if (!pkt_buf) {
 			SYS_LOG_ERR("Could not allocate rx packet %d.", i);
 			break;
 		}

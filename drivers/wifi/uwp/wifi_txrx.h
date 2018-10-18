@@ -7,10 +7,23 @@
 #ifndef __WIFI_TXRX_H__
 #define __WIFI_TXRX_H__
 
-#define SPRD_AP_CP_DRAM_MAP_BASE 0x40400000
+#define SPRD_AP_CP_DRAM_MAP_BASE (0x40400000)
 
-#define SPRD_AP_DRAM_BEGIN 0x00100000
-#define SPRD_AP_DRAM_END 0x001FFFFF
+#define SPRD_AP_DRAM_BEGIN (0x00100000)
+#define SPRD_AP_DRAM_END (0x001FFFFF)
+
+#define SPRDWL_PHYS_LEN (5)
+
+#define ADDR_LEN (5)
+/* #define CP_PBUF_SIZE (1600) */
+
+/* #define SPRDWL_PROCESS_BUFFER (0)
+ * #define SPRDWL_FREE_BUFFER (1)
+ * #define SPRDWL_REQUEST_BUFFER (2)
+ * #define SPRDWL_FLUSH_BUFFER (3)
+ */
+
+#define MAX_EMPTY_BUF_COUNT (200)
 
 #define SPRD_CP_DRAM_BEGIN (SPRD_AP_DRAM_BEGIN + SPRD_AP_CP_DRAM_MAP_BASE)
 #define SPRD_CP_DRAM_END (SPRD_AP_DRAM_END + SPRD_AP_CP_DRAM_MAP_BASE)
@@ -254,14 +267,9 @@ struct txc_addr_buff {
 
 struct rx_empty_buff {
 	struct sprdwl_common_hdr common;
-#define SPRDWL_PROCESS_BUFFER (0)
-#define SPRDWL_FREE_BUFFER (1)
-#define SPRDWL_REQUEST_BUFFER (2)
-#define SPRDWL_FLUSH_BUFFER (3)
 	unsigned char type;
 	unsigned char num;
-#define MAX_EMPTY_BUF_COUNT (80)
-	unsigned char addr[MAX_EMPTY_BUF_COUNT][5];
+	unsigned char addr[MAX_EMPTY_BUF_COUNT][ADDR_LEN];
 } __packed;
 
 /* 0 for cmd, 1 for event, 2 for data, 3 for mh data. */
@@ -281,8 +289,6 @@ enum sprdwl_head_rsp {
 	SPRDWL_HEAD_RSP,
 };
 #endif
-#define SPRDWL_PHYS_LEN (5)
-#define CP_PBUF_SIZE (1600)
 
 struct hw_addr_buff_t {
 	struct sprdwl_common_hdr common;
@@ -290,7 +296,7 @@ struct hw_addr_buff_t {
 	struct  tx_ctrl tx_ctrl;
 	unsigned short number;
 	unsigned short rsvd;
-	unsigned char pcie_addr[0][5];
+	unsigned char pcie_addr[0][ADDR_LEN];
 } __packed;
 
 
@@ -300,7 +306,7 @@ struct rxc_ddr_addr_trans_t {
 	unsigned char tlv_num;
 	unsigned char type;
 	unsigned char num;
-	unsigned char addr_addr[0][5];
+	unsigned char addr_addr[0][ADDR_LEN];
 } __packed;
 
 struct rxc {
