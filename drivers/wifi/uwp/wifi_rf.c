@@ -24,7 +24,7 @@ int wifi_rf_init(void)
 
 	SYS_LOG_DBG("download the second section of config file");
 	ret = wifi_cmd_load_ini(sec2_table, sizeof(sec2_table), SEC2);
-	if (ret != 1) { /* FIXME */
+	if (ret) {
 		SYS_LOG_ERR("download second section ini fail,ret = %d", ret);
 		return ret;
 	}
