@@ -21,6 +21,7 @@ static struct k_thread txrx_thread_data;
 static struct k_sem event_sem;
 static u8_t rx_buf[RX_BUF_SIZE];
 
+
 int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 {
 	/* struct rxc *rx_complete_buf = (struct rxc *)data; */
@@ -29,17 +30,16 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 	struct rx_msdu_desc *rx_msdu = NULL;
 	u32_t payload = 0;
 
-	struct net_pkt *pkt;
+	struct net_pkt *rx_pkt;
 	struct net_buf *pkt_buf;
-	struct net_buf *last_buf = NULL;
 	int ctx_id = 0;
 	int i = 0;
 	u32_t data_len;
 	int ret;
 
-	pkt = net_pkt_get_reserve_rx(0, K_NO_WAIT);
-	if (!pkt) {
-		SYS_LOG_ERR("Could not allocate rx packet");
+	rx_pkt = net_pkt_get_reserve_rx(0, K_NO_WAIT);
+	if (!rx_pkt) {
+		SYS_LOG_ERR("Could not allocate rx packet.");
 		return -1;
 	}
 
@@ -66,18 +66,13 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 		net_buf_add(pkt_buf, data_len);
 		net_buf_pull(pkt_buf, rx_msdu->msdu_offset);
 
-		if (!last_buf) {
-			net_pkt_frag_insert(pkt, pkt_buf);
-		} else {
-			net_buf_frag_insert(last_buf, pkt_buf);
-		}
-
-		last_buf = pkt_buf;
+		net_pkt_frag_add(rx_pkt, pkt_buf);
 	}
-	net_recv_data(priv->iface, pkt);
+	net_recv_data(priv->iface, rx_pkt);
 
 	/* Allocate new empty buffer to cp. */
-	ret = wifi_tx_empty_buf(i);
+	wifi_tx_empty_buf(i);
+
 	return 0;
 }
 
@@ -230,10 +225,10 @@ static void wifi_rx_data(int ch)
 	k_sem_give(&event_sem);
 }
 
-int wifi_tx_empty_buf(int num)
+static int wifi_tx_empty_buf_(int num)
 {
 	int i;
-	struct net_buf  *pkt_buf;
+	struct net_buf *pkt_buf;
 	static struct rx_empty_buff buf;
 	int ret;
 	u32_t data_ptr;
@@ -241,21 +236,23 @@ int wifi_tx_empty_buf(int num)
 	memset(&buf, 0, sizeof(buf));
 
 	for (i = 0; i < num; i++) {
-		pkt_buf = net_pkt_get_frag(0, K_NO_WAIT);
+		/* Reserve a data frag to receive the frame */
+		pkt_buf = net_pkt_get_reserve_rx_data(0, K_NO_WAIT);
 		if (!pkt_buf) {
 			SYS_LOG_ERR("Could not allocate rx packet %d.", i);
-			break;
+			return -1;
 		}
+
 		data_ptr = (u32_t)pkt_buf->data;
 		uwp_save_addr_before_payload((u32_t)data_ptr,
-					     (void *)pkt_buf);
+				(void *)pkt_buf);
 
 		SPRD_AP_TO_CP_ADDR(data_ptr);
 		memcpy(&(buf.addr[i][0]), &data_ptr, 4);
 	}
 
 	if (i == 0) {
-		SYS_LOG_ERR("Nonue rx packet buffer can be used.");
+		SYS_LOG_ERR("No more rx packet buffer.");
 		return -1;
 	}
 
@@ -265,12 +262,42 @@ int wifi_tx_empty_buf(int num)
 	buf.common.direction_ind = TRANS_FOR_RX_PATH;
 
 	ret = wifi_ipc_send(SMSG_CH_WIFI_DATA_NOR, QUEUE_PRIO_NORMAL,
-			    (void *)&buf,
-			    i * SPRDWL_PHYS_LEN + 3,
-			    WIFI_DATA_NOR_MSG_OFFSET);
+			(void *)&buf,
+			i * SPRDWL_PHYS_LEN + 3,
+			WIFI_DATA_NOR_MSG_OFFSET);
 	if (ret < 0) {
 		SYS_LOG_ERR("sprd_wifi_send fail\n");
 		return ret;
+	}
+
+	return 0;
+}
+
+int wifi_tx_empty_buf(int num)
+{
+	int ret;
+	int group;
+	int rest;
+	int i;
+
+	if (num > MAX_ADDR_NUM) {
+		group = num / MAX_ADDR_NUM;
+		rest = num % MAX_ADDR_NUM;
+		for (i = 0; i < group; i++) {
+			ret = wifi_tx_empty_buf_(MAX_ADDR_NUM);
+			if (ret) {
+				return ret;
+			}
+		}
+		ret = wifi_tx_empty_buf_(rest);
+		if (ret) {
+			return ret;
+		}
+	} else {
+		ret = wifi_tx_empty_buf_(num);
+		if (ret) {
+			return ret;
+		}
 	}
 
 	return 0;
