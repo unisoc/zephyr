@@ -26,6 +26,7 @@
 	flash0: flash@200000 {
 		compatible = "serial-flash";
 		reg = <DT_FLASH_START DT_FLASH_SIZE>;
+		label = "UWP_FLASH";
 	};
 
 	soc {
