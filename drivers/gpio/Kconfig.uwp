@@ -1,0 +1,25 @@
+# Kconfig.cc32xx- CC32XX GPIO configuration options
+#
+
+menuconfig GPIO_UWP
+	bool "Unisoc UWP GPIO driver"
+	depends on GPIO && SOC_FAMILY_UWP
+	default n
+	help
+	  Enable the GPIO driver on TI SimpleLink CC32xx boards
+
+if GPIO_UWP
+
+config GPIO_UWP_P0
+	bool "GPIO block A0"
+	depends on GPIO_UWP
+	default n
+	help
+	  Include support for the GPIO port A0.
+
+config GPIO_UWP_P0_NAME
+	string "Driver name"
+	depends on GPIO_UWP_P0
+	default "UWP_GPIO_P0"
+
+endif # GPIO_UWP
