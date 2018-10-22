@@ -56,11 +56,6 @@ static inline u32_t uwp_get_addr_from_payload(u32_t payload)
 
 
 int wifi_get_mac(u8_t *mac, int idx);
-#ifdef CONFIG_WIFI_UWP_USE_SRAM
-void wifi_mem_init(void);
-#else
-#define wifi_mem_init(...)
-#endif /* CONFIG_WIFI_UWP_USE_SRAM */
 /* int wifi_ifnet_sta_init(struct adapter *pAd); */
 /* int wifi_ifnet_ap_init(struct adapter *pAd); */
 /* struct netif *wifi_ifnet_get_interface(struct adapter *pAd,int ctx_id); */

@@ -204,7 +204,7 @@ int wifi_cmd_set_ip(struct wifi_priv *priv, u8_t *ip, u8_t len);
 
 int wifi_cmd_send(u8_t cmd, char *data, int len,
 			 char *rbuf, int *rlen);
-int wifi_cmd_load_ini(u8_t *data, u32_t len, u8_t sec_num);
+int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num);
 int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len);
 int wifi_cmdevt_init(void);
 

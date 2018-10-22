@@ -36,7 +36,7 @@ static const u16_t channels_5g_scan_table[] = {
 	149, 153, 157, 161, 165
 };
 
-static u16_t CRC16(u8_t *buf, u16_t len)
+static u16_t CRC16(const u8_t *buf, u16_t len)
 {
 	u16_t CRC = 0xFFFF;
 	u16_t i;
@@ -61,7 +61,7 @@ static inline int check_cmdevt_len(int input_len, int expected_len)
 	return 0;
 }
 
-int wifi_cmd_load_ini(u8_t *data, u32_t len, u8_t sec_num)
+int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 {
 	int ret = 0;
 	u16_t CRC = 0;

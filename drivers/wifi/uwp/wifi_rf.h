@@ -195,7 +195,4 @@ const u8_t sec2_table[] = {
 };
 
 
-int wifi_rf_init(void);
-
-
 #endif /* __WIFI_RF_H__ */

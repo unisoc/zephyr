@@ -26,6 +26,7 @@
 #include <net/ethernet.h>
 
 #include "wifi_main.h"
+#include "wifi_rf.h"
 #include "sipc.h"
 
 /*
@@ -76,6 +77,29 @@ int wifi_get_mac(u8_t *mac, int idx)
 	mac[3] = 0x44;
 	mac[4] = 0x73;
 	mac[5] = 0x2c;
+
+	return 0;
+}
+
+static int wifi_rf_init(void)
+{
+	int ret = 0;
+
+	SYS_LOG_DBG("download the first section of config file");
+	ret = wifi_cmd_load_ini(sec1_table, sizeof(sec1_table), SEC1);
+	if (ret) {
+		SYS_LOG_ERR("download first section ini fail,ret = %d", ret);
+		return ret;
+	}
+
+	SYS_LOG_DBG("download the second section of config file");
+	ret = wifi_cmd_load_ini(sec2_table, sizeof(sec2_table), SEC2);
+	if (ret) {
+		SYS_LOG_ERR("download second section ini fail,ret = %d", ret);
+		return ret;
+	}
+
+	SYS_LOG_DBG("Load wifi ini success.");
 
 	return 0;
 }
@@ -199,7 +223,7 @@ static void uwp_iface_init(struct net_if *iface)
 	priv->iface = iface;
 }
 
-int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
+static int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
 			   struct net_pkt *pkt, u8_t type, u8_t offset)
 {
 	u32_t addr = 0;
@@ -319,7 +343,7 @@ static const struct net_wifi_mgmt_api uwp_api = {
 };
 
 #ifdef CONFIG_WIFI_UWP_USE_SRAM
-void wifi_mem_init(void)
+static void wifi_mem_init(void)
 {
 	SYS_LOG_INF("power on sram start");
 
@@ -352,6 +376,8 @@ void wifi_mem_init(void)
 
 	SYS_LOG_INF("power on sram done");
 }
+#else
+#define wifi_mem_init(...)
 #endif /* CONFIG_WIFI_UWP_USE_SRAM */
 
 static int uwp_init(struct device *dev)

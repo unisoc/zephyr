@@ -29,13 +29,13 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 		(struct rxc_ddr_addr_trans_t *)data;
 	struct rx_msdu_desc *rx_msdu = NULL;
 	u32_t payload = 0;
+	u32_t buf;
 
 	struct net_pkt *rx_pkt;
 	struct net_buf *pkt_buf;
 	int ctx_id = 0;
 	int i = 0;
 	u32_t data_len;
-	int ret;
 
 	rx_pkt = net_pkt_get_reserve_rx(0, K_NO_WAIT);
 	if (!rx_pkt) {
@@ -47,14 +47,15 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 		memcpy(&payload, rxc_addr->addr_addr[i], 4);
 		__ASSERT(payload > SPRD_CP_DRAM_BEGIN
 				&& payload < SPRD_CP_DRAM_END,
-			 "Invalid buffer address: %p", payload);
+			 "Invalid buffer address: %p", (void *)payload);
 
 		SPRD_CP_TO_AP_ADDR(payload);
-		pkt_buf = (struct net_buf *)uwp_get_addr_from_payload(payload);
-		__ASSERT(pkt_buf > SPRD_AP_DRAM_BEGIN
-				&& pkt_buf < SPRD_AP_DRAM_END,
-			 "Invalid pkt_buf address: %p", pkt_buf);
+		buf = uwp_get_addr_from_payload(payload);
+		__ASSERT(buf > SPRD_AP_DRAM_BEGIN
+				&& buf < SPRD_AP_DRAM_END,
+			 "Invalid pkt_buf address: %p", (void *)buf);
 
+		pkt_buf = (struct net_buf *)buf;
 		rx_msdu =
 			(struct rx_msdu_desc *)(pkt_buf->data +
 						sizeof(struct rx_mh_desc));
@@ -81,8 +82,8 @@ int wifi_tx_complete_handle(void *data, int len)
 	struct txc_addr_buff *txc_addr = (struct txc_addr_buff *)data;
 	u16_t payload_num;
 	u32_t payload_addr;
+	u32_t tx_pkt;
 	int i;
-	struct net_pkt *pkt;
 
 	payload_num = txc_addr->number;
 
@@ -94,14 +95,15 @@ int wifi_tx_complete_handle(void *data, int len)
 		payload_addr -= sizeof(struct tx_msdu_dscr);
 		__ASSERT(payload_addr > SPRD_CP_DRAM_BEGIN
 				&& payload_addr < SPRD_CP_DRAM_END,
-			 "Invalid buffer address: %p", payload_addr);
+			 "Invalid buffer address: %p", (void *)payload_addr);
 
 		SPRD_CP_TO_AP_ADDR(payload_addr);
-		pkt = (struct net_pkt *)uwp_get_addr_from_payload(payload_addr);
-		__ASSERT(pkt > SPRD_AP_DRAM_BEGIN && pkt < SPRD_AP_DRAM_END,
-			 "Invalid pkt address: %p", pkt);
+		tx_pkt = uwp_get_addr_from_payload(payload_addr);
+		__ASSERT(tx_pkt > SPRD_AP_DRAM_BEGIN
+				&& tx_pkt < SPRD_AP_DRAM_END,
+			 "Invalid pkt address: %p", (void *)tx_pkt);
 
-		net_pkt_unref(pkt);
+		net_pkt_unref((struct net_pkt *)tx_pkt);
 	}
 
 	return 0;
