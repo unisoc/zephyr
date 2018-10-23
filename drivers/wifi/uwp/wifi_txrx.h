@@ -23,8 +23,8 @@
  * #define SPRDWL_FLUSH_BUFFER (3)
  */
 
-#define MAX_ADDR_NUM (32)
-#define MAX_EMPTY_BUF_COUNT (200)
+#define MAX_RX_ADDR_NUM CONFIG_WIFI_UWP_MAX_RX_ADDR_NUM
+#define TOTAL_RX_ADDR_NUM CONFIG_WIFI_UWP_TOTAL_RX_ADDR_NUM
 
 #define SPRD_CP_DRAM_BEGIN (SPRD_AP_DRAM_BEGIN + SPRD_AP_CP_DRAM_MAP_BASE)
 #define SPRD_CP_DRAM_END (SPRD_AP_DRAM_END + SPRD_AP_CP_DRAM_MAP_BASE)
@@ -270,7 +270,7 @@ struct rx_empty_buff {
 	struct sprdwl_common_hdr common;
 	unsigned char type;
 	unsigned char num;
-	unsigned char addr[MAX_EMPTY_BUF_COUNT][ADDR_LEN];
+	unsigned char addr[MAX_RX_ADDR_NUM][ADDR_LEN];
 } __packed;
 
 /* 0 for cmd, 1 for event, 2 for data, 3 for mh data. */

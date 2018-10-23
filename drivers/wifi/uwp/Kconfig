@@ -1,6 +1,6 @@
 menuconfig WIFI_UWP
 	bool "Unisoc uwp wifi driver support"
-	default y
+	default n
 	select WIFI_OFFLOAD
 	select NET_L2_WIFI_MGMT
 
@@ -8,10 +8,21 @@ if WIFI_UWP
 config WIFI_UWP_STA_NAME
 	string "STA device name"
 	default "UWP_STA"
+
 config WIFI_UWP_AP_NAME
 	string "SoftAP device name"
 	default "UWP_AP"
+
 config WIFI_UWP_USE_SRAM
 	bool "Wifi use sram"
 	default n
+
+config WIFI_UWP_MAX_RX_ADDR_NUM
+	int "Max rx addr num each time"
+	default 32
+
+config WIFI_UWP_TOTAL_RX_ADDR_NUM
+	int "Total rx addr num"
+	default 200
+
 endif

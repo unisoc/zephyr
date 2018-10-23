@@ -282,11 +282,11 @@ int wifi_tx_empty_buf(int num)
 	int rest;
 	int i;
 
-	if (num > MAX_ADDR_NUM) {
-		group = num / MAX_ADDR_NUM;
-		rest = num % MAX_ADDR_NUM;
+	if (num > MAX_RX_ADDR_NUM) {
+		group = num / MAX_RX_ADDR_NUM;
+		rest = num % MAX_RX_ADDR_NUM;
 		for (i = 0; i < group; i++) {
-			ret = wifi_tx_empty_buf_(MAX_ADDR_NUM);
+			ret = wifi_tx_empty_buf_(MAX_RX_ADDR_NUM);
 			if (ret) {
 				return ret;
 			}

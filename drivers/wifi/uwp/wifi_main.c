@@ -119,7 +119,7 @@ static int uwp_mgmt_open(struct device *dev)
 	}
 
 	if (priv->mode == WIFI_MODE_STA) {
-		wifi_tx_empty_buf(MAX_EMPTY_BUF_COUNT);
+		wifi_tx_empty_buf(TOTAL_RX_ADDR_NUM);
 	}
 
 	priv->opened = true;
