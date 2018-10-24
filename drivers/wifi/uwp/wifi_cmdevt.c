@@ -15,11 +15,9 @@
 
 #define RECV_BUF_SIZE (128)
 static unsigned char recv_buf[RECV_BUF_SIZE];
-static unsigned char npi_buf[RECV_BUF_SIZE];
 static unsigned int recv_len;
 static unsigned int seq = 1;
 static struct k_sem cmd_sem;
-static struct cmd_download_ini ini;
 
 static const u16_t CRC_table[] = {
 	0x0000, 0xCC01, 0xD801, 0x1400, 0xF001, 0x3C00,
@@ -63,29 +61,42 @@ static inline int check_cmdevt_len(int input_len, int expected_len)
 
 int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 {
-	int ret = 0;
-	u16_t CRC = 0;
+	int ret = -1;
+	u16_t crc = 0;
+	int cmd_len;
+	struct cmd_download_ini *cmd;
 
-	/* Calc CRC value. */
-	CRC = CRC16(data, len);
-	SYS_LOG_DBG("sec: %d, len: %d, CRC value: 0x%x",
-		    sec_num, len, CRC);
+	/* Calculate total command length. */
+	cmd_len = sizeof(*cmd) + len + sizeof(crc);
 
-	memset(&ini, 0, sizeof(ini));
-	ini.sec_num = sec_num;
-
-	/* Copy data after section num. */
-	memcpy(ini.data, data, len);
-	/* Put CRC value at the tail of INI data. */
-	memcpy((ini.data + len), &CRC, sizeof(CRC));
-
-	ret = wifi_cmd_send(WIFI_CMD_DOWNLOAD_INI, (char *)&ini,
-			    sizeof(struct trans_hdr) + len + 4 + 2, NULL, 0);
-	/* sizeof(ini) + sizeof(CRC), NULL, 0); */
-	if (ret) {
-		SYS_LOG_ERR("load ini fail when call wifi_drv_cmd_send\n");
+	cmd = k_malloc(cmd_len);
+	if (cmd == NULL) {
+		SYS_LOG_ERR("cmd is null");
 		return ret;
 	}
+
+	/* Calc CRC value. */
+	crc = CRC16(data, len);
+	SYS_LOG_DBG("sec: %d, len: %d, CRC value: 0x%x",
+		    sec_num, len, crc);
+
+	memset(cmd, 0, cmd_len);
+	cmd->sec_num = sec_num;
+
+	/* Copy data after section num. */
+	memcpy(cmd->data, data, len);
+	/* Put CRC value at the tail of INI data. */
+	memcpy(cmd->data + len, &crc, sizeof(crc));
+
+	ret = wifi_cmd_send(WIFI_CMD_DOWNLOAD_INI, (char *)cmd,
+			    cmd_len, NULL, 0);
+	if (ret) {
+		SYS_LOG_ERR("load ini fail");
+		k_free(cmd);
+		return ret;
+	}
+
+	k_free(cmd);
 
 	return 0;
 }
@@ -107,6 +118,7 @@ int wifi_cmd_scan(struct wifi_priv *priv)
 		SYS_LOG_ERR("cmd is null");
 		return ret;
 	}
+
 	memset(cmd, 0, cmd_len);
 
 	cmd->channels = 0x3FFF;
@@ -299,23 +311,38 @@ int wifi_cmd_stop_ap(struct wifi_priv *priv)
 int wifi_cmd_npi_send(int ictx_id, char *t_buf,
 		u32_t t_len, char *r_buf, u32_t *r_len)
 {
-	int ret;
+	struct cmd_npi *cmd;
+	int ret = -1;
+	int cmd_len;
 
-	/* FIXME add cmd header buffer. */
-	memcpy(npi_buf + sizeof(struct trans_hdr), t_buf, t_len);
-	t_len += sizeof(struct trans_hdr);
+	/* Calculate total command length. */
+	cmd_len = sizeof(*cmd) + t_len;
 
-	ret = wifi_cmd_send(WIFI_CMD_NPI_MSG, npi_buf, t_len, r_buf, r_len);
-	if (ret) {
-		SYS_LOG_ERR("npi_send_command fail");
+	cmd = k_malloc(cmd_len);
+	if (cmd == NULL) {
+		SYS_LOG_ERR("cmd is null");
 		return ret;
 	}
 
-	if (r_buf != NULL && r_len != 0) {
-		*r_len = *r_len - sizeof(struct trans_hdr);
-		/* No need to copy trans_hdr. */
-		memcpy(r_buf, r_buf + sizeof(struct trans_hdr), *r_len);
+	memset(cmd, 0, cmd_len);
+
+	memcpy(cmd->data, t_buf, t_len);
+
+	ret = wifi_cmd_send(WIFI_CMD_NPI_MSG, (char *)cmd,
+			cmd_len, r_buf, r_len);
+	if (ret) {
+		SYS_LOG_ERR("npi_send_command fail");
+		k_free(cmd);
+		return ret;
 	}
+
+	if (r_buf != NULL && r_len != NULL) {
+		*r_len = *r_len - sizeof(*cmd);
+		/* No need to copy trans_hdr. */
+		memcpy(r_buf, r_buf + sizeof(*cmd), *r_len);
+	}
+
+	k_free(cmd);
 
 	return 0;
 }
@@ -536,7 +563,7 @@ int wifi_cmd_send(u8_t cmd, char *data, int len, char *rbuf, int *rlen)
 		return hdr->status;
 	}
 
-	if (rbuf) {
+	if (rbuf) { /* FIXME: Remove trans_hdr? */
 		memcpy(rbuf, recv_buf, recv_len);
 	}
 	if (rlen) {
