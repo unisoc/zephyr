@@ -84,7 +84,8 @@ static int flash_uwp_read(struct device *dev, off_t offset, void *data,
 
 	//ret = flash->read(flash, offset, data, len, READ_SPI_FAST);
 	//ret = flash->read(flash, offset, data, len, READ_SPI);
-	memcpy(data, CONFIG_FLASH_BASE_ADDRESS + (void *)offset, len);
+	memcpy(data, (void *)((u32_t)CONFIG_FLASH_BASE_ADDRESS + offset), len);
+
 
 	flash_uwp_unlock(dev);
 
