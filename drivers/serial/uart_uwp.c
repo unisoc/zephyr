@@ -65,27 +65,27 @@ static int uart_uwp_poll_in(struct device *dev, unsigned char *c)
 {
 	volatile struct uwp_uart *uart = UART_STRUCT(dev);
 
-	while (!malin_uart_rx_ready(uart)) {
-	};
+	if (malin_uart_rx_ready(uart)) {
+		*c = uwp_uart_read(uart);
+		return 0;
+	}
 
-	*c = uwp_uart_read(uart);
-
-	return 0;
+	return -1;
 }
 
 static unsigned char uart_uwp_poll_out(struct device *dev, unsigned char c)
 {
 	volatile struct uwp_uart *uart = UART_STRUCT(dev);
 
-	while (!malin_uart_tx_ready(uart)) {
+	if (malin_uart_tx_ready(uart)) {
+		uwp_uart_write(uart, c);
+		while (!uwp_uart_trans_over(uart))
+			;
+
+		return 0;
 	};
 
-	uwp_uart_write(uart, c);
-
-	while (!uwp_uart_trans_over(uart)) {
-	};
-
-	return 0;
+	return -1;
 }
 
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
