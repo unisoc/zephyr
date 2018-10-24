@@ -7,15 +7,15 @@
 #ifndef __WIFI_CMDEVT_H__
 #define __WIFI_CMDEVT_H__
 
-#define MAX_SSID_LEN (33) /* SSID end with 0 */
-#define MAX_KEY_LEN (128)
-#define ETH_ALEN (6)
-#define INI_SIZE (1600)
-#define IPV4_LEN (4)
-
 #include <net/wifi_mgmt.h>
 
-/* #include "wifi_main.h" */
+#define MAX_SSID_LEN (33) /* SSID end with 0 */
+#define MAX_KEY_LEN (128) /* FIXME: Max size 64 */
+#define MAX_AP_KEY_LEN (64)
+#define ETH_ALEN (6)
+#define IPV4_LEN (4)
+
+
 struct wifi_priv;
 
 enum cmd_type {
@@ -68,7 +68,7 @@ struct trans_hdr {
 struct cmd_download_ini {
 	struct trans_hdr trans_header;
 	u32_t sec_num;
-	char data[INI_SIZE];
+	char data[0];
 } __packed;
 
 struct cmd_start {
@@ -89,14 +89,11 @@ struct cmd_stop {
 	char mac[6];
 } __packed;
 
-/* FIXME */
-#define MAX_AP_SSID_LEN (33)
-#define MAX_AP_KEY_LEN (64)
 /* Command struct for ap. */
 struct cmd_start_ap {
 	struct trans_hdr trans_header;
 	u8_t ssid_len;
-	u8_t ssid[MAX_AP_SSID_LEN];
+	u8_t ssid[MAX_SSID_LEN];
 	u8_t password_len;
 	char password[MAX_AP_KEY_LEN];
 	u8_t channel;
@@ -117,12 +114,12 @@ struct cmd_del_station {
 /* Command struct for sta. */
 struct cmd_scan {
 	struct trans_hdr trans_header;
-	u32_t channels;                 /* One bit for one channel. */
+	u32_t channels; /* One bit for one channel. */
 	u32_t flags;
-	u16_t ssid_len;                 /* Hidden ssid length. */
-	u8_t ssid[0];                   /* Hidden ssid.  */
-	u16_t channels_5g_cnt;          /* Number of 5G channels. */
-	u16_t channels_5g[0];           /* 5G channels to be scanned. */
+	u16_t ssid_len; /* Hidden ssid length. */
+	u8_t ssid[0]; /* FIXME: Invalid reservation. Hidden ssid.  */
+	u16_t channels_5g_cnt; /* Number of 5G channels. */
+	u16_t channels_5g[0]; /* 5G channels to be scanned. */
 } __packed;
 
 struct cmd_connect {
@@ -154,6 +151,11 @@ struct cmd_set_ip {
 	 * it might be greater than 4 bytes.
 	 */
 	u8_t ip[IPV4_LEN];
+} __packed;
+
+struct cmd_npi {
+	struct trans_hdr trans_header;
+	u8_t data[0];
 } __packed;
 
 struct event_scan_result {
@@ -188,8 +190,8 @@ struct event_new_station {
 /* int wifi_cmd_load_ini(u8_t *pAd); */
 /* int wifi_cmd_set_sta_connect_info(u8_t *pAd, char *ssid, char *key); */
 int wifi_cmd_get_cp_info(struct wifi_priv *priv);
-int wifi_cmd_start(struct wifi_priv *priv);
-int wifi_cmd_stop(struct wifi_priv *priv);
+int wifi_cmd_open(struct wifi_priv *priv);
+int wifi_cmd_close(struct wifi_priv *priv);
 int wifi_cmd_scan(struct wifi_priv *priv);
 int wifi_cmd_connect(struct wifi_priv *priv,
 			    struct wifi_connect_req_params *params);
