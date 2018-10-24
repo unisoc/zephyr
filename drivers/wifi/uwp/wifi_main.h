@@ -11,11 +11,9 @@
 #include <net/wifi_mgmt.h>
 #include "wifi_cmdevt.h"
 #include "wifi_txrx.h"
-/* #include "wifi_msg.h" */
 #include "wifi_ipc.h"
+#include "uwp_hal.h"
 
-#define ETH_ALEN (6)
-#define IPV4_LEN (4)
 
 #define WIFI_MODE_NONE (0)
 #define WIFI_MODE_STA (1)
@@ -60,7 +58,5 @@ int wifi_get_mac(u8_t *mac, int idx);
 /* int wifi_ifnet_ap_init(struct adapter *pAd); */
 /* struct netif *wifi_ifnet_get_interface(struct adapter *pAd,int ctx_id); */
 
-/* Import external interface. */
-extern int cp_mcu_init(void);
 
 #endif /* __WIFI_MAIN_H_ */
