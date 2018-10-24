@@ -65,20 +65,17 @@ static struct wifi_priv uwp_wifi_ap_priv;
 
 int wifi_get_mac(u8_t *mac, int idx)
 {
-	/*
-	 * 1 get mac address from flash.
-	 * 2 copy to mac
-	 * if idx == 0,get sta mac,
-	 * if idx == 1,get ap mac
-	 */
-	mac[0] = 0x46;
-	mac[1] = 0xd1;
-	mac[2] = 0xf9;
-	mac[3] = 0x44;
-	mac[4] = 0x73;
-	mac[5] = 0x2c;
+	int ret = 0;
 
-	return 0;
+	if (idx == WIFI_MODE_STA) {
+		memcpy(mac, uwp_wifi_sta_priv.mac, ETH_ALEN);
+	} else if (idx == WIFI_MODE_AP) {
+		memcpy(mac, uwp_wifi_ap_priv.mac, ETH_ALEN);
+	} else {
+		ret = -1;
+	}
+
+	return ret;
 }
 
 static int wifi_rf_init(void)
@@ -113,7 +110,7 @@ static int uwp_mgmt_open(struct device *dev)
 		return -EAGAIN;
 	}
 
-	ret = wifi_cmd_start(priv);
+	ret = wifi_cmd_open(priv);
 	if (ret) {
 		return ret;
 	}
@@ -136,7 +133,7 @@ static int uwp_mgmt_close(struct device *dev)
 		return -EAGAIN;
 	}
 
-	ret = wifi_cmd_stop(priv);
+	ret = wifi_cmd_close(priv);
 	if (ret) {
 		return ret;
 	}
@@ -211,7 +208,6 @@ static void uwp_iface_init(struct net_if *iface)
 {
 	struct wifi_priv *priv = DEV_DATA(iface->if_dev->dev);
 
-	k_sleep(50);
 	wifi_cmd_get_cp_info(priv);
 
 	SYS_LOG_INF("mode: %d, cp version: 0x%x.",
@@ -401,7 +397,7 @@ static int uwp_init(struct device *dev)
 
 			wifi_mem_init();
 
-			ret = cp_mcu_init();
+			ret = uwp_mcu_init();
 			if (ret) {
 				SYS_LOG_ERR("firmware download failed %i.",
 						ret);
