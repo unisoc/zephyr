@@ -211,7 +211,7 @@ int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 	return 0;
 }
 
-int wifi_cmd_start(struct wifi_priv *priv)
+int wifi_cmd_open(struct wifi_priv *priv)
 {
 	struct cmd_start cmd;
 	int ret;
@@ -233,7 +233,7 @@ int wifi_cmd_start(struct wifi_priv *priv)
 	return 0;
 }
 
-int wifi_cmd_stop(struct wifi_priv *priv)
+int wifi_cmd_close(struct wifi_priv *priv)
 {
 	struct cmd_stop cmd;
 	int ret;
@@ -336,7 +336,7 @@ int wifi_cmd_npi_send(int ictx_id, char *t_buf,
 		return ret;
 	}
 
-	if (r_buf != NULL && r_len != NULL) {
+	if (r_buf && r_len) {
 		*r_len = *r_len - sizeof(*cmd);
 		/* No need to copy trans_hdr. */
 		memcpy(r_buf, r_buf + sizeof(*cmd), *r_len);
@@ -563,7 +563,7 @@ int wifi_cmd_send(u8_t cmd, char *data, int len, char *rbuf, int *rlen)
 		return hdr->status;
 	}
 
-	if (rbuf) { /* FIXME: Remove trans_hdr? */
+	if (rbuf) {
 		memcpy(rbuf, recv_buf, recv_len);
 	}
 	if (rlen) {

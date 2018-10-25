@@ -11,11 +11,7 @@
 #include <net/wifi_mgmt.h>
 #include "wifi_cmdevt.h"
 #include "wifi_txrx.h"
-/* #include "wifi_msg.h" */
 #include "wifi_ipc.h"
-
-#define ETH_ALEN (6)
-#define IPV4_LEN (4)
 
 #define WIFI_MODE_NONE (0)
 #define WIFI_MODE_STA (1)

@@ -7,15 +7,15 @@
 #ifndef __WIFI_CMDEVT_H__
 #define __WIFI_CMDEVT_H__
 
+#include <net/wifi_mgmt.h>
+
 #define MAX_SSID_LEN (33) /* SSID end with 0 */
 #define MAX_KEY_LEN (128) /* FIXME: Max size 64 */
 #define MAX_AP_KEY_LEN (64)
 #define ETH_ALEN (6)
 #define IPV4_LEN (4)
 
-#include <net/wifi_mgmt.h>
 
-/* #include "wifi_main.h" */
 struct wifi_priv;
 
 enum cmd_type {
@@ -190,8 +190,8 @@ struct event_new_station {
 /* int wifi_cmd_load_ini(u8_t *pAd); */
 /* int wifi_cmd_set_sta_connect_info(u8_t *pAd, char *ssid, char *key); */
 int wifi_cmd_get_cp_info(struct wifi_priv *priv);
-int wifi_cmd_start(struct wifi_priv *priv);
-int wifi_cmd_stop(struct wifi_priv *priv);
+int wifi_cmd_open(struct wifi_priv *priv);
+int wifi_cmd_close(struct wifi_priv *priv);
 int wifi_cmd_scan(struct wifi_priv *priv);
 int wifi_cmd_connect(struct wifi_priv *priv,
 			    struct wifi_connect_req_params *params);
