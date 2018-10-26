@@ -7,7 +7,7 @@
 #ifndef __WIFI_CMDEVT_H__
 #define __WIFI_CMDEVT_H__
 
-#include <net/wifi_mgmt.h>
+#include <net/wifimgr_drv.h>
 
 #define MAX_SSID_LEN (33) /* SSID end with 0 */
 #define MAX_KEY_LEN (128) /* FIXME: Max size 64 */
@@ -114,7 +114,7 @@ struct cmd_del_station {
 /* Command struct for sta. */
 struct cmd_scan {
 	struct trans_hdr trans_header;
-	u32_t channels; /* One bit for one channel. */
+	u32_t channels_2g; /* One bit for one 2.4G channel. */
 	u32_t flags;
 	u16_t ssid_len; /* Hidden ssid length. */
 	u8_t ssid[0]; /* FIXME: Invalid reservation. Hidden ssid.  */
@@ -192,12 +192,13 @@ struct event_new_station {
 int wifi_cmd_get_cp_info(struct wifi_priv *priv);
 int wifi_cmd_open(struct wifi_priv *priv);
 int wifi_cmd_close(struct wifi_priv *priv);
-int wifi_cmd_scan(struct wifi_priv *priv);
+int wifi_cmd_scan(struct wifi_priv *priv,
+		struct wifi_drv_scan_params *params);
 int wifi_cmd_connect(struct wifi_priv *priv,
-			    struct wifi_connect_req_params *params);
+			    struct wifi_drv_connect_params *params);
 int wifi_cmd_disconnect(struct wifi_priv *priv);
 int wifi_cmd_start_ap(struct wifi_priv *priv,
-		struct wifi_start_ap_req_params *params);
+		struct wifi_drv_start_ap_params *params);
 int wifi_cmd_stop_ap(struct wifi_priv *priv);
 int wifi_cmd_npi_send(int ictx_id, char *t_buf,
 		u32_t t_len, char *r_buf, u32_t *r_len);
