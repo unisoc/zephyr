@@ -115,7 +115,9 @@ static int uwp_mgmt_open(struct device *dev)
 		return ret;
 	}
 
-	if (priv->mode == WIFI_MODE_STA) {
+	/* Whatever mode is firstly opened, assign rx buffer. */
+	if (!uwp_wifi_sta_priv.opened
+			&& !uwp_wifi_ap_priv.opened) {
 		wifi_tx_empty_buf(TOTAL_RX_ADDR_NUM);
 	}
 
@@ -140,7 +142,11 @@ static int uwp_mgmt_close(struct device *dev)
 
 	priv->opened = false;
 
-	/* FIXME need to release all buffer which has been sent to CP. */
+	/* Both modes are closed, release rx buffer. */
+	if (!uwp_wifi_sta_priv.opened
+			&& !uwp_wifi_ap_priv.opened) {
+		wifi_release_rx_buf();
+	}
 
 	return 0;
 }
