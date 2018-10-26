@@ -338,5 +338,6 @@ int wifi_tx_cmd(void *data, int len);
 int wifi_txrx_init(struct wifi_priv *priv);
 int wifi_tx_empty_buf(int num);
 int wifi_tx_data(void *data, int len);
+int wifi_release_rx_buf(void);
 
 #endif /* __WIFI_TXRX_H__ */
