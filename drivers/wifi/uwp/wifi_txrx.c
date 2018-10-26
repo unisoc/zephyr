@@ -16,10 +16,20 @@
 #define RX_BUF_SIZE (2000)
 #define TXRX_STACK_SIZE (1024)
 
+#define wifi_buf_slist_init(list) sys_slist_init(list)
+#define wifi_buf_slist_append(list, buf) net_buf_slist_put(list, buf)
+#define wifi_buf_slist_get(list) net_buf_slist_get(list)
+#define wifi_buf_slist_remove(list, node) sys_slist_find_and_remove(list, node)
+
+#define wifi_snode_t sys_snode_t
+#define wifi_slist_t sys_slist_t
+
 K_THREAD_STACK_MEMBER(txrx_stack, TXRX_STACK_SIZE);
 static struct k_thread txrx_thread_data;
 static struct k_sem event_sem;
+static struct k_mutex rx_buf_mutex;
 static u8_t rx_buf[RX_BUF_SIZE];
+static wifi_slist_t rx_buf_list;
 
 
 int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
@@ -56,6 +66,11 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 			 "Invalid pkt_buf address: %p", (void *)buf);
 
 		pkt_buf = (struct net_buf *)buf;
+
+		k_mutex_lock(&rx_buf_mutex, K_FOREVER);
+		wifi_buf_slist_remove(&rx_buf_list, &pkt_buf->node);
+		k_mutex_unlock(&rx_buf_mutex);
+
 		rx_msdu =
 			(struct rx_msdu_desc *)(pkt_buf->data +
 						sizeof(struct rx_mh_desc));
@@ -231,7 +246,7 @@ static int wifi_tx_empty_buf_(int num)
 {
 	int i;
 	struct net_buf *pkt_buf;
-	static struct rx_empty_buff buf;
+	struct rx_empty_buff buf;
 	int ret;
 	u32_t data_ptr;
 
@@ -244,6 +259,10 @@ static int wifi_tx_empty_buf_(int num)
 			SYS_LOG_ERR("Could not allocate rx packet %d.", i);
 			return -1;
 		}
+
+		k_mutex_lock(&rx_buf_mutex, K_FOREVER);
+		wifi_buf_slist_append(&rx_buf_list, pkt_buf);
+		k_mutex_unlock(&rx_buf_mutex);
 
 		data_ptr = (u32_t)pkt_buf->data;
 		uwp_save_addr_before_payload((u32_t)data_ptr,
@@ -305,11 +324,29 @@ int wifi_tx_empty_buf(int num)
 	return 0;
 }
 
+int wifi_release_rx_buf(void)
+{
+	struct net_buf *buf = NULL;
+
+	k_mutex_lock(&rx_buf_mutex, K_FOREVER);
+	while ((buf = wifi_buf_slist_get(&rx_buf_list))) {
+		net_buf_unref(buf);
+	}
+	k_mutex_unlock(&rx_buf_mutex);
+
+	SYS_LOG_DBG("flush all rx buf");
+
+	return 0;
+}
+
 int wifi_txrx_init(struct wifi_priv *priv)
 {
 	int ret = 0;
 
 	k_sem_init(&event_sem, 0, 1);
+	k_mutex_init(&rx_buf_mutex);
+
+	wifi_buf_slist_init(&rx_buf_list);
 
 	ret = wifi_ipc_create_channel(SMSG_CH_WIFI_CTRL,
 				      wifi_rx_event);
