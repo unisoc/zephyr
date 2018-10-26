@@ -2,9 +2,12 @@
 #define __WLNPI_H__
 
 #include <zephyr.h>
+#include <shell/shell.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <net/wifi_mgmt.h>
 
 
 #define ETH_ALEN 		    (6)
@@ -13,8 +16,8 @@
 #define WLNPI_RESULT_BUF_LEN        (128)
 #define IWNPI_EXEC_STATUS_BUF_LEN   (64)
 
-#define STA_IDX	    0
-#define AP_IDX	    1
+#define STA_IDX	    1
+#define AP_IDX	    2
 
 #ifdef LOG_TAG
 #undef LOG_TAG
