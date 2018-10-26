@@ -9,11 +9,13 @@
 #include <string.h>
 #include <sipc.h>
 #include <sblock.h>
-#include <net/wifimgr_drv.h>
 
 #include "wifi_main.h"
 
 #define RECV_BUF_SIZE (128)
+#define ALL_2_4_GHZ_CHANNELS (0X3FFF)
+#define CHANNEL_2_4_GHZ_BIT(n) (1 << (n - 1))
+
 static unsigned char recv_buf[RECV_BUF_SIZE];
 static unsigned int recv_len;
 static unsigned int seq = 1;
@@ -70,7 +72,7 @@ int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 	cmd_len = sizeof(*cmd) + len + sizeof(crc);
 
 	cmd = k_malloc(cmd_len);
-	if (cmd == NULL) {
+	if (!cmd) {
 		SYS_LOG_ERR("cmd is null");
 		return ret;
 	}
@@ -101,30 +103,87 @@ int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 	return 0;
 }
 
-int wifi_cmd_scan(struct wifi_priv *priv)
+int wifi_cmd_scan(struct wifi_priv *priv,
+		struct wifi_drv_scan_params *params)
 {
 	int ret = -1;
 	int ssid_len = 0;
 	int cmd_len = 0;
 	struct cmd_scan *cmd;
-	u16_t channels_5g_cnt = ARRAY_SIZE(channels_5g_scan_table);
+	u16_t channels_5g_cnt = 0;
+	u8_t band = params->band;
+	u8_t channel = params->channel;
 
-	/* Calculate total command length. */
-	cmd_len = sizeof(*cmd) +
-		  ssid_len + sizeof(channels_5g_scan_table);
+	cmd_len = sizeof(*cmd) + ssid_len;
 
-	cmd = k_malloc(cmd_len);
-	if (cmd == NULL) {
-		SYS_LOG_ERR("cmd is null");
-		return ret;
+	switch (band) {
+	case WIFI_BAND_2_4G:
+		cmd = k_malloc(cmd_len);
+		if (!cmd) {
+			SYS_LOG_ERR("cmd is null");
+			return ret;
+		}
+
+		if (channel == 0) { /* All 2.4GH channel */
+			cmd->channels_2g = ALL_2_4_GHZ_CHANNELS;
+		} else { /* One channel */
+			cmd->channels_2g = CHANNEL_2_4_GHZ_BIT(channel);
+		}
+		break;
+	case WIFI_BAND_5G:
+		if (channel == 0) { /* All 5GHZ channel */
+			cmd_len +=  sizeof(channels_5g_scan_table);
+
+			cmd = k_malloc(cmd_len);
+			if (!cmd) {
+				SYS_LOG_ERR("cmd is null");
+				return ret;
+			}
+			memset(cmd, 0, cmd_len);
+
+			channels_5g_cnt = ARRAY_SIZE(channels_5g_scan_table);
+			memcpy(cmd->channels_5g, channels_5g_scan_table,
+					sizeof(channels_5g_scan_table));
+		} else { /* One channel */
+			cmd_len += 1;
+
+			cmd = k_malloc(cmd_len);
+			if (!cmd) {
+				SYS_LOG_ERR("cmd is null");
+				return ret;
+			}
+			memset(cmd, 0, cmd_len);
+
+			channels_5g_cnt = 1;
+			*(cmd->channels_5g) = channel;
+		}
+
+		cmd->channels_5g_cnt = channels_5g_cnt;
+		break;
+	default:
+		if (channel == 0) { /* All channels */
+			cmd_len += sizeof(channels_5g_scan_table);
+
+			cmd = k_malloc(cmd_len);
+			if (!cmd) {
+				SYS_LOG_ERR("cmd is null");
+				return ret;
+			}
+			memset(cmd, 0, cmd_len);
+
+			channels_5g_cnt = ARRAY_SIZE(channels_5g_scan_table);
+			cmd->channels_5g_cnt = channels_5g_cnt;
+			memcpy(cmd->channels_5g, channels_5g_scan_table,
+					sizeof(channels_5g_scan_table));
+
+			cmd->channels_2g = ALL_2_4_GHZ_CHANNELS;
+		} else {
+			SYS_LOG_ERR("Invalid band %d, channel %d.",
+					band, channel);
+			return ret;
+		}
+		break;
 	}
-
-	memset(cmd, 0, cmd_len);
-
-	cmd->channels = 0x3FFF;
-	cmd->channels_5g_cnt = channels_5g_cnt;
-	memcpy(cmd->channels_5g, channels_5g_scan_table,
-	       sizeof(channels_5g_scan_table));
 
 	ret = wifi_cmd_send(WIFI_CMD_SCAN, (char *)cmd,
 			    cmd_len, NULL, NULL);
@@ -140,7 +199,7 @@ int wifi_cmd_scan(struct wifi_priv *priv)
 }
 
 int wifi_cmd_connect(struct wifi_priv *priv,
-		     struct wifi_connect_req_params *params)
+		     struct wifi_drv_connect_params *params)
 {
 	int ret;
 	struct cmd_connect cmd;
@@ -253,7 +312,7 @@ int wifi_cmd_close(struct wifi_priv *priv)
 }
 
 int wifi_cmd_start_ap(struct wifi_priv *priv,
-		struct wifi_start_ap_req_params *params)
+		struct wifi_drv_start_ap_params *params)
 {
 	struct cmd_start_ap cmd;
 	int ret;
@@ -319,7 +378,7 @@ int wifi_cmd_npi_send(int ictx_id, char *t_buf,
 	cmd_len = sizeof(*cmd) + t_len;
 
 	cmd = k_malloc(cmd_len);
-	if (cmd == NULL) {
+	if (!cmd) {
 		SYS_LOG_ERR("cmd is null");
 		return ret;
 	}
@@ -388,7 +447,7 @@ int wifi_evt_scan_result(struct wifi_priv *priv, char *data, int len)
 {
 	struct event_scan_result *event =
 		(struct event_scan_result *)data;
-	struct wifi_scan_result scan_result;
+	struct wifi_drv_scan_result scan_result;
 
 	memset(&scan_result, 0, sizeof(scan_result));
 
@@ -406,7 +465,9 @@ int wifi_evt_scan_result(struct wifi_priv *priv, char *data, int len)
 
 	SYS_LOG_DBG("ssid: %s", event->ssid);
 
-	wifi_drv_iface_scan_result_cb(priv->iface, 0, &scan_result);
+	if (priv->scan_result_cb) {
+		priv->scan_result_cb(priv->iface, 0, &scan_result);
+	}
 
 	k_yield();
 
@@ -422,7 +483,10 @@ int wifi_evt_scan_done(struct wifi_priv *priv, char *data, int len)
 		return -1;
 	}
 
-	wifi_drv_iface_scan_done_cb(priv->iface, event->status);
+	if (priv->scan_result_cb) {
+		priv->scan_result_cb(priv->iface, event->status, NULL);
+		priv->scan_result_cb = NULL;
+	}
 
 	return 0;
 }
@@ -436,7 +500,10 @@ int wifi_evt_connect(struct wifi_priv *priv, char *data, int len)
 		return -1;
 	}
 
-	wifi_drv_iface_connect_cb(priv->iface, event->status);
+	if (priv->connect_cb) {
+		priv->connect_cb(priv->iface, event->status);
+		priv->connect_cb = NULL;
+	}
 
 	return 0;
 }
@@ -450,8 +517,10 @@ int wifi_evt_disconnect(struct wifi_priv *priv, char *data, int len)
 		return -1;
 	}
 
-	wifi_drv_iface_disconnect_cb(priv->iface,
-				     event->reason_code);
+	if (priv->disconnect_cb) {
+		priv->disconnect_cb(priv->iface, event->reason_code);
+		priv->disconnect_cb = NULL;
+	}
 
 	return 0;
 }
@@ -465,8 +534,13 @@ int wifi_evt_new_sta(struct wifi_priv *priv, char *data, int len)
 		return -1;
 	}
 
-	wifi_drv_iface_new_station(priv->iface,
-				   event->is_connect, event->mac);
+	if (priv->new_station_cb) {
+		priv->new_station_cb(priv->iface,
+				event->is_connect,
+				event->mac);
+		priv->new_station_cb = NULL;
+	}
+
 	return 0;
 }
 
