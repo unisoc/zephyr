@@ -22,7 +22,6 @@
 #include <net/net_l2.h>
 #include <net/net_context.h>
 #include <net/net_offload.h>
-#include <net/wifi_mgmt.h>
 #include <net/ethernet.h>
 
 #include "wifi_main.h"
@@ -104,7 +103,13 @@ static int wifi_rf_init(void)
 static int uwp_mgmt_open(struct device *dev)
 {
 	int ret;
-	struct wifi_priv *priv = DEV_DATA(dev);
+	struct wifi_priv *priv;
+
+	if (!dev) {
+		return -EINVAL;
+	}
+
+	priv = DEV_DATA(dev);
 
 	if (priv->opened) {
 		return -EAGAIN;
@@ -115,7 +120,9 @@ static int uwp_mgmt_open(struct device *dev)
 		return ret;
 	}
 
-	if (priv->mode == WIFI_MODE_STA) {
+	/* Whatever mode is firstly opened, assign rx buffer. */
+	if (!uwp_wifi_sta_priv.opened
+			&& !uwp_wifi_ap_priv.opened) {
 		wifi_tx_empty_buf(TOTAL_RX_ADDR_NUM);
 	}
 
@@ -127,7 +134,13 @@ static int uwp_mgmt_open(struct device *dev)
 static int uwp_mgmt_close(struct device *dev)
 {
 	int ret;
-	struct wifi_priv *priv = DEV_DATA(dev);
+	struct wifi_priv *priv;
+
+	if (!dev) {
+		return -EINVAL;
+	}
+
+	priv = DEV_DATA(dev);
 
 	if (!priv->opened) {
 		return -EAGAIN;
@@ -140,22 +153,49 @@ static int uwp_mgmt_close(struct device *dev)
 
 	priv->opened = false;
 
-	/* FIXME need to release all buffer which has been sent to CP. */
+	/* Both modes are closed, release rx buffer. */
+	if (!uwp_wifi_sta_priv.opened
+			&& !uwp_wifi_ap_priv.opened) {
+		wifi_release_rx_buf();
+	}
 
 	return 0;
 }
 
 static int uwp_mgmt_start_ap(struct device *dev,
-			     struct wifi_start_ap_req_params *params)
+			     struct wifi_drv_start_ap_params *params,
+				 new_station_t cb)
 {
-	struct wifi_priv *priv = DEV_DATA(dev);
+	struct wifi_priv *priv;
+
+	if (!dev || !params) {
+		return -EINVAL;
+	}
+
+	priv = DEV_DATA(dev);
+
+	if (priv->new_station_cb) {
+		return -EALREADY;
+	}
+
+	priv->new_station_cb = cb;
 
 	return wifi_cmd_start_ap(priv, params);
 }
 
 static int uwp_mgmt_stop_ap(struct device *dev)
 {
-	struct wifi_priv *priv = DEV_DATA(dev);
+	struct wifi_priv *priv;
+
+	if (!dev) {
+		return -EINVAL;
+	}
+
+	priv = DEV_DATA(dev);
+
+	if (priv->new_station_cb) {
+		priv->new_station_cb = NULL;
+	}
 
 	return wifi_cmd_stop_ap(priv);
 }
@@ -166,13 +206,25 @@ static int uwp_mgmt_del_station(struct device *dev,
 	return 0;
 }
 
-static int uwp_mgmt_scan(struct device *dev, scan_result_cb_t cb)
+static int uwp_mgmt_scan(struct device *dev,
+		struct wifi_drv_scan_params *params,
+		scan_result_cb_t cb)
 {
-	ARG_UNUSED(cb);
+	struct wifi_priv *priv;
 
-	struct wifi_priv *priv = DEV_DATA(dev);
+	if (!dev || !params) {
+		return -EINVAL;
+	}
 
-	return wifi_cmd_scan(priv);
+	priv = DEV_DATA(dev);
+
+	if (priv->scan_result_cb) {
+		return -EALREADY;
+	}
+
+	priv->scan_result_cb = cb;
+
+	return wifi_cmd_scan(priv, params);
 }
 
 static int uwp_mgmt_get_station(struct device *dev,
@@ -183,16 +235,42 @@ static int uwp_mgmt_get_station(struct device *dev,
 }
 
 static int uwp_mgmt_connect(struct device *dev,
-			    struct wifi_connect_req_params *params)
+			    struct wifi_drv_connect_params *params,
+				connect_cb_t cb)
 {
-	struct wifi_priv *priv = DEV_DATA(dev);
+	struct wifi_priv *priv;
+
+	if (!dev || !params) {
+		return -EINVAL;
+	}
+
+	priv = DEV_DATA(dev);
+
+	if (priv->connect_cb) {
+		return -EALREADY;
+	}
+
+	priv->connect_cb = cb;
 
 	return wifi_cmd_connect(priv, params);
 }
 
-static int uwp_mgmt_disconnect(struct device *dev)
+static int uwp_mgmt_disconnect(struct device *dev,
+		disconnect_cb_t cb)
 {
-	struct wifi_priv *priv = DEV_DATA(dev);
+	struct wifi_priv *priv;
+
+	if (!dev) {
+		return -EINVAL;
+	}
+
+	priv = DEV_DATA(dev);
+
+	if (priv->disconnect_cb) {
+		return -EALREADY;
+	}
+
+	priv->disconnect_cb = cb;
 
 	return wifi_cmd_disconnect(priv);
 }
@@ -315,17 +393,10 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 	return 0;
 }
 
-static enum ethernet_hw_caps uwp_iface_get_capabilities(struct device *dev)
-{
-	ARG_UNUSED(dev);
 
-	return ETHERNET_LINK_10BASE_T | ETHERNET_LINK_100BASE_T;
-}
-
-static const struct net_wifi_mgmt_api uwp_api = {
+static const struct wifi_drv_api uwp_api = {
 	.iface_api.init			= uwp_iface_init,
 	.iface_api.send			= uwp_iface_tx,
-	.get_capabilities		= uwp_iface_get_capabilities,
 	.open					= uwp_mgmt_open,
 	.close					= uwp_mgmt_close,
 	.scan                   = uwp_mgmt_scan,
