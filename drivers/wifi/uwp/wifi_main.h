@@ -8,7 +8,6 @@
 #define __WIFI_MAIN_H_
 
 #include <zephyr.h>
-#include <net/wifi_mgmt.h>
 #include "wifi_cmdevt.h"
 #include "wifi_txrx.h"
 #include "wifi_ipc.h"
@@ -32,6 +31,10 @@ struct wifi_priv {
 	/* bool connected; */
 	bool opened;
 	bool initialized;
+	scan_result_cb_t scan_result_cb;
+	connect_cb_t connect_cb;
+	disconnect_cb_t disconnect_cb;
+	new_station_t new_station_cb;
 };
 
 static inline void uwp_save_addr_before_payload(u32_t payload, void *addr)
