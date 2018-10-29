@@ -126,6 +126,17 @@ typedef enum {
 
   WIFIDECODEMODE_REQ_INDEX,
   WIFIDECODEMODE_INDEX,
+
+  /* cbank */
+  WIFICBANK_INDEX,
+  WIFICDECEFUSE_INDEX,
+  WIFICDECEFUSE_REQ_INDEX,
+
+  /* wifi mac efuse*/
+  WIFIMACEFUSE_REQ_INDEX,
+  WIFIMACEFUSE_INDEX,
+
+  WIFIANTINFO_REQ_INDEX,
 } eut_cmd_enum;
 
 typedef enum {

@@ -82,43 +82,43 @@ static struct eng_linuxcmd_str eng_linuxcmd[] = {
 
 int eng_linuxcmd_none_handle(char *req, char *rsp)
 {
-	printk("%s\n", __func__);
+	ENG_LOG("%s\n", __func__);
 	return 0;
 }
 
 int eng_linuxcmd_bttest(char *req, char *rsp)
 {
-	printk("%s\n", __func__);
+	ENG_LOG("%s\n", __func__);
 	return 0;
 }
 
 int eng_linuxcmd_getbtaddr(char *req, char *rsp)
 {
-	printk("%s\n", __func__);
+	ENG_LOG("%s\n", __func__);
 	return 0;
 }
 
 int eng_linuxcmd_setbtaddr(char *req, char *rsp)
 {
-	printk("%s\n", __func__);
+	ENG_LOG("%s\n", __func__);
 	return 0;
 }
 
 int eng_linuxcmd_atdiag(char *req, char *rsp)
 {
-	printk("%s\n", __func__);
+	ENG_LOG("%s\n", __func__);
 	return 0;
 }
 
 int eng_linuxcmd_batttest(char *req, char *rsp)
 {
-	printk("%s\n", __func__);
+	ENG_LOG("%s\n", __func__);
 	return 0;
 }
 
 static int eng_linuxcmd_getwifistatus(char *req, char *rsp)
 {
-	printk("%s\n", __func__);
+	ENG_LOG("%s\n", __func__);
 	return 0;
 }
 
@@ -128,7 +128,7 @@ int eng_at2linux(char *buf) {
 
   for (i = 0; i < (int)NUM_ELEMS(eng_linuxcmd); i++) {
     if (strstr(buf, eng_linuxcmd[i].name) != NULL) {
-      printk("eng_at2linux %s\n", eng_linuxcmd[i].name);
+      ENG_LOG("eng_at2linux %s\n", eng_linuxcmd[i].name);
       if ((strstr(buf, "AT+TEMPTEST")) &&
           ((strstr(buf, "AT+TEMPTEST=1,0,1")) ||
            (strstr(buf, "AT+TEMPTEST=1,1,1")) ||
@@ -145,10 +145,10 @@ int eng_at2linux(char *buf) {
 
 int eng_linuxcmd_hdlr(int cmd, char *req, char *rsp)
 {
-	printk("cmd is : %d  req is : %s\n", cmd, req);
+	ENG_LOG("cmd is : %d  req is : %s\n", cmd, req);
 
 	if (cmd >= (int)NUM_ELEMS(eng_linuxcmd)) {
-		printk("%s: no handler for cmd%d", __FUNCTION__, cmd);
+		ENG_LOG("%s: no handler for cmd%d", __FUNCTION__, cmd);
 		return -1;
   	}
 
@@ -180,10 +180,10 @@ int eng_linuxcmd_wifieutmode(char *req, char *rsp) {
   int ret = -1;
   int len = 0;
 
-  printk("test... req: %s\n", req);
-  printk("%s(), cmd = %s\n", __func__, req);
+  ENG_LOG("test... req: %s\n", req);
+  ENG_LOG("%s(), cmd = %s\n", __func__, req);
 
-  printk("req: 0x%x.\n", req);
+  ENG_LOG("req: 0x%x.\n", req);
   ret = eng_atdiag_wifi_euthdlr(req, len, rsp, WIFI_MODULE_INDEX);
 
   return ret;
@@ -240,7 +240,7 @@ int eng_linuxcmd_setwifiaddr(char *req, char *rsp) {
   length = endptr - ptr + 1;
 
   memset(address, 0, sizeof(address));
-  snprintk(address, length, "%s", ptr);
+  snprintf(address, length, "%s", ptr);
 
   ENG_LOG("%s: wifi address is %s; length=%d\n", __FUNCTION__, address, length);
 
@@ -255,7 +255,7 @@ int eng_linuxcmd_setwifiaddr(char *req, char *rsp) {
 int eng_atdiag_bt_euthdlr(char *buf, int len, char *rsp, int module_index)
 {
 	if (BT_MODULE_INDEX == module_index || BLE_MODULE_INDEX == module_index) {
-		printk("handle BT eut command\n");
+		ENG_LOG("handle BT eut command\n");
 		//bt_npi_parse(module_index, buf, rsp);
 		return 0;
 	}
@@ -268,7 +268,7 @@ int eng_linuxcmd_bleeutmode(char *req, char *rsp)
 	int ret = -1;
 	int len = 0;
 
-	printk("%s(), cmd = %s", __func__, req);
+	ENG_LOG("%s(), cmd = %s", __func__, req);
 
 	ret = eng_atdiag_bt_euthdlr(req, len, rsp, BLE_MODULE_INDEX);
 	return ret;
@@ -278,7 +278,7 @@ int eng_linuxcmd_bteutmode(char *req, char *rsp) {
 	int ret = -1;
 	int len = 0;
 
-	printk("%s(), cmd = %s", __FUNCTION__, req);
+	ENG_LOG("%s(), cmd = %s", __FUNCTION__, req);
 
 	ret = eng_atdiag_bt_euthdlr(req, len, rsp, BT_MODULE_INDEX);
 	return ret;

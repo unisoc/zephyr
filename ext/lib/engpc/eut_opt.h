@@ -67,8 +67,17 @@
 #define ENG_MACFILTER_REQ ("MACFILTER?")
 #define ENG_MACFILTER ("MACFILTER")
 
+#define ENG_CDECEFUSE ("CDECEFUSE")
+#define ENG_CDECEFUSE_REQ ("CDECEFUSE?")
+
+#define ENG_MACEFUSE_REQ ("MACEFUSE?")
+#define ENG_MACEFUSE ("MACEFUSE")
+
 #define ENG_WIFIANT_REQ ("ANT?")
 #define ENG_WIFIANT ("ANT")
+#define ENG_WIFIANTINFO_REQ ("ANTINFO?")
+
+#define ENG_WIFICBANK ("CBANK")
 
 #define ENG_WIFINETMODE ("NETMODE")
 
@@ -146,46 +155,7 @@ struct eng_bt_eutops {
   int (*bteut_req)(char *);
 };
 
-struct eng_wifi_eutops{
-    int (*wifieut)(int,char *);
-    int	(*wifieut_req)(char *);
-    int (*wifiband)(int,char *);
-    int	(*wifiband_req)(char *);
-    int (*wifi_tx_mode_bcm)(int,char *);
-    int	(*wifi_tx_mode_req)(char *);
-    int (*wifi_tx_pwrlv)(int,char *);
-    int	(*wifi_tx_pwrlv_req)(char *);
-    int (*wifi_tx)(int,char *);
-    int (*set_wifi_tx_factor)(long ,char *);
-    int (*wifi_rx)(int,char *);
-    int (*set_wifi_mode)(char *,char *);
-    int (*set_wifi_ratio)(float,char *);
-    int (*set_wifi_ch)(int,char *);
-    int (*wifi_tx_req)(char *);
-    int (*wifi_tx_factor_req)(char *);
-    int (*wifi_rx_req)(char *);
-    int (*wifi_ratio_req)(char *);
-    int (*wifi_ch_req)(char *);
-    int (*wifi_rxpackcount)(char *);
-    int (*wifi_clr_rxpackcount)(char *);
-    int (*set_wifi_rate)(char *, char *);
-    int (*wifi_rate_req)(char *);
-    int (*set_wifi_txgainindex)(int , char *);
-    int (*wifi_txgainindex_req)(char *);
-    int (*wifi_rssi_req)(char *);
-    int(*wifi_pkt_len_set)(int, char *);
-    int(*wifi_pkt_len_get)(char *);
-    int(*wifi_bw_get)(char *);
-    int(*wifi_bw_set)(wifi_bw, char *);
-    int (*wifi_pm)(int ,char *);
-    int(*wifi_eut_preamble_set)(wifi_eut_preamble_type, char *);
-};
-
 int bteut(int command_code, char *rsp);
-static int bteut_req(char *);
-static int start_bteut(char *);
-static int end_bteut(char *);
-static int wifieut_req(char *);
 int wifieut(int command_code,char *rsp);
 int wifiband(int band, char *rsp);
 int wifiband_req(char *rsp);
@@ -211,20 +181,5 @@ int wifi_pkt_len_set(int pkt_len, char *rsp);
 int wifi_pkt_len_get(char *rsp);
 int wifi_bw_get(char *rsp);
 int wifi_bw_set(wifi_bw band_width, char *rsp);
-static int start_bteut(char *result);
-static int start_wifieut(char *result);
-static int end_wifieut(char *result);
-static int start_wifi_tx(char *result);
-static int end_wifi_tx(char *result);
-int  set_wifi_tx_factor(long factor,char *result);
-static int start_wifi_rx(char *result);
-static int end_wifi_rx(char *result);
-static int set_wifi_modu(char *modu, char *result);
-static int set_wifi_mode(char *mode, char *result);
-static int wifi_tx_req(char *result);
-static int wifi_tx_factor_req(char *result);
-static int wifi_rx_req(char *result);
-static int wifi_ratio_req(char *result);
-static int wifi_ch_req(char *result);
 #endif
 

@@ -1,16 +1,6 @@
-#include <zephyr.h>
-#include <kernel.h>
-#include <init.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <device.h>
-#include <uart.h>
-#include <logging/sys_log.h>
-
 #include "wifi_eut_sprd.h"
 #include "eut_opt.h"
+#include "eng_sscanf.h"
 
 #define CONFIG_SYSTEM_IWNPI
 #define NUM_ELEMS(x) (sizeof(x) / sizeof(x[0]))
@@ -23,12 +13,12 @@ extern int sprdwl_iwnpi_ret_buf(char *buf, int len);
 
 #define rsp_debug(rsp_)                               \
 	do {                                                \
-		printk("%s(), rsp###:%s\n", __FUNCTION__, rsp_); \
+		ENG_LOG("%s(), rsp###:%s\n", __FUNCTION__, rsp_); \
 	} while (0);
 
 #define wifi_status_dump()                                             \
 	do {                                                                 \
-		printk("%s(), eut_enter = %d, tx_start = %d, rx_start = %d\n",    \
+		ENG_LOG("%s(), eut_enter = %d, tx_start = %d, rx_start = %d\n",    \
 				__FUNCTION__, g_wifi_data.eut_enter, g_wifi_data.tx_start, \
 				g_wifi_data.rx_start);                                     \
 	} while (0);
@@ -37,6 +27,13 @@ unsigned int g_wifi_tx_count = 0;
 
 WIFI_ELEMENT g_wifi_data;
 
+#define INIT_CDEC_VAL	100
+unsigned char g_afc_cdec = INIT_CDEC_VAL;
+
+int  get_wcn_afc_cdec()
+{
+	return 	g_afc_cdec;
+}
 /********************************************************************
  *   name   get_wcn_hw_type
  *   ---------------------------
@@ -56,103 +53,30 @@ static int get_wcn_hw_type(void)
 	return g_wifi_data.wcn_type;
 }
 
-static WIFI_CHANNEL g_wifi_channel_table[] = {
-	/* 2.4G 20M */
-	{"1-2412MHz(bgn)", 1, 1}, {"2-2417MHz(bgn)", 2, 2}, {"3-2422MHz(bgn)", 3, 3}, {"4-2427MHz(bgn)", 4, 4},
-	{"5-2432MHz(bgn)", 5, 5}, {"6-2437MHz(bgn)", 6, 6}, {"7-2442MHz(bgn)", 7, 7}, {"8-2447MHz(bgn)", 8, 8},
-	{"9-2452MHz(bgn)", 9, 9}, {"10-2457MHz(bgn)", 10, 10}, {"11-2462MHz(bgn)", 11, 11}, {"12-2467MHz(bgn)", 12, 12},
-	{"13-2472MHz(bgn)", 13, 13}, {"14-2484MHz(bgn)", 14, 14},
-	/* 2.4G 40M */
-	{"1-2422MHz(n40H)", 1, 3}, {"2-2427MHz(n40H)", 2, 4}, {"3-2432MHz(n40H)", 3, 5}, {"4-2437MHz(n40H)", 4, 6},
-	{"5-2442MHz(n40H)", 5, 7}, {"6-2447MHz(n40H)", 6, 8}, {"7-2452MHz(n40H)", 7, 9}, {"8-2457MHz(n40H)", 8, 10},
-	{"9-2462MHz(n40H)", 9, 11}, {"5-2422MHz(n40L)", 5, 3}, {"6-2427MHz(n40L)", 6, 4}, {"7-2432MHz(n40L)", 7, 5},
-	{"8-2437MHz(n40L)", 8, 6},  {"9-2442MHz(n40L)", 9, 7}, {"10-2447MHz(n40L)", 10, 8}, {"11-2452MHz(n40L)", 11, 9},
-	{"12-2457MHz(n40L)", 12, 10}, {"13-2462MHz(n40L)", 13, 11},
-	/* 5G 20M */
-	{"36-5180MHz(a/n/ac)", 36, 36}, {"40-5200MHz(a/n/ac)", 40, 40}, {"44-5220MHz(a/n/ac)", 44, 44},
-	{"48-5240MHz(a/n/ac)", 48, 48}, {"52-5260MHz(a/n/ac)", 52, 52}, {"56-5280MHz(a/n/ac)", 56, 56},
-	{"60-5300MHz(a/n/ac)", 60, 60}, {"64-5320MHz(a/n/ac)", 64, 64}, {"100-5500MHz(a/n/ac)", 100, 100},
-	{"104-5520MHz(a/n/ac)", 104, 104}, {"108-5540MHz(a/n/ac)", 108, 108}, {"112-5560MHz(a/n/ac)", 112, 112},
-	{"116-5580MHz(a/n/ac)", 116, 116}, {"120-5600MHz(a/n/ac)", 120, 120}, {"124-5620MHz(a/n/ac)", 124, 124},
-	{"128-5640MHz(a/n/ac)", 128, 128}, {"132-5660MHz(a/n/ac)", 132, 132}, {"136-5680MHz(a/n/ac)", 136, 136},
-	{"140-5700MHz(a/n/ac)", 140, 140}, {"144-5720MHz(a/n/ac)", 144, 144}, {"149-5745MHz(a/n/ac)", 149, 149},
-	{"153-5765MHz(a/n/ac)", 153, 153}, {"157-5785MHz(a/n/ac)", 157, 157}, {"161-5805MHz(a/n/ac)", 161, 161},
-	{"165-5825MHz(a/n/ac)", 165, 165},
-	/* 5G 40M */
-	{"36-5190MHz(n/ac40H)", 36, 38}, {"40-5190MHz(n/ac40L)", 40, 38}, {"44-5230MHz(n/ac40H)", 44, 46},
-	{"48-5230MHz(n/ac40L)", 48, 46}, {"52-5270MHz(n/ac40H)", 52, 54}, {"56-5270MHz(n/ac40L)", 56, 54},
-	{"60-5310MHz(n/ac40H)", 60, 62}, {"64-5310MHz(n/ac40L)", 64, 62}, {"100-5510MHz(n/ac40H)", 100, 102},
-	{"104-5510MHz(n/ac40L)", 104, 102}, {"108-5550MHz(n/ac40H)", 108, 110}, {"112-5550MHz(n/ac40L)", 112, 110},
-	{"116-5590MHz(n/ac40H)", 116, 118}, {"120-5590MHz(n/ac40L)", 120, 118}, {"124-5630MHz(n/ac40H)", 124, 126},
-	{"128-5630MHz(n/ac40L)", 128, 126}, {"132-5670MHz(n/ac40H)", 132, 134}, {"136-5670MHz(n/ac40L)", 136, 134},
-	{"140-5710MHz(n/ac40H)", 140, 142}, {"144-5710MHz(n/ac40L)", 144, 142}, {"149-5755MHz(n/ac40H)", 149, 151},
-	{"153-5755MHz(n/ac40L)", 153, 151}, {"157-5795MHz(n/ac40H)", 157, 159}, {"161-5795MHz(n/ac40L)", 161, 159},
-	/* 5G 80M */
-	{"36-5210MHz(ac80H)", 36, 42}, {"40-5210MHz(ac80H)", 40, 42}, {"44-5210MHz(ac80L)", 44, 42}, {"48-5210MHz(ac80L)", 48, 42},
-	{"52-5290MHz(ac80H)", 52, 58}, {"56-5290MHz(ac80H)", 56, 58}, {"60-5290MHz(ac80L)", 60, 58}, {"64-5290MHz(ac80L)", 64, 58},
-	{"100-5530MHz(ac80H)", 100, 106}, {"104-5530MHz(ac80H)", 104, 106}, {"108-5530MHz(ac80L)", 108, 106}, {"112-5530MHz(ac80L)", 112, 106},
-	{"116-5610MHz(ac80H)", 116, 122}, {"120-5610MHz(ac80H)", 120, 122}, {"124-5610MHz(ac80L)", 124, 122}, {"128-5610MHz(ac80L)", 128, 122},
-	{"132-5690MHz(ac80H)", 132, 138}, {"136-5690MHz(ac80H)", 136, 138}, {"140-5690MHz(ac80L)", 140, 138}, {"144-5690MHz(ac80L)", 144, 138},
-	{"149-5775MHz(ac80H)", 149, 155}, {"153-5775MHz(ac80H)", 153, 155}, {"157-5775MHz(ac80L)", 157, 155}, {"161-5775MHz(ac80L)", 161, 155}
-};
-
-static WIFI_CHANNEL *match_channel_table_by_name(const char *name) {
-	int i;
-	WIFI_CHANNEL *ret = NULL;
-
-	for (i = 0; i < (int)NUM_ELEMS(g_wifi_channel_table); i++) {
-		if ((strlen(name) - 1 == strlen(g_wifi_channel_table[i].name)) && (NULL != strstr(name, g_wifi_channel_table[i].name))) {
-			ret = &g_wifi_channel_table[i];
-			break;
-		}
-	}
-	return ret;
-}
-
-static WIFI_CHANNEL *match_channel_table_by_chn(const int primary_channel, const int center_channel) {
-	int i;
-	WIFI_CHANNEL *ret = NULL;
-
-	for (i = 0; i < (int)NUM_ELEMS(g_wifi_channel_table); i++) {
-		if (center_channel == g_wifi_channel_table[i].center_channel && primary_channel == g_wifi_channel_table[i].primary_channel) {
-			ret = &g_wifi_channel_table[i];
-			break;
-		}
-	}
-	return ret;
-}
-
-// older rate table for marlin2, it will replace by array g_wifi_rate_table as marlin3
-static WIFI_RATE g_wifi_rate_table_old[] = {
-	{1, "DSSS-1"},   {2, "DSSS-2"},   {5, "CCK-5.5"},  {11, "CCK-11"},
-	{6, "OFDM-6"},   {9, "OFDM-9"},   {12, "OFDM-12"}, {18, "OFDM-18"},
-	{24, "OFDM-24"}, {36, "OFDM-36"}, {48, "OFDM-48"}, {54, "OFDM-54"},
-	{7, "MCS-0"},    {13, "MCS-1"},   {19, "MCS-2"},   {26, "MCS-3"},
-	{39, "MCS-4"},   {52, "MCS-5"},   {58, "MCS-6"},   {65, "MCS-7"},
-	{-1, "null"}
-};
-
 // new rate table for marlin3, it will be used for marlin2
 static WIFI_RATE g_wifi_rate_table[] = {
-	{0, "DSSS-1"}, /*1M_Long*/  {1, "DSSS-2"}, /*2M_Long*/ {2, "DSSS-2S"}, /*2M_Short*/ {3, "CCK-5.5"}, /*5.5M_Long*/ {4, "CCK-5.5S"}, /*5.5M_Short*/
-	{5, "CCK-11"}, /*11M_Long*/  {6, "CCK-11S"}, /*11M_Short*/  {7, "OFDM-6"}, /*6M*/ {8, "OFDM-9"}, /*9M*/ {9, "OFDM-12"}, /*12M*/
-	{10, "OFDM-18"}, /*18M*/ {11, "OFDM-24"}, /*24M*/ {12, "OFDM-36"}, /*36M*/ {13, "OFDM-48"}, /*48M*/ {14, "OFDM-54"}, /*54M*/
-	{15, "MCS-0"}, /*HT_MCS0*/ {16, "MCS-1"}, /*HT_MCS1*/ {17, "MCS-2"}, /*HT_MCS2*/ {18, "MCS-3"},  /*HT_MCS3*/ {19, "MCS-4"},  /*HT_MCS4*/
-	{20, "MCS-5"},  /*HT_MCS5*/ {21, "MCS-6"},  /*HT_MCS6*/ {22, "MCS-7"}, /*HT_MCS7*/ {23, "MCS-8"}, /*HT_MCS8*/{24, "MCS-9"}, /*HT_MCS9*/
-	{25, "MCS-10"}, /*HT_MCS10*/ {26, "MCS-11"}, /*HT_MCS11*/ {27, "MCS-12"}, /*HT_MCS12*/ {28, "MCS-13"}, /*HT_MCS13*/ {29, "MCS-14"}, /*HT_MCS14*/
-	{30, "MCS-15"}, /*HT_MCS15*/ {31, "VHT_MCS0_1SS"}, /*VHT_MCS0_1SS*/ {32, "VHT_MCS1_1SS"}, /*VHT_MCS1_1SS*/ {33, "VHT_MCS2_1SS"}, /*VHT_MCS2_1SS*/ {34, "VHT_MCS3_1SS"}, /*VHT_MCS3_1SS*/
-	{35, "VHT_MCS4_1SS"}, /*VHT_MCS4_1SS*/ {36, "VHT_MCS5_1SS"}, /*VHT_MCS5_1SS*/ {37, "VHT_MCS6_1SS"}, /*VHT_MCS6_1SS*/ {38, "VHT_MCS7_1SS"}, /*VHT_MCS7_1SS*/ {39, "VHT_MCS8_1SS"}, /*VHT_MCS8_1SS*/
-	{40, "VHT_MCS9_1SS"}, /*VHT_MCS9_1SS*/ {41, "VHT_MCS0_2SS"}, /*VHT_MCS0_2SS*/ {42, "VHT_MCS1_2SS"}, /*VHT_MCS1_2SS*/ {43, "VHT_MCS2_2SS"}, /*VHT_MCS2_2SS*/ {44, "VHT_MCS3_2SS"}, /*VHT_MCS3_2SS*/
-	{45, "VHT_MCS4_2SS"}, /*VHT_MCS4_2SS*/ {46, "VHT_MCS5_2SS"}, /*VHT_MCS5_2SS*/ {47, "VHT_MCS6_2SS"}, /*VHT_MCS6_2SS*/ {48, "VHT_MCS7_2SS"}, /*VHT_MCS7_2SS*/ {49, "VHT_MCS8_2SS"}, /*VHT_MCS8_2SS*/
-	{50, "VHT_MCS9_2SS"}, /*VHT_MCS9_2SS*/ {-1, "null"}
+ 	{0, "DSSS-1"},    /*1M_Long*/      {1, "DSSS-2"},    /*2M_Long*/      {2, "DSSS-2S"},   /*2M_Short*/
+	{3, "CCK-5.5"},   /*5.5M_Long*/    {4, "CCK-5.5S"},  /*5.5M_Short*/   {5, "CCK-11"},    /*11M_Long*/
+	{6, "CCK-11S"},   /*11M_Short*/    {7, "OFDM-6"},    /*6M*/           {8, "OFDM-9"},    /*9M*/
+	{9, "OFDM-12"},   /*12M*/          {10, "OFDM-18"},  /*18M*/          {11, "OFDM-24"},  /*24M*/
+	{12, "OFDM-36"},  /*36M*/          {13, "OFDM-48"},  /*48M*/          {14, "OFDM-54"},  /*54M*/
+	{15, "MCS-0"},    /*HT_MCS0*/      {16, "MCS-1"},    /*HT_MCS1*/      {17, "MCS-2"},    /*HT_MCS2*/
+	{18, "MCS-3"},    /*HT_MCS3*/      {19, "MCS-4"},    /*HT_MCS4*/      {20, "MCS-5"},    /*HT_MCS5*/
+	{21, "MCS-6"},    /*HT_MCS6*/      {22, "MCS-7"},    /*HT_MCS7*/      {23, "MCS-8"},    /*HT_MCS8*/
+	{24, "MCS-9"},    /*HT_MCS9*/      {25, "MCS-10"},   /*HT_MCS10*/     {26, "MCS-11"},   /*HT_MCS11*/
+	{27, "MCS-12"},   /*HT_MCS12*/     {28, "MCS-13"},   /*HT_MCS13*/     {29, "MCS-14"},   /*HT_MCS14*/
+	{30, "MCS-15"},   /*HT_MCS15*/     {31, "MCS0_1SS"}, /*VHT_MCS0_1SS*/ {32, "MCS1_1SS"}, /*VHT_MCS1_1SS*/
+	{33, "MCS2_1SS"}, /*VHT_MCS2_1SS*/ {34, "MCS3_1SS"}, /*VHT_MCS3_1SS*/ {35, "MCS4_1SS"}, /*VHT_MCS4_1SS*/
+	{36, "MCS5_1SS"}, /*VHT_MCS5_1SS*/ {37, "MCS6_1SS"}, /*VHT_MCS6_1SS*/ {38, "MCS7_1SS"}, /*VHT_MCS7_1SS*/
+	{39, "MCS8_1SS"}, /*VHT_MCS8_1SS*/ {40, "MCS9_1SS"}, /*VHT_MCS9_1SS*/ {41, "MCS0_2SS"}, /*VHT_MCS0_2SS*/
+	{42, "MCS1_2SS"}, /*VHT_MCS1_2SS*/ {43, "MCS2_2SS"}, /*VHT_MCS2_2SS*/ {44, "MCS3_2SS"}, /*VHT_MCS3_2SS*/
+	{45, "MCS4_2SS"}, /*VHT_MCS4_2SS*/ {46, "MCS5_2SS"}, /*VHT_MCS5_2SS*/ {47, "MCS6_2SS"}, /*VHT_MCS6_2SS*/
+	{48, "MCS7_2SS"}, /*VHT_MCS7_2SS*/ {49, "MCS8_2SS"}, /*VHT_MCS8_2SS*/
+	{50, "MCS9_2SS"}, /*VHT_MCS9_2SS*/ {-1, "null"}
 };
 
 static int mattch_rate_table_str(const char *name) {
-	WIFI_RATE *rate_ptr = NULL;
-
-	if (WCN_HW_MARLIN3 == get_wcn_hw_type()) {   //if wcn chip is marlin3
-		rate_ptr = g_wifi_rate_table;
-	}
+	WIFI_RATE *rate_ptr = g_wifi_rate_table;
 
 	while (rate_ptr->rate != -1) {
 		if (strlen(name) - 1 == strlen(rate_ptr->name) && NULL != strstr(name, rate_ptr->name)) {
@@ -164,13 +88,7 @@ static int mattch_rate_table_str(const char *name) {
 }
 
 static char *mattch_rate_table_index(const int rate) {
-	WIFI_RATE *rate_ptr = NULL;
-
-	if (WCN_HW_MARLIN3 == get_wcn_hw_type()) {   //if wcn chip is marlin3
-		rate_ptr = g_wifi_rate_table;
-	} else {
-		rate_ptr = g_wifi_rate_table_old;
-	}
+	WIFI_RATE *rate_ptr = g_wifi_rate_table;
 
 	while (rate_ptr->rate != -1) {
 		if (rate == rate_ptr->rate) {
@@ -202,27 +120,29 @@ static int get_iwnpi_ret_line(const char *flag, const char *out_str, const int o
 	//we can call iwnpi interface to get return value, no need operate file.
 	char *str1 = NULL;
 	char *str2 = NULL;
-	char *tmp;
 	int ret = WIFI_INT_INVALID_RET;
 	unsigned long len = 0;
 	char buf[TMP_BUF_SIZE] = {0};
 
 	if (NULL != flag && NULL == out_str) {
-		printk("%s(), flag(%s) out str is NULL, return -100.\n", __FUNCTION__, flag);
+		ENG_LOG("%s(), flag(%s) out str is NULL, return -100.\n", __FUNCTION__, flag);
 		return WIFI_INT_INVALID_RET;
 	}
+
 #ifdef CONFIG_SYSTEM_IWNPI
 	if(NULL != flag) {
 		if (strcmp(flag, IWNPI_RET_STA_FLAG) == 0)
 			sprdwl_wlnpi_exec_status(buf, TMP_BUF_SIZE);
 		else
 			sprdwl_iwnpi_ret_buf(buf, TMP_BUF_SIZE);
-	}
+	} else {
+		sprdwl_iwnpi_ret_buf(buf, TMP_BUF_SIZE);
+}
 #endif
-	printk("%s(), buf = %s\n", __FUNCTION__, buf);
+	ENG_LOG("%s(), buf = %s\n", __FUNCTION__, buf);
 
 	if (NULL == flag) {   //only for return one data, format is "ret: %d:end"
-		///sscanf(buf, IWNPI_RET_ONE_DATA, &ret);
+		eng_sscanf(buf, IWNPI_RET_ONE_DATA, &ret);
 	} else if (NULL != flag && NULL != strstr(buf, flag)) {
 		str1 = strstr(buf, IWNPI_RET_BEGIN);
 		str2 = strstr(buf, IWNPI_RET_END);
@@ -238,7 +158,7 @@ static int get_iwnpi_ret_line(const char *flag, const char *out_str, const int o
 	}
 
 	memset(buf, 0x00, TMP_BUF_SIZE);
-	printk("leaving %s(), out_str = %s, ret = %d\n", __FUNCTION__, out_str, ret);
+	ENG_LOG("leaving %s(), out_str = %s, ret = %d\n", __FUNCTION__, out_str, ret);
 	return ret;
 }
 
@@ -262,10 +182,10 @@ static int get_iwnpi_exec_status(void)
 	char buf[TMP_BUF_SIZE] = {0};
 	int sta = -1;
 
-	printk("start to get exec status\n");
-	///if (get_iwnpi_ret_line(IWNPI_RET_STA_FLAG, buf, TMP_BUF_SIZE) > 0)
-	///sscanf(buf, "status %d", &sta);
-	printk("leaving %s(), get status = %d", __FUNCTION__, sta);
+	ENG_LOG("start to get exec status\n");
+	if (get_iwnpi_ret_line(IWNPI_RET_STA_FLAG, buf, TMP_BUF_SIZE) > 0)
+		eng_sscanf(buf, "status %d", &sta);
+	ENG_LOG("leaving %s(), get status = %d", __FUNCTION__, sta);
 	return sta;
 }
 
@@ -288,7 +208,7 @@ static inline int get_result_from_iwnpi(void) {
 }
 
 static inline int wifi_enter_eut_mode(void) {
-	printk("%s eut_enter : %d\n",__FUNCTION__, g_wifi_data.eut_enter);
+	ENG_LOG("%s eut_enter : %d\n",__FUNCTION__, g_wifi_data.eut_enter);
 	return g_wifi_data.eut_enter;
 }
 
@@ -308,7 +228,7 @@ static inline int wifi_enter_eut_mode(void) {
  ********************************************************************/
 static inline int exec_cmd(const char *cmd)
 {
-	printk("%s : %s\n", __func__, cmd);
+	ENG_LOG("%s : %s\n", __func__, cmd);
 	return 0;
 }
 
@@ -330,7 +250,7 @@ static inline int exec_iwnpi_cmd(int argc, char **argv)
 {
 	int index = 0;
 	for(index = 0; index < argc; index++) {
-		printk("argv[%d] : %s \n", index, argv[index]);
+		ENG_LOG("argv[%d] : %s \n", index, argv[index]);
 	}
 
 #ifdef CONFIG_SYSTEM_IWNPI
@@ -391,102 +311,133 @@ static inline int return_err(const char *rsp) {
 
 static int wifi_npi_start(char *rsp)
 {
-	int ret;
 	int argc = 3;
 	//just test iwnpi wlan0 start command
 
 	char* cmd[] = {"iwnpi","wlan0", "start"};
 
-	printk("just call npi start\n");
+	ENG_LOG("just call npi start\n");
 	if (0 != exec_iwnpi_cmd_with_status(argc, cmd)) {
-		printk("exec iwnpi wlan0 start error");
+		ENG_LOG("exec iwnpi wlan0 start error");
 		return -1;
 	}
 	return 0;
+}
+
+static int wifi_set_cbank_after_start(unsigned char cbank)
+{
+	char cmd[8] = {0};
+	int argc = 4;
+	char *argv[argc];
+
+	ENG_LOG("%s(), cbank:%d\n", __FUNCTION__, cbank);
+
+	argv[0] = "iwnpi";
+	argv[1] = "wlan0";
+	argv[2] = "set_cbank_reg";
+	sprintf(cmd, "%d", cbank);
+	argv[3] = cmd;
+	return exec_iwnpi_cmd_with_status(argc, argv);
 }
 
 static int start_wifieut(char *rsp)
 {
 	int ret;
 	int argc = 3;
+	char *argv[3] = {"iwnpi", "wlan0", "enter_mode"};
+
+	if (0 != exec_iwnpi_cmd(argc, argv)) {
+		ENG_LOG("%s() enter mode fail\n", __func__);
+		goto err;
+	}
 
 	ret = wifi_npi_start(rsp);
 	if (ret)
 		goto err;
+	if (g_afc_cdec == INIT_CDEC_VAL) {
+		ENG_LOG("%s() no need set cbank to cp\n", __func__);
+	}
 
-ok:
+	if ((g_afc_cdec < 64) && (g_afc_cdec >= 0)) {
+		ENG_LOG("%s() need set cbank to cp , g_afc_cdec value:%d \n", __func__, g_afc_cdec);
+		if ( 0 != wifi_set_cbank_after_start(g_afc_cdec)) {
+			ENG_LOG("%s() set cbank error\n", __func__);
+			goto err;
+		}
+	}
+
 	memset(&g_wifi_data, 0x00, sizeof(WIFI_ELEMENT));
-	printk("start to set eut_enter status\n");
+	ENG_LOG("%s() start to set eut_enter status\n", __func__);
 	g_wifi_data.eut_enter = 1;
-	/* call init(), must be eut_enter is 1 */
-	wifi_eut_init();
 	return return_ok(rsp);
 
 err:
-	printk("start to set eut_enter to zero\n");
+	ENG_LOG("%s() start to set eut_enter to zero\n", __func__);
 	g_wifi_data.eut_enter = 0;
 	return return_err(rsp);
 }
 
-static int stop_wifieut(char *rsp) {
+static int stop_wifieut(char *rsp)
+{
 	int ret;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0};
+	int argc = 3;
+	char *argv[3] = {"iwnpi", "wlan0"};
 
 	ENG_LOG("ADL entry %s(), line = %d", __func__, __LINE__);
 
 	wifi_status_dump();
 	if (1 == g_wifi_data.tx_start) {
-		sprintf(cmd, "iwnpi wlan0 tx_stop > %s", TMP_FILE);
-		if (0 != exec_cmd(cmd))
+		argv[2] = "tx_stop";
+		if (0 != exec_iwnpi_cmd(argc, argv))
 			goto err;
 	}
 
 	if (1 == g_wifi_data.rx_start) {
-		sprintf(cmd, "iwnpi wlan0 rx_stop > %s", TMP_FILE);
-		if (0 != exec_cmd(cmd))
+		argv[2] = "rx_stop";
+		if (0 != exec_iwnpi_cmd(argc, argv))
 			goto err;
 	}
 
-	sprintf(cmd, "iwnpi wlan0 stop > %s", TMP_FILE);
-	if (0 != exec_iwnpi_cmd_for_status(cmd))
+	argv[2] = "stop";
+	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
 		goto err;
 
-#if 0
-	exec_cmd("ifconfig wlan0 down");
-#endif
-	exec_cmd("rmmod sprdwl_ng.ko");
-#ifdef SPRD_WCN_MARLIN
-	ret = exec_cmd("connmgr_cli wcn poweroff ");
-#endif
 	memset(&g_wifi_data, 0, sizeof(WIFI_ELEMENT));
+	ENG_LOG("%s() exit eut, we will exit mode\n", __func__);
+	argv[2] = "exit_mode";
+	if (0 != exec_iwnpi_cmd(argc, argv))
+		goto err;
+
 	return return_ok(rsp);
 
 err:
 	return return_err(rsp);
 }
 
-int wifi_eut_set(int cmd, char *rsp) {
-	printk("entry %s(), cmd = %d\n", __FUNCTION__, cmd);
+int wifi_eut_set(int cmd, char *rsp)
+{
+	ENG_LOG("entry %s(), cmd = %d\n", __FUNCTION__, cmd);
 	if (cmd == 1) {
 		start_wifieut(rsp);
 	} else if (cmd == 0) {
 		stop_wifieut(rsp);
 	} else {
-		printk("%s(), cmd don't support", __func__);
+		ENG_LOG("%s(), cmd don't support", __func__);
 		sprintf(rsp, "%s%s", EUT_WIFI_ERROR, "error");
 	}
 	return 0;
 }
 
-int wifi_eut_get(char *rsp) {
+int wifi_eut_get(char *rsp)
+{
 	wifi_enter_eut_mode();
 	sprintf(rsp, "%s%d", EUT_WIFI_REQ, g_wifi_data.eut_enter);
 	rsp_debug(rsp);
 	return 0;
 }
 
-int wifi_rate_set(char *string, char *rsp) {
-	int ret = -1;
+int wifi_rate_set(char *string, char *rsp)
+{
 	int rate = -1;
 	int argc = 4;
 	char cmd[8] = {0x00};
@@ -495,7 +446,7 @@ int wifi_rate_set(char *string, char *rsp) {
 	if (wifi_enter_eut_mode() == 0)
 		goto err;
 	rate = mattch_rate_table_str(string);
-	printk("%s(), %s rate:%d\n", __FUNCTION__, string, rate);
+	ENG_LOG("%s(), %s rate:%d\n", __FUNCTION__, string, rate);
 	if (-1 == rate) goto err;
 
 	argv[0] = "iwnpi";
@@ -513,17 +464,18 @@ err:
 	return return_err(rsp);
 }
 
-int wifi_rate_get(char *rsp) {
+int wifi_rate_get(char *rsp)
+{
 	int ret = WIFI_INT_INVALID_RET;
 	char *str = NULL;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_rate"};
 
 	ENG_LOG("%s()...\n", __FUNCTION__);
 	if (wifi_enter_eut_mode() == 0)
 		goto err;
 
-	sprintf(cmd, "iwnpi wlan0 get_rate > %s", TMP_FILE);
-	if (0 != exec_cmd(cmd))
+	if (0 != exec_iwnpi_cmd(argc, argv))
 		goto err;
 
 	ret = get_result_from_iwnpi();
@@ -549,9 +501,8 @@ err:
 }
 
 //marlin3: iwnpi wlan0 set_channel $(prim_ch) $(cen_ch) > $(TMP_FILE)
-int wifi_channel_set_marlin3(char *ch_note1, char *ch_note2, char *rsp) {
-	int ret = -1;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
+int wifi_channel_set_marlin3(char *ch_note1, char *ch_note2, char *rsp)
+{
 	int argc = 5;
 	char *argv[argc];
 
@@ -562,18 +513,22 @@ int wifi_channel_set_marlin3(char *ch_note1, char *ch_note2, char *rsp) {
 	int center_channel = 0;
 	if (ch_note2 != NULL)
 		center_channel = atoi(ch_note2);
-	else
-		center_channel = primary_channel;
 
-	if (primary_channel < 1 || center_channel < 1)
+	if (primary_channel < 1) {
+		ENG_LOG("Invalid channel : %d", center_channel);
 		goto err;
-	printk("%s(): prim_chn = %d, cen_chn = %d.", __FUNCTION__, primary_channel, center_channel);
+	}
 
 	argv[0] = "iwnpi";
 	argv[1] = "wlan0";
 	argv[2] = "set_channel";
 	argv[3] = ch_note1;
-	argv[4] = ch_note2;
+	if (center_channel == 0) {
+		ENG_LOG("%s() should set center_channel with primary_channel\n", __func__);
+		argv[4] = ch_note1;
+	} else {
+		argv[4] = ch_note2;
+	}
 
 	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
 		goto err;
@@ -584,11 +539,11 @@ err:
 	return return_err(rsp);
 }
 
-int wifi_channel_get_marlin3(char *rsp) {
+int wifi_channel_get_marlin3(char *rsp)
+{
 	int ret = -1;
 	int primary_channel = 0;
 	int center_channel = 0;
-	WIFI_CHANNEL *chn = NULL;
 	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
 	int argc = 3;
 	char *argv[3] = {"iwnpi", "wlan0", "get_channel"};
@@ -605,7 +560,7 @@ int wifi_channel_get_marlin3(char *rsp) {
 		ENG_LOG("%s(), get_channel run err[%d].\n", __FUNCTION__, ret);
 		goto err;
 	}
-	///sscanf(cmd, "primary_channel:%d,center_channel:%d\n", &primary_channel, &center_channel);
+	eng_sscanf(cmd, "primary_channel:%d,center_channel:%d\n", &primary_channel, &center_channel);
 	//  #ifdef __MARLIN3_USE_TWO_CHANNELS__
 	if (primary_channel < 1 || center_channel < 1)
 		goto err;
@@ -627,45 +582,22 @@ err:
 	return -1;
 }
 
-int wifi_channel_set(char *ch_note1, char *ch_note2, char *rsp) {
-	int ret = -1;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
-
-	if (wifi_channel_set_marlin3(ch_note1, ch_note2, rsp) == 0)
-		return 0;
-
-	int ch = atoi(ch_note1);
-	ENG_LOG("ADL entry %s(), ch = %d", __func__, ch);
-	if (wifi_enter_eut_mode() == 0)
-		goto err;
-
-	if ((ch < 1) || (ch > 14)) {
-		ENG_LOG("%s(), channel num err\n", __func__);
-		goto err;
-	}
-
-	sprintf(cmd, "iwnpi wlan0 set_channel %d > %s", ch, TMP_FILE);
-	if (0 != exec_iwnpi_cmd_for_status(cmd))
-		goto err;
-
-	g_wifi_data.channel = ch;
-	return return_ok(rsp);
-
-err:
-	g_wifi_data.channel = 0;
-	return return_err(rsp);
+int wifi_channel_set(char *ch_note1, char *ch_note2, char *rsp)
+{
+	/*just call marlin3 set channel */
+	return wifi_channel_set_marlin3(ch_note1, ch_note2, rsp);
 }
 
-int wifi_channel_get(char *rsp) {
+int wifi_channel_get(char *rsp)
+{
 	if (wifi_channel_get_marlin3(rsp) == 0)
 		return 0;
-
-err:
-	return return_err(rsp);
+	else
+		return return_err(rsp);
 }
 
-int wifi_txgainindex_set(int index, char *rsp) {
-	int ret = -1;
+int wifi_txgainindex_set(int index, char *rsp)
+{
 	char cmd[8] = {0};
 	int argc = 4;
 	char *argv[4] = {"iwnpi","wlan0","set_tx_power",""};
@@ -687,7 +619,8 @@ err:
 	return return_err(rsp);
 }
 
-int wifi_txgainindex_get(char *rsp) {
+int wifi_txgainindex_get(char *rsp)
+{
 	/* int ret = -1;
 	   char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0};
 	   int level_a, level_b;
@@ -705,7 +638,7 @@ int wifi_txgainindex_get(char *rsp) {
 	   ENG_LOG("%s(), get_tx_power run err\n", __FUNCTION__);
 	   goto err;
 	   }
-	   sscanf(cmd, "level_a:%d,level_b:%d\n", &level_a, &level_b);
+	   eng_sscanf(cmd, "level_a:%d,level_b:%d\n", &level_a, &level_b);
 	   sprintf(rsp, "%s%d,%d", WIFI_TXGAININDEX_REQ_RET, level_a, level_b);
 	   rsp_debug(rsp);
 	   return 0;
@@ -713,8 +646,8 @@ err: */
 	return return_err(rsp);
 }
 
-static int wifi_tx_start(char *rsp) {
-	int ret;
+static int wifi_tx_start(char *rsp)
+{
 	char cmd[8] = {0};
 	int argc = 4;
 	char *argv[4] = {"iwnpi","wlan0","set_tx_count",""};
@@ -735,8 +668,7 @@ static int wifi_tx_start(char *rsp) {
 	}
 	/*we can not set tx on in cw mode*/
 	if (1 == g_wifi_data.sin_wave_start) {
-		ENG_LOG("ADL %s(), sin_wave_start is 1, goto err. SIN_WAVE_start is 1\n",
-				__FUNCTION__);
+		ENG_LOG("ADL %s(), sin_wave_start is 1, goto err. SIN_WAVE_start is 1\n", __FUNCTION__);
 		goto err;
 	}
 
@@ -760,9 +692,8 @@ err:
 	return return_err(rsp);
 }
 
-static int wifi_tx_stop(char *rsp) {
-	int ret;
-	char cmd[8] = {0};
+static int wifi_tx_stop(char *rsp)
+{
 	int argc = 3;
 	char *argv[3] = {"iwnpi","wlan0","tx_stop"};
 
@@ -792,9 +723,10 @@ err:
 	return return_err(rsp);
 }
 
-int wifi_tx_set(int command_code, int mode, int pktcnt, char *rsp) {
-	ENG_LOG("entry %s(), command_code = %d, mode = %d, pktcnt = %d\n", __FUNCTION__,
-			command_code, mode, pktcnt);
+int wifi_tx_set(int command_code, int mode, int pktcnt, char *rsp)
+{
+	ENG_LOG("entry %s(), command_code = %d, mode = %d, pktcnt = %d\n",
+		__FUNCTION__, command_code, mode, pktcnt);
 
 	if (wifi_enter_eut_mode() == 0)
 		goto err;
@@ -806,10 +738,12 @@ int wifi_tx_set(int command_code, int mode, int pktcnt, char *rsp) {
 			g_wifi_tx_count = 0;
 		} else if (1 == mode) {
 			if (pktcnt > 0) {
-				ENG_LOG("ADL %s(), set g_wifi_tx_count is %d \n", __FUNCTION__, pktcnt);
+				ENG_LOG("ADL %s(), set g_wifi_tx_count is %d \n",
+					__FUNCTION__, pktcnt);
 				g_wifi_tx_count = pktcnt;
 			} else {
-				ENG_LOG("%s(), pktcnt is ERROR, pktcnt = %d\n", __FUNCTION__, pktcnt);
+				ENG_LOG("%s(), pktcnt is ERROR, pktcnt = %d\n",
+					__FUNCTION__, pktcnt);
 				goto err;
 			}
 		}
@@ -828,24 +762,26 @@ err:
 	return return_err(rsp);
 }
 
-int wifi_tx_get(char *rsp) {
+int wifi_tx_get(char *rsp)
+{
 	sprintf(rsp, "%s%d", EUT_WIFI_TX_REQ, g_wifi_data.tx_start);
 	rsp_debug(rsp);
 	return 0;
 }
 
-static int wifi_rx_start(char *rsp) {
-	int ret;
-	char cmd[8] = {0};
+static int wifi_rx_start(char *rsp)
+{
 	int argc = 3;
 	char *argv[3] = {"iwnpi","wlan0","rx_start"};
 
-	ENG_LOG("ADL entry %s(), rx_start = %d, tx_start = %d \n", __FUNCTION__,
-			g_wifi_data.rx_start, g_wifi_data.tx_start);
+	ENG_LOG("ADL entry %s(), rx_start = %d, tx_start = %d \n",
+		__FUNCTION__, g_wifi_data.rx_start, g_wifi_data.tx_start);
 
 	wifi_status_dump();
-	if (1 == g_wifi_data.rx_start) goto ok;
-	if (1 == g_wifi_data.tx_start) goto err;
+	if (1 == g_wifi_data.rx_start)
+		goto ok;
+	if (1 == g_wifi_data.tx_start)
+		goto err;
 
 	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
 		goto err;
@@ -859,18 +795,21 @@ err:
 	return return_err(rsp);
 }
 
-static int wifi_rx_stop(char *rsp) {
-	int ret;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0};
+static int wifi_rx_stop(char *rsp)
+{
+	int argc = 3;
+	char *argv[3] = {"iwnpi", "wlan0", "rx_stop"};
 
 	ENG_LOG("ADL entry %s(), rx_start = %d, tx_start = %d \n", __func__,
 			g_wifi_data.rx_start, g_wifi_data.tx_start);
 
 	wifi_status_dump();
-	if (0 == g_wifi_data.rx_start) goto ok;
-	if (1 == g_wifi_data.tx_start) goto err;
-	sprintf(cmd, "iwnpi wlan0 rx_stop > %s", TMP_FILE);
-	if (0 != exec_iwnpi_cmd_for_status(cmd))
+	if (0 == g_wifi_data.rx_start)
+		goto ok;
+	if (1 == g_wifi_data.tx_start)
+		goto err;
+
+	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
 		goto err;
 
 ok:
@@ -882,7 +821,8 @@ err:
 	return return_err(rsp);
 }
 
-int wifi_rx_set(int command_code, char *rsp) {
+int wifi_rx_set(int command_code, char *rsp)
+{
 	ENG_LOG("ADL entry %s(), command_code = %d \n", __func__, command_code);
 
 	if (wifi_enter_eut_mode() == 0)
@@ -901,23 +841,25 @@ err:
 	return return_err(rsp);
 }
 
-int wifi_rx_get(char *rsp) {
+int wifi_rx_get(char *rsp)
+{
 	ENG_LOG("%s()...\n", __FUNCTION__);
 	sprintf(rsp, "%s%d", EUT_WIFI_RX_REQ, g_wifi_data.rx_start);
 	rsp_debug(rsp);
 	return 0;
 }
 
-int wifi_rssi_get(char *rsp) {
+int wifi_rssi_get(char *rsp)
+{
 	int ret = WIFI_INT_INVALID_RET;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0};
+	int argc = 0;
+	char *argv[3] = {"iwnpi","wlan0","get_rssi"};
 
 	wifi_status_dump();
 	if (1 == g_wifi_data.tx_start) {
 		goto err;
 	}
-	sprintf(cmd, "iwnpi wlan0 get_rssi > %s", TMP_FILE);
-	if (0 != exec_cmd(cmd))
+	if (0 != exec_iwnpi_cmd(argc, argv))
 		goto err;
 
 	ret = get_result_from_iwnpi();
@@ -933,10 +875,13 @@ err:
 	return return_err(rsp);
 }
 
-int wifi_rxpktcnt_get(char *rsp) {
+int wifi_rxpktcnt_get(char *rsp)
+{
 	int ret = -1;
 	RX_PKTCNT *cnt = NULL;
 	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_rx_ok"};
 
 	ENG_LOG("ADL entry %s()", __func__);
 
@@ -945,8 +890,7 @@ int wifi_rxpktcnt_get(char *rsp) {
 		goto err;
 	}
 
-	sprintf(cmd, "iwnpi wlan0 get_rx_ok > %s", TMP_FILE);
-	if (0 != exec_cmd(cmd))
+	if (0 != exec_iwnpi_cmd(argc, argv))
 		goto err;
 
 	cnt = &(g_wifi_data.cnt);
@@ -957,41 +901,17 @@ int wifi_rxpktcnt_get(char *rsp) {
 		ENG_LOG("%s, no iwnpi\n", __FUNCTION__);
 		goto err;
 	}
-	///sscanf(cmd, "reg value: rx_end_count=%d rx_err_end_count=%d fcs_fail_count=%d ",
-	///          &(cnt->rx_end_count), &(cnt->rx_err_end_count),
-	///          &(cnt->fcs_fail_count));
+	eng_sscanf(cmd, "reg value: rx_end_count=%d rx_err_end_count=%d fcs_fail_count=%d ",
+		   &(cnt->rx_end_count), &(cnt->rx_err_end_count),
+		   &(cnt->fcs_fail_count));
 
 	sprintf(rsp, "%s%d,%d,%d", EUT_WIFI_RXPKTCNT_REQ_RET,
-			g_wifi_data.cnt.rx_end_count, g_wifi_data.cnt.rx_err_end_count,
-			g_wifi_data.cnt.fcs_fail_count);
+		g_wifi_data.cnt.rx_end_count, g_wifi_data.cnt.rx_err_end_count,
+		g_wifi_data.cnt.fcs_fail_count);
 	rsp_debug(rsp);
 	return 0;
 err:
 	return return_err(rsp);
-}
-
-/********************************************************************
- *   name   wifi_eut_init
- *   ---------------------------
- *   description: init some global's value when enter EUT mode
- *   ----------------------------
- *
- *   ----------------------------------------------------
- *   return
- *   0:exec successful
- *   -1:error
- *   ------------------
- *   other:
- *
- ********************************************************************/
-static int wifi_eut_init(void) {
-	int ret = -1;
-	char rsp[WIFI_EUT_COMMAND_RSP_MAX_LEN + 1] = {0x00};
-
-	/*just set marlin3 default channel*/
-	ret = wifi_channel_set_marlin3(WIFI_EUT_DEFAULT_MARLIN3_CHANNEL1, WIFI_EUT_DEFAULT_MARLIN3_CHANNEL2, rsp);
-	rsp_debug(rsp);
-	return ret;
 }
 
 /********************************************************************
@@ -1009,10 +929,10 @@ static int wifi_eut_init(void) {
  *   other:
  *
  ********************************************************************/
-int wifi_lna_set(int lna_on_off, char *rsp) {
-	int ret = -1;
-	int rate = -1;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
+int wifi_lna_set(int lna_on_off, char *rsp)
+{
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0"};
 
 	ENG_LOG("ADL entry %s(), lna_on_off = %d", __func__, lna_on_off);
 
@@ -1020,15 +940,15 @@ int wifi_lna_set(int lna_on_off, char *rsp) {
 		goto err;
 
 	if (1 == lna_on_off) {
-		sprintf(cmd, "iwnpi wlan0 lna_on > %s", TMP_FILE);
+		argv[2] = "lna_on";
 	} else if (0 == lna_on_off) {
-		sprintf(cmd, "iwnpi wlan0 lna_off > %s", TMP_FILE);
+		argv[2] = "lna_off";
 	} else {
 		ENG_LOG("%s(), lna_on_off is ERROR", __func__);
 		goto err;
 	}
 
-	if (0 != exec_iwnpi_cmd_for_status(cmd))
+	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
 		goto err;
 
 	return return_ok(rsp);
@@ -1052,9 +972,11 @@ err:
  *   other:
  *
  ********************************************************************/
-int wifi_lna_get(char *rsp) {
+int wifi_lna_get(char *rsp)
+{
 	int ret = WIFI_INT_INVALID_RET;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","lna_status"};
 
 	ENG_LOG("ADL entry %s()", __func__);
 	wifi_status_dump();
@@ -1062,8 +984,7 @@ int wifi_lna_get(char *rsp) {
 	if (wifi_enter_eut_mode() == 0)
 		goto err;
 
-	sprintf(cmd, "iwnpi wlan0 lna_status > %s", TMP_FILE);
-	if (0 != exec_cmd(cmd))
+	if (0 != exec_iwnpi_cmd(argc, argv))
 		goto err;
 
 	ret = get_result_from_iwnpi();
@@ -1096,33 +1017,10 @@ err:
  *   band:2.4G/5G
  *
  ********************************************************************/
-int wifi_band_set(wifi_band band, char *rsp) {
-	int ret = -1;
-	char cmd[8] = {0x00};
-
-	ENG_LOG("entry %s(), band = %d\n", __FUNCTION__, band);
-	if (WCN_HW_MARLIN3 == get_wcn_hw_type()) {
-		printk("ADL entry %s(),marlin3 isn't support set band", __func__);
-		goto ok;    //return ok, as though marlin3 don't support set band
-	}
-
-	if (wifi_enter_eut_mode() == 0)
-		goto err;
-
-	if (!(WIFI_BAND_2_4G == band || WIFI_BAND_5G == band)) {
-		ENG_LOG("%s(), band num is err, band = %d", __func__, band);
-		goto err;
-	}
-
-	snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 set_band %d > %s", band,
-			TMP_FILE);
-	if (0 != exec_iwnpi_cmd_for_status(cmd))
-		goto err;
-
-ok:
+int wifi_band_set(wifi_band band, char *rsp)
+{
+	ENG_LOG("ADL entry %s(),marlin3 isn't support set band", __FUNCTION__);
 	return return_ok(rsp);
-err:
-	return return_err(rsp);
 }
 
 
@@ -1142,30 +1040,12 @@ err:
  *   band:2.4G/5G
  *
  ********************************************************************/
-int wifi_band_get(char *rsp) {
-	int ret = WIFI_INT_INVALID_RET;
-	wifi_band band = 0;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
-
-	ENG_LOG("ADL entry %s()", __func__);
+int wifi_band_get(char *rsp)
+{
 	if (WCN_HW_MARLIN3 == get_wcn_hw_type()) {
-		ENG_LOG("ADL entry %s(),marlin3 isn't support set band", __func__);
+		ENG_LOG("ADL entry %s(),marlin3 isn't support get band", __FUNCTION__);
 		goto err;
-	}
-	snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_band > %s",
-			TMP_FILE);
-	if (0 != exec_cmd(cmd))
-		goto err;
-
-	band = get_result_from_iwnpi();
-	if (WIFI_INT_INVALID_RET == ret) {
-		ENG_LOG("iwnpi wlan0 get_band cmd, err_code = %d", ret);
-		goto err;
-	}
-
-	snprintk(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_BAND_REQ_RET, band);
-	rsp_debug(rsp);
-	return 0;
+}
 
 err:
 	return return_err(rsp);
@@ -1187,17 +1067,18 @@ err:
  *   other:
  *   20 40 80 160
  ********************************************************************/
-int wifi_bandwidth_set(wifi_bandwidth band_width, char *rsp) {
+int wifi_bandwidth_set(wifi_bandwidth band_width, char *rsp)
+{
 	char cmd[8] = {0x00};
 	char argc = 4;
 	char *argv[4];
 
-	printk("entry %s(), band_width = %d\n", __FUNCTION__, band_width);
+	ENG_LOG("entry %s(), band_width = %d\n", __FUNCTION__, band_width);
 	if (wifi_enter_eut_mode() == 0)
 		goto err;
 
 	if (band_width > WIFI_BANDWIDTH_160MHZ) {
-		printk("%s(), band num is err, band_width = %d\n", __FUNCTION__, band_width);
+		ENG_LOG("%s(), band num is err, band_width = %d\n", __FUNCTION__, band_width);
 		goto err;
 	}
 
@@ -1208,7 +1089,7 @@ int wifi_bandwidth_set(wifi_bandwidth band_width, char *rsp) {
 	argv[3] = cmd;
 
 	if (0 != exec_iwnpi_cmd_with_status(argc, argv)) {
-		printk("exec set_cbw command error\n");
+		ENG_LOG("exec set_cbw command error\n");
 		goto err;
 	}
 
@@ -1234,20 +1115,16 @@ err:
  *   band width:20 40 80 160
  *
  ********************************************************************/
-int wifi_bandwidth_get(char *rsp) {
+int wifi_bandwidth_get(char *rsp)
+{
 	int ret = WIFI_INT_INVALID_RET;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_cbw"};
 
 	ENG_LOG("ADL entry %s()", __func__);
 
-	snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_cbw > %s",
-			TMP_FILE);
-	if (0 != exec_cmd(cmd)) {
-		memset(cmd, 0, WIFI_EUT_COMMAND_MAX_LEN);
-		snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_bandwidth > %s",
-				TMP_FILE);
-		if (0 != exec_cmd(cmd))
-			goto err;
+	if (0 != exec_iwnpi_cmd(argc, argv)) {
+		goto err;
 	}
 
 	ret = get_result_from_iwnpi();
@@ -1255,7 +1132,7 @@ int wifi_bandwidth_get(char *rsp) {
 		ENG_LOG("iwnpi wlan0 get_band cmd, err_code = %d", ret);
 		goto err;
 	}
-	snprintk(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_BANDWIDTH_REQ_RET,
+	snprintf(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_BANDWIDTH_REQ_RET,
 			ret);
 	rsp_debug(rsp);
 	return 0;
@@ -1264,17 +1141,18 @@ err:
 	return return_err(rsp);
 }
 
-int wifi_sigbandwidth_set(int band_width, char *rsp) {
+int wifi_sigbandwidth_set(int band_width, char *rsp)
+{
 	char cmd[8] = {0x00};
 	char argc = 4;
 	char *argv[4];
 
-	printk("entry %s(), band_width = %d\n", __FUNCTION__, band_width);
+	ENG_LOG("entry %s(), band_width = %d\n", __FUNCTION__, band_width);
 	if (wifi_enter_eut_mode() == 0)
 		goto err;
 
 	if (band_width > 3) {
-		printk("%s(), band num is err, band_width = %d\n", __FUNCTION__, band_width);
+		ENG_LOG("%s(), band num is err, band_width = %d\n", __FUNCTION__, band_width);
 		goto err;
 	}
 
@@ -1285,7 +1163,7 @@ int wifi_sigbandwidth_set(int band_width, char *rsp) {
 	argv[3] = cmd;
 
 	if (0 != exec_iwnpi_cmd_with_status(argc, argv)) {
-		printk("exec set_cbw command error\n");
+		ENG_LOG("exec set_cbw command error\n");
 		goto err;
 	}
 
@@ -1311,20 +1189,16 @@ err:
  *   band width:20 40 80 160
  *
  ********************************************************************/
-int wifi_sigbandwidth_get(char *rsp) {
+int wifi_sigbandwidth_get(char *rsp)
+{
 	int ret = WIFI_INT_INVALID_RET;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_sbw"};
 
 	ENG_LOG("ADL entry %s()", __FUNCTION__);
 
-	snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_cbw > %s",
-			TMP_FILE);
-	if (0 != exec_cmd(cmd)) {
-		memset(cmd, 0, WIFI_EUT_COMMAND_MAX_LEN);
-		snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_bandwidth > %s",
-				TMP_FILE);
-		if (0 != exec_cmd(cmd))
-			goto err;
+	if (0 != exec_iwnpi_cmd(argc, argv)) {
+		goto err;
 	}
 
 	ret = get_result_from_iwnpi();
@@ -1332,7 +1206,7 @@ int wifi_sigbandwidth_get(char *rsp) {
 		ENG_LOG("iwnpi wlan0 get_band cmd, err_code = %d", ret);
 		goto err;
 	}
-	snprintk(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_BANDWIDTH_REQ_RET,
+	snprintf(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_BANDWIDTH_REQ_RET,
 			ret);
 	rsp_debug(rsp);
 	return 0;
@@ -1358,8 +1232,8 @@ err:
  *
  *
  ********************************************************************/
-int wifi_tx_power_level_set(int tx_power, char *rsp) {
-	int ret = -1;
+int wifi_tx_power_level_set(int tx_power, char *rsp)
+{
 	char cmd[8] = {0x00};
 	int argc = 4;
 	char *argv[4] = {"iwnpi","wlan0","set_tx_power",""};
@@ -1369,9 +1243,9 @@ int wifi_tx_power_level_set(int tx_power, char *rsp) {
 		goto err;
 
 	if (tx_power < WIFI_TX_POWER_MIN_VALUE ||
-			tx_power > WIFI_TX_POWER_MAX_VALUE) {
-		ENG_LOG("%s(), tx_power's value is invalid, tx_power = %d\n", __FUNCTION__,
-				tx_power);
+	    tx_power > WIFI_TX_POWER_MAX_VALUE) {
+		ENG_LOG("%s(), tx_power's value is invalid, tx_power = %d\n",
+			__FUNCTION__, tx_power);
 		goto err;
 	}
 	sprintf(cmd,"%d",tx_power);
@@ -1402,14 +1276,15 @@ err:
  *
  *
  ********************************************************************/
-int wifi_tx_power_level_get(char *rsp) {
+int wifi_tx_power_level_get(char *rsp)
+{
 	int tssi = WIFI_INT_INVALID_RET;
 	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_tx_power"};
 
 	ENG_LOG("ADL entry %s()", __func__);
-	snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_tx_power > %s",
-			TMP_FILE);
-	if (0 != exec_cmd(cmd))
+	if (0 != exec_iwnpi_cmd(argc, argv))
 		goto err;
 
 	tssi = get_result_from_iwnpi();
@@ -1418,13 +1293,13 @@ int wifi_tx_power_level_get(char *rsp) {
 		memset(cmd, 0x00, WIFI_EUT_COMMAND_MAX_LEN);
 		if (get_iwnpi_ret_line(IWNPI_RET_PWR_FLAG, cmd, WIFI_EUT_COMMAND_MAX_LEN) <= 0)
 			goto err;
-		///sscanf(cmd, "level_a:%d,level_b:%d", &level_a, &level_b);
-		snprintk(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d,%d",
+		eng_sscanf(cmd, "level_a:%d,level_b:%d", &level_a, &level_b);
+		snprintf(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d,%d",
 				WIFI_TX_POWER_LEVEL_REQ_RET, level_a, level_b);
 		rsp_debug(rsp);
 		return 0;
 	}
-	snprintk(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d",
+	snprintf(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d",
 			WIFI_TX_POWER_LEVEL_REQ_RET, tssi);
 	rsp_debug(rsp);
 	return 0;
@@ -1461,16 +1336,16 @@ int wifi_pkt_length_set(int pkt_len, char *rsp) {
 		goto err;
 
 	if (pkt_len < WIFI_PKT_LENGTH_MIN_VALUE ||
-			pkt_len > WIFI_PKT_LENGTH_MAX_VALUE) {
-		ENG_LOG("%s(), tx_power's value is invalid, pkt_len = %d", __func__,
-				pkt_len);
+	    pkt_len > WIFI_PKT_LENGTH_MAX_VALUE) {
+		ENG_LOG("%s(), tx_power's value is invalid, pkt_len = %d",
+			__func__, pkt_len);
 		goto err;
 	}
 
 	sprintf(cmd, "%d", pkt_len);
 	argv[3] = cmd;
 	if (0 != exec_iwnpi_cmd_with_status(argc, argv)) {
-		printk("set packet len error\n");
+		ENG_LOG("set packet len error\n");
 		goto err;
 	}
 
@@ -1496,20 +1371,16 @@ err:
  *
  *
  ********************************************************************/
-int wifi_pkt_length_get(char *rsp) {
+int wifi_pkt_length_get(char *rsp)
+{
 	int pkt_length = WIFI_INT_INVALID_RET;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_pkt_len"};
 
 	ENG_LOG("ADL entry %s()", __func__);
 
-	snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_pkt_len > %s",
-			TMP_FILE);
-	if (0 != exec_cmd(cmd)) {
-		memset(cmd, 0x00, WIFI_EUT_COMMAND_MAX_LEN);
-		snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_pkt_length > %s",
-				TMP_FILE);
-		if (0 != exec_cmd(cmd))
-			goto err;
+	if (0 != exec_iwnpi_cmd(argc, argv)) {
+		goto err;
 	}
 
 	pkt_length = get_result_from_iwnpi();
@@ -1518,7 +1389,7 @@ int wifi_pkt_length_get(char *rsp) {
 		goto err;
 	}
 
-	snprintk(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_PKT_LENGTH_REQ_RET,
+	snprintf(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_PKT_LENGTH_REQ_RET,
 			pkt_length);
 	rsp_debug(rsp);
 	return 0;
@@ -1544,48 +1415,48 @@ err:
  *
  *
  ********************************************************************/
-int wifi_tx_mode_set(wifi_tx_mode tx_mode, char *rsp) {
-	int ret = -1;
+int wifi_tx_mode_set(wifi_tx_mode tx_mode, char *rsp)
+{
 	char cmd[8] = {0x00};
 	int argc = 3;
 	char *argv[3] = {"iwnpi", "wlan0", ""};
 
-	printk("entry %s(), tx_mode = %d", __FUNCTION__, tx_mode);
+	ENG_LOG("entry %s(), tx_mode = %d", __FUNCTION__, tx_mode);
 	if (wifi_enter_eut_mode() == 0)
 		goto err;
 
 	if (tx_mode > WIFI_TX_MODE_LOCAL_LEAKAGE) {
-		printk("%s(), tx_power's value is invalid, tx_mode = %d", __FUNCTION__,
-				tx_mode);
+		ENG_LOG("%s(), tx_power's value is invalid, tx_mode = %d",
+			__FUNCTION__, tx_mode);
 		goto err;
 	}
 
-	/* if tx mode is CW,must be tx stop when tx start is 1, rather, call sin_wave
+	/*if tx mode is CW,must be tx stop when tx start is 1, rather, call sin_wave
 	 */
 	if (WIFI_TX_MODE_CW == tx_mode) {
-		printk("%s(), tx_mode is CW, tx_start = %d", __FUNCTION__,
-				g_wifi_data.tx_start);
+		ENG_LOG("%s(), tx_mode is CW, tx_start = %d", __FUNCTION__,
+			g_wifi_data.tx_start);
 		if (1 == g_wifi_data.tx_start) {
-			printk("tx start already on, need stop tx first\n");
+			ENG_LOG("tx start already on, need stop tx first\n");
 			argv[2] = "tx_stop";
 
 			if (0 != exec_iwnpi_cmd_with_status(argc, argv))
 				goto err;
 
-			printk("ADL %s(), set tx_start to 0", __func__);
+			ENG_LOG("ADL %s(), set tx_start to 0", __func__);
 			g_wifi_data.tx_start = 0;
 		}
-		printk("start to send sin_wave\n");
+		ENG_LOG("start to send sin_wave\n");
 		argv[2] = "sin_wave";
 
 		if (0 != exec_iwnpi_cmd_with_status(argc, argv))
 			goto err;
 
 		g_wifi_data.sin_wave_start = 1;
-		printk("%s(), set sin_wave_start is 1.", __FUNCTION__);
+		ENG_LOG("%s(), set sin_wave_start is 1.", __FUNCTION__);
 
 	} else { /* other mode, send value to CP2 */
-		printk("%s(), tx_mode is other mode, mode = %d", __FUNCTION__, tx_mode);
+		ENG_LOG("%s(), tx_mode is other mode, mode = %d", __FUNCTION__, tx_mode);
 		int cmd_cnt = 4;
 		char *cmd_str[4];
 		cmd_str[0] = "iwnpi";
@@ -1620,15 +1491,15 @@ err:
  *
  *
  ********************************************************************/
-int wifi_tx_mode_get(char *rsp) {
+int wifi_tx_mode_get(char *rsp)
+{
 	int ret = WIFI_INT_INVALID_RET;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_tx_mode"};
 
 	ENG_LOG("ADL entry %s()", __func__);
 
-	snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_tx_mode > %s",
-			TMP_FILE);
-	if (0 != exec_cmd(cmd))
+	if (0 != exec_iwnpi_cmd(argc, argv))
 		goto err;
 
 	ret = get_result_from_iwnpi();
@@ -1636,7 +1507,7 @@ int wifi_tx_mode_get(char *rsp) {
 		ENG_LOG("iwnpi wlan0 get_tx_mode cmd, err_code = %d", ret);
 		goto err;
 	}
-	snprintk(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_TX_MODE_REQ_RET,
+	snprintf(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_TX_MODE_REQ_RET,
 			ret);
 	rsp_debug(rsp);
 	return 0;
@@ -1662,8 +1533,8 @@ err:
  *
  *
  ********************************************************************/
-int wifi_preamble_set(wifi_preamble_type preamble_type, char *rsp) {
-	int ret = -1;
+int wifi_preamble_set(wifi_preamble_type preamble_type, char *rsp)
+{
 	char cmd[8] = {0x00};
 	int argc = 4;
 	char *argv[4] = {"iwnpi", "wlan0", "set_preamble"};
@@ -1704,15 +1575,15 @@ err:
  *
  *
  ********************************************************************/
-int wifi_preamble_get(char *rsp) {
+int wifi_preamble_get(char *rsp)
+{
 	int ret = WIFI_INT_INVALID_RET;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_preamble"};
 
 	ENG_LOG("ADL entry %s()", __func__);
 
-	snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_preamble > %s",
-			TMP_FILE);
-	if (0 != exec_cmd(cmd))
+	if (0 != exec_iwnpi_cmd(argc, argv))
 		goto err;
 
 	ret = get_result_from_iwnpi();
@@ -1720,7 +1591,7 @@ int wifi_preamble_get(char *rsp) {
 		ENG_LOG("iwnpi wlan0 get_tx_mode cmd, err_code = %d", ret);
 		goto err;
 	}
-	snprintk(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_PREAMBLE_REQ_RET, ret);
+	snprintf(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_PREAMBLE_REQ_RET, ret);
 	rsp_debug(rsp);
 	return 0;
 
@@ -1745,8 +1616,8 @@ err:
  *
  *
  ********************************************************************/
-int wifi_payload_set(wifi_payload payload, char *rsp) {
-	int ret = -1;
+int wifi_payload_set(wifi_payload payload, char *rsp)
+{
 	char cmd[8] = {0x00};
 	int argc = 4;
 	char *argv[4] = {"iwnpi", "wlan0", "set_payload"};
@@ -1761,7 +1632,7 @@ int wifi_payload_set(wifi_payload payload, char *rsp) {
 		goto err;
 	}
 
-	sprintf(cmd, 8, "%d", payload);
+	sprintf(cmd, "%d", payload);
 	argv[3] = cmd;
 	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
 		goto err;
@@ -1788,15 +1659,15 @@ err:
  *
  *
  ********************************************************************/
-int wifi_payload_get(char *rsp) {
+int wifi_payload_get(char *rsp)
+{
 	int ret = WIFI_INT_INVALID_RET;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_payload"};
 
 	ENG_LOG("ADL entry %s()", __func__);
 
-	snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_payload > %s",
-			TMP_FILE);
-	if (0 != exec_cmd(cmd))
+	if (0 != exec_iwnpi_cmd(argc, argv))
 		goto err;
 
 	ret = get_result_from_iwnpi();
@@ -1804,7 +1675,7 @@ int wifi_payload_get(char *rsp) {
 		ENG_LOG("iwnpi wlan0 get_tx_mode cmd, err_code = %d", ret);
 		goto err;
 	}
-	snprintk(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_PAYLOAD_REQ_RET, ret);
+	snprintf(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_PAYLOAD_REQ_RET, ret);
 	rsp_debug(rsp);
 	return 0;
 
@@ -1829,7 +1700,8 @@ err:
  *
  *
  ********************************************************************/
-int wifi_guardinterval_set(wifi_guard_interval gi, char *rsp) {
+int wifi_guardinterval_set(wifi_guard_interval gi, char *rsp)
+{
 	char cmd[8] = {0x00};
 	char argc = 4;
 	char *argv[4] = {"iwnpi", "wlan0", "set_gi"};
@@ -1844,7 +1716,7 @@ int wifi_guardinterval_set(wifi_guard_interval gi, char *rsp) {
 	sprintf(cmd,"%d", gi);
 	argv[3] = cmd;
 	if (0 != exec_iwnpi_cmd_with_status(argc, argv)) {
-		printk("%s set gi error\n", __FUNCTION__);
+		ENG_LOG("%s set gi error\n", __FUNCTION__);
 		goto err;
 	}
 
@@ -1870,20 +1742,16 @@ err:
  *
  *
  ********************************************************************/
-int wifi_guardinterval_get(char *rsp) {
+int wifi_guardinterval_get(char *rsp)
+{
 	int ret = WIFI_INT_INVALID_RET;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_gi"};
 
 	ENG_LOG("ADL entry %s()", __func__);
 
-	snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_gi > %s",
-			TMP_FILE);
-	if (0 != exec_cmd(cmd)) {
-		memset(cmd, 0, WIFI_EUT_COMMAND_MAX_LEN);
-		snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_guard_interval > %s",
-				TMP_FILE);
-		if (0 != exec_cmd(cmd))
-			goto err;
+	if (0 != exec_iwnpi_cmd(argc, argv)) {
+		goto err;
 	}
 
 	ret = get_result_from_iwnpi();
@@ -1892,8 +1760,8 @@ int wifi_guardinterval_get(char *rsp) {
 		goto err;
 	}
 
-	snprintk(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d",
-			WIFI_GUARDINTERVAL_REQ_RET, ret);
+	snprintf(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d",
+		 WIFI_GUARDINTERVAL_REQ_RET, ret);
 	rsp_debug(rsp);
 	return 0;
 
@@ -1921,9 +1789,14 @@ err:
  *
  *
  ********************************************************************/
-int wifi_mac_filter_set(int on_off, const char *mac, char *rsp) {
+int wifi_mac_filter_set(int on_off, const char *mac, char *rsp)
+{
 	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
 	char mac_str[WIFI_MAC_STR_MAX_LEN + 1] = {0x00};
+
+	//check marlin3 iwnpi code, set_mac_filter is not implement
+	ENG_LOG("Marlin3 is not support set mac filter\n");
+	return return_ok(rsp);
 
 	ENG_LOG("ADL entry %s(), on_off = %d, mac = %s", __func__, on_off, mac);
 	if (wifi_enter_eut_mode() == 0)
@@ -1955,20 +1828,20 @@ int wifi_mac_filter_set(int on_off, const char *mac, char *rsp) {
 		}
 
 		/* first, execute iwnpi wlan0 set_macfilter to set enable or disable */
-		snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 set_macfilter %d > %s",
+		snprintf(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 set_macfilter %d > %s",
 				on_off, TMP_FILE);
 		if (0 != exec_iwnpi_cmd_for_status(cmd))
 			goto err;
 
 		/* second, execute iwnpi wlan0 set_mac set MAC assress */
 		memset(cmd, 0x00, WIFI_EUT_COMMAND_MAX_LEN);
-		snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 set_mac %s > %s",
+		snprintf(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 set_mac %s > %s",
 				mac_str, TMP_FILE);
 		if (0 != exec_cmd(cmd))
 			goto err;
 
 	} else if (0 == on_off) {
-		snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 set_macfilter %d > %s",
+		snprintf(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 set_macfilter %d > %s",
 				on_off, TMP_FILE);
 		if (0 != exec_iwnpi_cmd_for_status(cmd))
 			goto err;
@@ -1981,71 +1854,171 @@ err:
 }
 
 /********************************************************************
- *   name   wifi_mac_filter_get
- *   ---------------------------
- *   description: get Chip's mac filter switch and mac addr if on, by iwnpi
- *command get_macfilter
- *   ----------------------------
- *   para        IN/OUT      type            note
- *   rsp         OUT         char *          response result
- *   ----------------------------------------------------
- *   return
- *   0:exec successful
- *   -1:error
- *   ------------------
- *   other:
- *
- *
- ********************************************************************/
-int wifi_mac_filter_get(char *rsp) {
+*   name   wifi_mac_efuse_get
+*   ---------------------------
+*   description: get Chip's mac from efuse by iwnpi
+*
+*   ----------------------------
+*   para        IN/OUT      type            note
+*   rsp         OUT         char *          response result
+*   ----------------------------------------------------
+*   return
+*   0:exec successful
+*   -1:error
+*   ------------------
+*   other:
+*
+*
+********************************************************************/
+int wifi_mac_efuse_get(char *rsp)
+{
 	int ret = -1;
-	int on_off = 0;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0x00};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_mac_efuse"};
+	char mac_str[WIFI_MAC_EFUSE_MAX_LEN] = {0x00};
 
-	ENG_LOG("ADL entry %s()", __func__);
+	ENG_LOG("ADL entry %s()", __FUNCTION__);
 
 	/* inquery mac filter switch */
-	snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_macfilter > %s",
-			TMP_FILE);
-	if (0 != exec_cmd(cmd))
+	if (0 != exec_iwnpi_cmd(argc, argv))
 		goto err;
 
-	on_off = get_result_from_iwnpi();
-	if (WIFI_INT_INVALID_RET == on_off) {
-		ENG_LOG("iwnpi wlan0 lna_status cmd, result = %d", on_off);
+	ret = get_iwnpi_ret_line("MAC", mac_str, WIFI_MAC_EFUSE_MAX_LEN);
+	if (ret <= 0) {
+		ENG_LOG("iwnpi wlan0 get mac cmd, err_code = %d", ret);
 		goto err;
-	}
+    	}
 
-	if (1 == on_off) {
-		char mac_str[WIFI_MAC_STR_MAX_LEN] = {0x00};
-
-		/* the mac filter switch is on, so get MAC address by iwnpi get_mac command
-		 */
-		memset(cmd, 0x00, WIFI_EUT_COMMAND_MAX_LEN);
-		snprintk(cmd, WIFI_EUT_COMMAND_MAX_LEN, "iwnpi wlan0 get_mac > %s",
-				TMP_FILE);
-		if (0 != exec_cmd(cmd))
-			goto err;
-
-		ret = get_iwnpi_ret_line(IWNPI_RET_MAC_FLAG, mac_str, WIFI_MAC_STR_MAX_LEN);
-		if (ret <= 0) {
-			ENG_LOG("iwnpi wlan0 lna_status cmd, err_code = %d", ret);
-			goto err;
-		}
-
-		snprintk(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d,\"%s\"",
-				WIFI_MAC_FILTER_REQ_RET, on_off, mac_str);
-	} else if (0 == on_off) {
-		snprintk(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d", WIFI_MAC_FILTER_REQ_RET,
-				on_off);
-	} else {
-		ENG_LOG("%s(), on_off's value is invalid, on_off = %d", __func__, on_off);
-		goto err;
-	}
-
+	snprintf(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%s", WIFI_MAC_EFUSE_REQ_RET, mac_str);
 	rsp_debug(rsp);
 	return 0;
 
+err:
+  return return_err(rsp);
+}
+
+int wifi_mac_efuse_set(const char *wifi_mac, const char* bt_mac, char *rsp)
+{
+	char wifi_cmd[20] = {0};
+	char bt_cmd[20] = {0};
+	int argc = 5;
+	char *argv[argc];
+	int index = 0;
+	char *pos1 = wifi_cmd;
+	char *pos2 = bt_cmd;
+	const char *tmp1 = wifi_mac;
+	const char *tmp2 = bt_mac;
+
+	if (wifi_enter_eut_mode() == 0)
+		goto err;
+
+	/* add : for wifi mac addr */
+	for (index = 0; index < 6; index++) {
+		memcpy(pos1, tmp1, 2);
+		pos1 += 2;
+		tmp1 +=2;
+		if (index < 5) {
+			*pos1 = ':';
+			pos1++;
+		}
+	}
+
+	/* add : for bt mac addr */
+	for (index = 0; index < 6; index++) {
+		memcpy(pos2, tmp2, 2);
+		pos2 += 2;
+		tmp2 +=2;
+		if (index < 5) {
+			*pos2 = ':';
+			pos2++;
+		}
+	}
+	argv[0] = "iwnpi";
+	argv[1] = "wlan0";
+	argv[2] = "set_mac_efuse";
+	argv[3] = wifi_cmd;
+	argv[4] = bt_cmd;
+	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
+		goto err;
+
+	return return_ok(rsp);
+err:
+	return return_err(rsp);
+}
+
+int wifi_cdec_efuse_set(int cdec, char *rsp)
+{
+	char cmd[8] = {0};
+	int argc = 5;
+	char *argv[argc];
+	if (wifi_enter_eut_mode() == 0)
+		goto err;
+	ENG_LOG("%s(), cdec:%d\n", __FUNCTION__, cdec);
+
+	argv[0] = "iwnpi";
+	argv[1] = "wlan0";
+	argv[2] = "set_efuse";
+	argv[3] = "11";
+	sprintf(cmd, "%02x", cdec);
+	argv[4] = cmd;
+	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
+		 goto err;
+
+	return return_ok(rsp);
+err:
+	g_wifi_data.chain = 0;
+	return return_err(rsp);
+}
+
+#define CDEC_MASK 0x3f
+int wifi_cdec_efuse_get(char *rsp)
+{
+	unsigned int argc = 4;
+	char *argv[argc];
+	int index = 2,ret;
+	unsigned char cdec = 0;
+	unsigned char tmp[4] = {0};
+	char efuse_str[20] = {0};
+
+	if (wifi_enter_eut_mode() == 0)
+		goto err;
+
+	argv[0] = "iwnpi";
+	argv[1] = "wlan0";
+	argv[2] = "get_efuse";
+	argv[3] = "11";
+	if (0 != exec_iwnpi_cmd(argc, argv))
+		goto err;
+	ret = get_iwnpi_ret_line("efuse", efuse_str, 20);
+	if (ret < 0) {
+		ENG_LOG("%s get return line error\n", __FUNCTION__);
+		goto err;
+	}
+
+	ENG_LOG("efuse_str : %s\n", efuse_str);
+	eng_sscanf(efuse_str,"efuse:%02x%02x%02x%02x", &tmp[0], &tmp[1], &tmp[2], &tmp[3]);
+
+	/* low 3 byte contain cdec info */
+	for (index = 2; index >= 0; index--) {
+		ENG_LOG("%02x\n",tmp[index]);
+		unsigned char j = tmp[index];
+		unsigned char flag = j >> 6;
+		ENG_LOG("flag : %d\n",flag);
+		if (flag == 0x2) {
+			cdec = tmp[index] & CDEC_MASK;
+			ENG_LOG("cdec is : %d\n", cdec);
+			break;
+		}
+	}
+	if (cdec > 64 || cdec < 0) {
+		ENG_LOG("cdec is not invalid : %d\n",cdec);
+		goto err;
+	}
+	ENG_LOG("cdec : %d\n", cdec);
+	//return cdec value;
+	sprintf(rsp, "%s%d", WIFI_CDEC_EFUSE_REQ_RET, cdec);
+	rsp_debug(rsp);
+	return 0;
 err:
 	return return_err(rsp);
 }
@@ -2066,12 +2039,13 @@ err:
  *
  *
  ********************************************************************/
-int wifi_ant_get(char *rsp) {
+int wifi_ant_get(char *rsp)
+{
 	int ret = WIFI_INT_INVALID_RET;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0};
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_chain"};
 
-	sprintf(cmd, "iwnpi wlan0 get_chain > %s", TMP_FILE);
-	if (0 != exec_cmd(cmd))
+	if (0 != exec_iwnpi_cmd(argc, argv))
 		goto err;
 
 	ret = get_result_from_iwnpi();
@@ -2082,6 +2056,51 @@ int wifi_ant_get(char *rsp) {
 
 	g_wifi_data.chain = (WIFI_CHAIN)ret;
 	sprintf(rsp, "%s%d", WIFI_ANT_REQ_RET, ret);
+	rsp_debug(rsp);
+	return 0;
+
+err:
+	g_wifi_data.chain = 0;
+	return return_err(rsp);
+}
+
+/********************************************************************
+*   name   wifi_ant_info
+*   ---------------------------
+*   description: get Chip's chain by iwnpi *command get_rf_config
+*   ----------------------------
+*   para        IN/OUT      type            note
+*   rsp         OUT         char *          response result
+*   ----------------------------------------------------
+*   return
+*   0:exec successful
+*   -1:error
+*   ------------------
+*   other:
+*
+*
+********************************************************************/
+int wifi_ant_info(char *rsp)
+{
+	int ret = WIFI_INT_INVALID_RET;
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_rf_config"};
+	char ant_info[16] = {0x00};
+	int rf_2g,rf_5g;
+
+	if (0 != exec_iwnpi_cmd(argc, argv))
+		goto err;
+
+	ret = get_iwnpi_ret_line("ANTINFO", ant_info, 16);
+	printf("ant info is : %s\n", ant_info);
+	if (ret <= 0) {
+		ENG_LOG("iwnpi wlan0 get mac cmd, err_code = %d", ret);
+		goto err;
+	}
+	eng_sscanf(ant_info, "ANTINFO=%d,%d", &rf_2g, &rf_5g);
+
+	printf("chan1 : %d, chan2 : %d\n", rf_2g, rf_5g);
+	sprintf(rsp, "%s%d,%d", WIFI_ANTINFO_REQ_RET, rf_2g, rf_5g);
 	rsp_debug(rsp);
 	return 0;
 
@@ -2107,13 +2126,14 @@ err:
  *
  *
  ********************************************************************/
-int wifi_ant_set(int chain, char *rsp) {
+int wifi_ant_set(int chain, char *rsp)
+{
 	char cmd[8] = {0};
 	int argc = 4;
 	char *argv[argc];
 	if (wifi_enter_eut_mode() == 0)
 		goto err;
-	printk("%s(), chain:%d\n", __FUNCTION__, chain);
+	ENG_LOG("%s(), chain:%d\n", __FUNCTION__, chain);
 
 	argv[0] = "iwnpi";
 	argv[1] = "wlan0";
@@ -2131,16 +2151,57 @@ err:
 }
 
 /********************************************************************
+*   name   wifi_cbank_set
+*   ---------------------------
+*   description: set Chip's cbank by iwnpi command set_cbank_ret
+*   ----------------------------
+*   para            IN/OUT      type                    note
+*   cbank           IN          int                     cbank [0--63]
+*   rsp             OUT         char *                  response result
+*   ----------------------------------------------------
+*   return
+*   0:exec successful
+*   -1:error
+*   ------------------
+*   other:
+*
+*
+********************************************************************/
+int wifi_cbank_set(int cbank, char *rsp)
+{
+	char cmd[8] = {0};
+	int argc = 4;
+	char *argv[argc];
+	if (wifi_enter_eut_mode() == 0)
+		goto err;
+	ENG_LOG("%s(), cbank:%d\n", __FUNCTION__, cbank);
+
+	argv[0] = "iwnpi";
+	argv[1] = "wlan0";
+	argv[2] = "set_cbank_reg";
+	sprintf(cmd, "%d", cbank);
+	argv[3] = cmd;
+	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
+		goto err;
+	g_afc_cdec = cbank;
+	ENG_LOG("%s(), g_afc_cdec:%d\n", __FUNCTION__, g_afc_cdec);
+
+	return return_ok(rsp);
+err:
+	return return_err(rsp);
+}
+
+/********************************************************************
  *   name   wifi_netmode_set
  *   ---------------------------
  *   description: set netmode, marlin3 not support this command
  *   ----------------------------
  *
  ********************************************************************/
-int wifi_netmode_set(int chain, char *rsp) {
-	printk("marlin3 not support this command,so return ok\n");
+int wifi_netmode_set(int chain, char *rsp)
+{
+	ENG_LOG("marlin3 not support this command,so return ok\n");
 	return return_ok(rsp);
-
 }
 /********************************************************************
  *   name   wifi_decode_mode_get
@@ -2158,12 +2219,13 @@ int wifi_netmode_set(int chain, char *rsp) {
  *
  *
  ********************************************************************/
-int wifi_decode_mode_get(char *rsp) {
-	int ret;
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0};
+int wifi_decode_mode_get(char *rsp)
+{
+	int ret = WIFI_INT_INVALID_RET;
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_fec"};
 
-	sprintf(cmd, "iwnpi wlan0 get_fec > %s", TMP_FILE);
-	if (0 != exec_cmd(cmd))
+	if (0 != exec_iwnpi_cmd(argc, argv))
 		goto err;
 
 	ret = get_result_from_iwnpi();
@@ -2198,8 +2260,11 @@ err:
  *
  *
  ********************************************************************/
-int wifi_decode_mode_set(int dec_mode, char *rsp) {
-	char cmd[WIFI_EUT_COMMAND_MAX_LEN] = {0};
+int wifi_decode_mode_set(int dec_mode, char *rsp)
+{
+	char cmd[8] = {0};
+	int argc = 4;
+	char *argv[argc];
 
 	if (wifi_enter_eut_mode() == 0)
 		goto err;
@@ -2209,8 +2274,12 @@ int wifi_decode_mode_set(int dec_mode, char *rsp) {
 	if (dec_mode > DM_LDPC || dec_mode < DM_BCC)
 		goto err;
 
-	sprintf(cmd, "iwnpi wlan0 set_fec %d > %s", dec_mode, TMP_FILE);
-	if (0 != exec_iwnpi_cmd_for_status(cmd))
+	argv[0] = "iwnpi";
+	argv[1] = "wlan0";
+	argv[2] = "set_fec";
+	sprintf(cmd, "%d", dec_mode);
+	argv[3] = cmd;
+	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
 		goto err;
 
 	g_wifi_data.decode_mode = (WIFI_DECODEMODE)dec_mode;
@@ -2221,6 +2290,3 @@ err:
 	return return_err(rsp);
 }
 /********************************end of the file*************************************/
-
-
-

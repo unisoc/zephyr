@@ -59,14 +59,14 @@ int get_user_diag_buf( unsigned char *buf, int len)
 			}
 		}
 	}
-	printk("jessie: print ext_data_buf, ext_buf_len is %d\n", ext_buf_len);
+	ENG_LOG("jessie: print ext_data_buf, ext_buf_len is %d\n", ext_buf_len);
 	//eng_dump(ext_data_buf, ext_buf_len, ext_buf_len, 1, __FUNCTION__);
 	return is_find;
 }
 
 void clean_engpc_buf()
 {
-	printk(" start to clean buf\n");
+	ENG_LOG(" start to clean buf\n");
 	memset(g_buf.buf, 0, LOG_LEN);
 	g_buf.used = 0;
 	g_buf.valid = true;
@@ -81,11 +81,11 @@ void init_user_diag_buf(void)
 void show_buf(unsigned char *buf, unsigned int len)
 {
 	unsigned int index = 0;
-	printk(" len is : %d \n", len);
+	ENG_LOG(" len is : %d \n", len);
 	for(index = 0; index < len; index++) {
-		printk("%02x ", buf[index]);
+		ENG_LOG("%02x ", buf[index]);
 	}
-	printk("\n");
+	ENG_LOG("\n");
 }
 
 static unsigned int offset = 0;
@@ -97,14 +97,14 @@ void uart_cb(struct device *dev)
 		while (1) {
 			if (uart_fifo_read(uart, &c , 1) == 0) {
 				clean_engpc_buf();
-				//printk("jessie: uart_fifo_read is null, clean buf & break\n");
+				//ENG_LOG("jessie: uart_fifo_read is null, clean buf & break\n");
 				break;
 			}
 
 			log_data[offset++] = c;
 
 			if (offset >= LOG_LEN){
-				//printk("jessie: offset is larger than LOG_LEN, break\n");
+				//ENG_LOG("jessie: offset is larger than LOG_LEN, break\n");
 				break;
 			}
 		}
@@ -118,28 +118,38 @@ int engpc_thread(int argc, char *argv[])
 
 	init_user_diag_buf();
 	while(1) {
-		printk("jessie: before take sem\n");
+		ENG_LOG("jessie: %s before take sem\n", __FUNCTION__);
 		k_sem_take(&uart_rx_sem, K_FOREVER);
 		if (offset > 0) {
-			//printk("jessie: print log_data, offset is %d\n", offset);
+			//ENG_LOG("jessie: print log_data, offset is %d\n", offset);
 			show_buf(log_data, offset);
 			//check_data(log_data, offset);
 			memcpy(g_buf.buf + g_buf.used, log_data, offset);
 			g_buf.used += offset;
-			//printk("jessie: print gbuf, gbuf used  is %d\n", g_buf.used);
+			//ENG_LOG("jessie: print gbuf, gbuf used  is %d\n", g_buf.used);
 			show_buf(g_buf.buf, g_buf.used);
 			memset(log_data, 0, LOG_LEN);
 			offset = 0;
+			if (get_user_diag_buf(g_buf.buf, g_buf.used)){
+				ENG_LOG("jessie: find 0x7e\n");
+				g_diag_status = ENG_DIAG_RECV_TO_AP;
+			}
+			has_processed = eng_diag(uart, ext_data_buf, ext_buf_len);
+
+			init_user_diag_buf();
 		}
 
+		ENG_LOG("ALL handle finished!!!!!!!!!\n");
+#if 0
 		if (get_user_diag_buf(g_buf.buf, g_buf.used)){
-			printk("jessie: find 0x7e\n");
+			ENG_LOG("jessie: find 0x7e\n");
 			g_diag_status = ENG_DIAG_RECV_TO_AP;
 		}
 		has_processed = eng_diag(uart, ext_data_buf, ext_buf_len);
 
 		init_user_diag_buf();
-		printk("ALL handle finished!!!!!!!!!\n");
+		ENG_LOG("ALL handle finished!!!!!!!!!\n");
+#endif
 	}
 }
 

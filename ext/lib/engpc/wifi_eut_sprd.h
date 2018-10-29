@@ -40,7 +40,10 @@
 #define WIFI_PAYLOAD_REQ_RET ("+SPWIFITEST:PAYLOAD=")
 #define WIFI_GUARDINTERVAL_REQ_RET ("+SPWIFITEST:GUARDINTERVAL=")
 #define WIFI_MAC_FILTER_REQ_RET ("+SPWIFITEST:MACFILTER=")
+#define WIFI_MAC_EFUSE_REQ_RET ("+SPWIFITEST:MACEFUSE=")
 #define WIFI_ANT_REQ_RET ("+SPWIFITEST:ANT=")
+#define WIFI_ANTINFO_REQ_RET ("+SPWIFITEST:ANTINFO=")
+#define WIFI_CDEC_EFUSE_REQ_RET ("+SPWIFITEST:CDECEFUSE=")
 #define WIFI_DECODEMODE_REQ_RET ("+SPWIFITEST:DECODEMODE=")
 #define WIFI_INT_INVALID_RET (-100)
 
@@ -59,7 +62,7 @@
 /* PKT Length */
 #define WIFI_PKT_LENGTH_MIN_VALUE (0)
 #define WIFI_PKT_LENGTH_MAX_VALUE (65535)
-
+#define WIFI_MAC_EFUSE_MAX_LEN (50)
 #define WIFI_MAC_STR_MAX_LEN (12 + 5)
 
 //----------------------------------------------------------------
@@ -179,10 +182,6 @@ typedef enum {
 } wifi_guard_interval;
 
 /*******************Function Declaration************************/
-/*-----------------static function-----------------------------*/
-static int wifi_eut_init(void);
-static int get_iwnpi_int_ret(void);
-
 /*-----------------extern function-----------------------------*/
 int wifi_eut_set(int cmd, char *rsp);
 int wifi_eut_get(char *rsp);
@@ -196,12 +195,10 @@ int wifi_channel_get_marlin3(char *rsp);
 int wifi_channel_set(char *ch_note1, char *ch_note2, char *rsp);
 int wifi_channel_get(char *rsp);
 
-
 int wifi_txgainindex_set(int index, char *rsp);
 int wifi_txgainindex_get(char *rsp);
 
 int wifi_tx_set(int command_code, int mode, int pktcnt, char *rsp);
-
 int wifi_tx_get(char *rsp);
 
 int wifi_rx_set(int command_code, char *rsp);
@@ -246,6 +243,17 @@ int wifi_ant_get(char *rsp);
 
 int wifi_decode_mode_set(int dec_mode, char *rsp);
 int wifi_decode_mode_get(char *rsp);
+int get_wcn_afc_cdec(void);
+int wifi_sigbandwidth_get(char *rsp);
+int wifi_sigbandwidth_set(int band_width, char *rsp);
+int wifi_mac_efuse_get(char *rsp);
+int wifi_mac_efuse_set(const char *wifi_mac, const char* bt_mac, char *rsp);
+int wifi_ant_info(char *rsp);
+int wifi_cdec_efuse_set(int cdec, char *rsp);
+int wifi_cdec_efuse_get(char *rsp);
+int wifi_cbank_set(int cbank, char *rsp);
+int wifi_netmode_set(int chain, char *rsp);
+int eng_atdiag_wifi_euthdlr(char *buf, int len, char *rsp, int module_index);
 /***************************************************************/
 
 #endif /*__ENG_AT_H__*/
