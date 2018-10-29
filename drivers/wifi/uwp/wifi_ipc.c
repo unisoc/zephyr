@@ -73,7 +73,7 @@ int wifi_ipc_send(int ch, int prio, void *data, int len, int offset)
 		return -1;
 	}
 	SYS_LOG_DBG("IPC Channel %d Send data:", ch);
-	memcpy(blk.addr + BLOCK_HEADROOM_SIZE + offset, data, len);
+	memcpy((char *)blk.addr + BLOCK_HEADROOM_SIZE + offset, data, len);
 
 	blk.length = len + offset;
 	ret = sblock_send(0, ch, prio, &blk);
