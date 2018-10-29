@@ -60,31 +60,10 @@ struct chan_t g_chan_list[] ={
 int sprdwl_iwnpi_ret_buf(char *buf, int len)
 {
 	memcpy(buf, iwnpi_ret_buf, len);
-	printf("iwnpi show buf : %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi show buf : %s\n", iwnpi_ret_buf);
 	memset(iwnpi_ret_buf, 0x00, WLNPI_RESULT_BUF_LEN);
 	return 0;
 }
-
-/********************************************************************
-*   name   iwnpi_get_be16
-*   ---------------------------
-*   description:
-*   ----------------------------
-*   para        IN/OUT      type            note
-*   ----------------------------------------------------
-*   return
-*   0:exec successful
-*   -1:error
-*   ------------------
-*   other:
-*
-********************************************************************/
-#if 0
-static short iwnpi_get_be16(const char *a)
-{
-    return (a[0] << 8) | a[1];
-}
-#endif
 
 /********************************************************************
 *   name   iwnpi_get_le16
@@ -102,7 +81,7 @@ static short iwnpi_get_be16(const char *a)
 ********************************************************************/
 static short iwnpi_get_le16(const char *a)
 {
-    return (a[1] << 8) | a[0];
+	return (a[1] << 8) | a[0];
 }
 
 /********************************************************************
@@ -121,25 +100,25 @@ static short iwnpi_get_le16(const char *a)
 ********************************************************************/
 static int iwnpi_get_be32(const char *a)
 {
-    return (a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3];
+	return (a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3];
 }
 
 bool is_digital(const char *str)
 {
-    char first = *str;
-    const char *tmp;
+	char first = *str;
+	const char *tmp;
 
-    if (first != '-' && first != '+' && (first < '0' || first > '9')) {
-	return false;
-    }
+	if (first != '-' && first != '+' && (first < '0' || first > '9')) {
+		return false;
+	}
 
-    tmp = str + 1;
-    while(*tmp) {
+	tmp = str + 1;
+	while(*tmp) {
 	if (*tmp < '0' || *tmp > '9')
-	    return false;
+		return false;
 	tmp++;
-    }
-    return true;
+	}
+	return true;
 }
 
 static iwnpi_rate_table g_rate_table[] =
@@ -176,10 +155,8 @@ int mac_addr_a2n(unsigned char *mac_addr, char *arg)
             *cp = 0;
             cp++;
         }
-#if 0
-        if (sscanf(arg, "%x", &temp) != 1)
+        if (eng_sscanf(arg, "%x", &temp) != 1)
             return -1;
-#endif
         if (temp < 0 || temp > 255)
             return -1;
 
@@ -207,9 +184,9 @@ int wlnpi_show_only_status(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_
 	int ret = 0;
 
 	ENG_LOG("ADL entry %s()\n", __func__);
-	printf("ret: %d :end\n",  ret);
+	ENG_LOG("ret: %d :end\n",  ret);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d :end\n", ret);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), return 0\n", __func__);
 	return 0;
@@ -222,13 +199,13 @@ int wlnpi_show_only_int_ret(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r
 
 	if(4 != r_len)
 	{
-		printf("%s() err\n", __func__);
+		ENG_LOG("%s() err\n", __func__);
 		return -1;
 	}
 	ret = *((unsigned int *)(r_buf+0));
-	printf("ret: %d :end\n",  ret);
+	ENG_LOG("ret: %d :end\n",  ret);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d :end\n", ret);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), return 0\n", __func__);
 
@@ -252,6 +229,17 @@ int wlnpi_cmd_start(int argc, char **argv,  unsigned char *s_buf, int *s_len )
 	return 0;
 }
 
+/*-----CMD ID:1-----------*/
+int wlnpi_show_stop(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
+{
+	int ret = 0;
+
+	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d :end\n", ret);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+
+	ENG_LOG("ADL leaving %s(), return 0\n", __func__);
+	return 0;
+}
 /*-----CMD ID:2-----------*/
 int wlnpi_cmd_set_mac(int argc, char **argv,  unsigned char *s_buf, int *s_len )
 {
@@ -265,13 +253,11 @@ int wlnpi_cmd_set_mac(int argc, char **argv,  unsigned char *s_buf, int *s_len )
 /*-----CMD ID:3-----------*/
 int wlnpi_show_get_mac(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
 {
-	//int i, ret, p;
-
 	ENG_LOG("ADL entry %s(), r_len = %d\n", __func__,r_len);
 
-	printf("ret: mac: %02x:%02x:%02x:%02x:%02x:%02x :end\n", r_buf[0], r_buf[1], r_buf[2],r_buf[3],r_buf[4], r_buf[5]);
+	ENG_LOG("ret: mac: %02x:%02x:%02x:%02x:%02x:%02x :end\n", r_buf[0], r_buf[1], r_buf[2],r_buf[3],r_buf[4], r_buf[5]);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: mac: %02x:%02x:%02x:%02x:%02x:%02x :end\n", r_buf[0], r_buf[1], r_buf[2],r_buf[3],r_buf[4], r_buf[5]);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), mac = %02x:%02x:%02x:%02x:%02x:%02x, return 0\n", __func__, r_buf[0], r_buf[1], r_buf[2],r_buf[3],r_buf[4], r_buf[5]);
 
@@ -339,16 +325,16 @@ int wlnpi_show_get_macfilter(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int 
 
 	if(1 != r_len)
 	{
-		printf("get_macfilter err\n");
+		ENG_LOG("get_macfilter err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
 	}
 
 	macfilter = *( (unsigned char *)(r_buf+0) ) ;
-	printf("ret: %d :end\n", macfilter);
+	ENG_LOG("ret: %d :end\n", macfilter);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d :end", macfilter);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), macfilter = %d, return 0\n", __func__, macfilter);
 
@@ -384,7 +370,7 @@ int wlnpi_cmd_set_channel(int argc, char **argv,  unsigned char *s_buf, int *s_l
 	if(err == argv[0])
 		return -1;
 	*s_len = 2;
-	ENG_LOG("ADL leaving %s(), s_buf[0] = %d, s_len = %d\n", __func__, s_buf[0], *s_len);
+	ENG_LOG("ADL leaving %s(), ch1 = %d, ch2 = %d, s_len = %d\n", __func__, *s_buf, *(s_buf + 1), *s_len);
 	return 0;
 }
 
@@ -398,16 +384,16 @@ int wlnpi_show_get_channel(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_
 
 	if(2 != r_len)
 	{
-		printf("get_channel err\n");
+		ENG_LOG("get_channel err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 		return -1;
 	}
 
 	primary20 =  *( (unsigned char *)(r_buf+0) );
 	center =  *((unsigned char *)(r_buf+1));
-	printf("ret: primary_channel:%d,center_channel:%d :end\n", primary20, center);
+	ENG_LOG("ret: primary_channel:%d,center_channel:%d :end\n", primary20, center);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: primary_channel:%d,center_channel:%d :end\n", primary20, center);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), primary20 = %d, center=%d  return 0\n", __func__, primary20, center);
 
@@ -425,18 +411,18 @@ int wlnpi_show_get_rssi(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len
 
 	if(1 != r_len)
 	{
-		printf("get_rssi err\n");
+		ENG_LOG("get_rssi err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
 	}
 
 	rssi = *((char *)r_buf);
-	printf("ret: %d:end\n", rssi );
+	ENG_LOG("ret: %d:end\n", rssi );
 	ENG_LOG("%s rssi is : %d \n",__func__, rssi);
 	//snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "rssi is : %d", rssi);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d:end\n", rssi);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 #if 0
 	if(NULL != (fp = fopen(IWNPI_EXEC_TMP_FILE, "w+"))) {
@@ -521,7 +507,7 @@ int wlnpi_show_get_tx_mode(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_
 
 	if(1 != r_len)
 	{
-		printf("get_tx_mode err\n");
+		ENG_LOG("get_tx_mode err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
@@ -533,9 +519,9 @@ int wlnpi_show_get_tx_mode(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_
 		ENG_LOG("index value:%d exceed define value\n", tx_mode);
 		return -1;
 	}
-	printf("ret: %d :end\n", tx_mode);
+	ENG_LOG("ret: %d :end\n", tx_mode);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d:end\n", tx_mode);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), tx_mode = %d, return 0\n", __func__, tx_mode);
 
@@ -578,16 +564,16 @@ int wlnpi_show_get_rate(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len
 
 	if(1 != r_len)
 	{
-	    printf("get_rate err\n");
+		ENG_LOG("get_rate err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
 	}
 
 	rate = *( (unsigned char *)r_buf );
-	printf("ret: %d :end\n", rate);
+	ENG_LOG("ret: %d :end\n", rate);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d:end\n", rate);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), rate = %d, return 0\n", __func__, rate);
 
@@ -627,7 +613,7 @@ int wlnpi_cmd_set_band(int argc, char **argv,  unsigned char *s_buf, int *s_len 
 
     *s_len = 1;
 
-    ENG_LOG("ADL leaving %s()\n", __func__);
+    ENG_LOG("ADL leaving %s(), band : %d\n", __FUNCTION__, *s_buf);
     return 0;
 }
 
@@ -654,16 +640,16 @@ int wlnpi_show_get_band(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len
 
 	if(1 != r_len)
 	{
-		printf("get_band err \n");
+		ENG_LOG("get_band err \n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
 	}
 
 	band = *( (unsigned char *)(r_buf+0) ) ;
-	printf("ret: %d :end\n", band);
+	ENG_LOG("ret: %d :end\n", band);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d:end\n", band);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), band = %d, return 0\n", __func__, band);
 
@@ -708,7 +694,7 @@ int wlnpi_cmd_set_cbw(int argc, char **argv,  unsigned char *s_buf, int *s_len )
 
     *s_len = 1;
 
-    ENG_LOG("ADL leaving %s()\n", __func__);
+    ENG_LOG("ADL leaving %s(), cbw is : %d\n", __func__, *s_buf);
     return 0;
 }
 
@@ -735,16 +721,16 @@ int wlnpi_show_get_cbw(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
 
 	if(1 != r_len)
 	{
-		printf("get_bandwidth err\n");
-	    ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
+		ENG_LOG("get_bandwidth err\n");
+		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
 	}
 
 	bandwidth = *( (unsigned char *)(r_buf+0) );
-	printf("ret: %d :end\n", bandwidth);
+	ENG_LOG("ret: %d :end\n", bandwidth);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d:end\n", bandwidth);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), bandwidth = %d, return 0\n", __func__, bandwidth);
 
@@ -777,14 +763,14 @@ int wlnpi_cmd_set_pkt_length(int argc, char **argv,  unsigned char *s_buf, int *
         return -1;
     }
 
-    *((unsigned int *)s_buf) = strtol(argv[0], &err, 10);
+    *((unsigned short *)s_buf) = strtol(argv[0], &err, 10);
     *s_len = 2;
     if(err == argv[0])
     {
         return -1;
     }
 
-    ENG_LOG("ADL leaving %s()\n", __func__);
+    ENG_LOG("ADL leaving %s(), len : %d\n", __func__, *(unsigned short*)s_buf);
 
     return 0;
 }
@@ -812,16 +798,16 @@ int wlnpi_show_get_pkt_length(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int
 
 	if(2 != r_len)
 	{
-		printf("get_pkt_length err\n");
+		ENG_LOG("get_pkt_length err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
 	}
 
 	pktlen = *( (unsigned short *)(r_buf+0) ) ;
-	printf("ret: %d :end\n", pktlen);
+	ENG_LOG("ret: %d :end\n", pktlen);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d:end\n", pktlen);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), pktlen = %d, return 0\n", __func__, pktlen);
 
@@ -866,7 +852,7 @@ int wlnpi_cmd_set_preamble(int argc, char **argv,  unsigned char *s_buf, int *s_
 
     *s_len = 1;
 
-    ENG_LOG("ADL leaving %s()\n", __func__);
+    ENG_LOG("ADL leaving %s(), value : %d\n", __func__, *s_buf);
     return 0;
 }
 
@@ -910,7 +896,7 @@ int wlnpi_cmd_set_guard_interval(int argc, char **argv,  unsigned char *s_buf, i
 
     *s_len = 1;
 
-    ENG_LOG("ADL leaving %s()\n", __func__);
+    ENG_LOG("ADL leaving %s() guard_interval : %d\n", __func__, *s_buf);
     return 0;
 }
 
@@ -936,16 +922,16 @@ int wlnpi_show_get_guard_interval(struct wlnpi_cmd_t *cmd, unsigned char *r_buf,
 
 	if(1 != r_len)
 	{
-		printf("get_payload err\n");
+		ENG_LOG("get_payload err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
 	}
 
 	gi = *( (unsigned char *)(r_buf+0) ) ;
-	printf("ret: %d :end\n", gi);
+	ENG_LOG("ret: %d :end\n", gi);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d:end\n", gi);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), gi = %d, return 0\n", __func__, gi);
 
@@ -985,7 +971,7 @@ int wlnpi_cmd_set_payload(int argc, char **argv,  unsigned char *s_buf, int *s_l
 
     *s_len = 1;
 
-    ENG_LOG("ADL leaving %s()\n", __func__);
+    ENG_LOG("ADL leaving %s(), payload value : %d\n", __func__, *s_buf);
     return 0;
 }
 
@@ -1012,16 +998,16 @@ int wlnpi_show_get_payload(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_
 
 	if(1 != r_len)
 	{
-		printf("get_payload err\n");
+		ENG_LOG("get_payload err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
 	}
 
 	result = *( (unsigned char *)(r_buf+0) ) ;
-	printf("ret: %d :end\n", result);
+	ENG_LOG("ret: %d :end\n", result);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d:end\n", result);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), result = %d, return 0\n", __func__, result);
 
@@ -1038,6 +1024,7 @@ int wlnpi_cmd_set_tx_power(int argc, char **argv,  unsigned char *s_buf, int *s_
     if(err == argv[0])
         return -1;
     *s_len = 1;
+    ENG_LOG("%s, tx power : %d\n", __FUNCTION__, *s_buf);
     return 0;
 }
 
@@ -1050,16 +1037,16 @@ int wlnpi_show_get_tx_power(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r
 
 	if(1 != r_len)
 	{
-		printf("get_tx_power err\n");
+		ENG_LOG("get_tx_power err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
 	}
 
 	TSSI = r_buf[0];
-	printf("ret: %d :end\n", TSSI);
+	ENG_LOG("ret: %d :end\n", TSSI);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d:end\n", TSSI);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), TSSI:%d return 0\n", __func__, TSSI);
 
@@ -1082,7 +1069,6 @@ int wlnpi_cmd_set_tx_count(int argc, char **argv,  unsigned char *s_buf, int *s_
 /*-----CMD ID:29-----------*/
 int wlnpi_show_get_rx_ok(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
 {
-    //FILE *fp = NULL;
     unsigned int rx_end_count = 0;
     unsigned int rx_err_end_count = 0;
     unsigned int fcs_faiil_count = 0;
@@ -1091,7 +1077,7 @@ int wlnpi_show_get_rx_ok(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_le
 
     if(12 != r_len)
     {
-        printf("get_rx_ok err\n");
+        ENG_LOG("get_rx_ok err\n");
         ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
         return -1;
@@ -1102,7 +1088,7 @@ int wlnpi_show_get_rx_ok(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_le
     fcs_faiil_count = *((unsigned int *)(r_buf+8));
 
     snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: reg value: rx_end_count=%d rx_err_end_count=%d fcs_fail_count=%d :end\n", rx_end_count, rx_err_end_count, fcs_faiil_count);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 #if 0
     if(NULL != (fp = fopen(IWNPI_EXEC_TMP_FILE, "w+")))
@@ -1191,7 +1177,6 @@ int wlnpi_cmd_get_reg(int argc, char **argv,  unsigned char *s_buf, int *s_len )
 int wlnpi_show_get_reg(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
 {
     int i, ret, p;
-    //FILE *fp = NULL;
     char str[256] = {0};
 
     ENG_LOG("ADL entry %s(), r_len = %d\n", __func__, r_len);
@@ -1220,7 +1205,7 @@ int wlnpi_show_get_reg(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
     }
 #endif
 
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
     ENG_LOG("ADL leaving %s(), str = %s, return 0\n", __func__, str);
 
@@ -1270,14 +1255,13 @@ int wlnpi_cmd_set_reg(int argc, char **argv,  unsigned char *s_buf, int *s_len )
 /*-----CMD ID:39-----------*/
 int wlnpi_show_get_lna_status(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
 {
-    //FILE *fp = NULL;
     unsigned char status = 0;
 
     ENG_LOG("ADL entry %s(), r_eln = %d\n", __func__, r_len);
     status = r_buf[0];
 
     snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d :end\n", status);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 #if 0
     if(NULL != (fp = fopen(IWNPI_EXEC_TMP_FILE, "w+")))
@@ -1317,16 +1301,16 @@ int wlnpi_show_get_wlan_cap(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r
 
     if(4 != r_len)
     {
-        printf("get_rssi err\n");
+        ENG_LOG("get_rssi err\n");
         ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
         return -1;
     }
 
     cap = *(unsigned int *)r_buf;
-    printf("ret: %d:end\n", cap );
+    ENG_LOG("ret: %d:end\n", cap );
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d:end\n", cap);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
     ENG_LOG("ADL leaving %s(), cap = %d, return 0\n", __func__, cap);
 
@@ -1344,13 +1328,12 @@ int wlnpi_cmd_get_reconnect(int argc, char **argv, unsigned char *s_buf, int *s_
 int wlnpi_show_reconnect(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
 {
     unsigned int retcnt = 0;
-//    FILE *fp = NULL;
     retcnt = *((unsigned int *)(r_buf));
 
     snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "reconnect : %d", retcnt);
     ENG_LOG("%s iwnpi_ret_buf is:%s reconnect result : %d, r_len : %d\n",__func__, iwnpi_ret_buf, retcnt, r_len);
 
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 #if 0
     if(NULL != (fp = fopen(IWNPI_EXEC_TMP_FILE, "w+"))) {
@@ -1401,34 +1384,34 @@ int wlnpi_show_get_connected_ap_info(struct wlnpi_cmd_t *cmd, unsigned char *r_b
 
     if (!resp_ies.connect_status)
     {
-        printf("not connected AP.\n");
+        ENG_LOG("not connected AP.\n");
         ENG_LOG("ADL levaling %s(), connect_status = %d\n", __func__, resp_ies.connect_status);
 
         return 0;
     }
 
-    printf("Current Connected Ap info: \n");
+    ENG_LOG("Current Connected Ap info: \n");
 
     /* SSID */
-    printf("SSID: %s\n", resp_ies.ssid);
+    ENG_LOG("SSID: %s\n", resp_ies.ssid);
 
     /* connect mode */
-    printf("Mode: %s\t", (resp_ies.conn_mode ? IWNPI_CONN_MODE_OTHER : IWNPI_CONN_MODE_MANAGED));
+    ENG_LOG("Mode: %s\t", (resp_ies.conn_mode ? IWNPI_CONN_MODE_OTHER : IWNPI_CONN_MODE_MANAGED));
 
     /* RSSI */
-    printf("RSSI: %d dBm\t", resp_ies.rssi);
+    ENG_LOG("RSSI: %d dBm\t", resp_ies.rssi);
 
     /* SNR */
-    printf("SNR: %d dB\t", resp_ies.snr);
+    ENG_LOG("SNR: %d dB\t", resp_ies.snr);
 
     /* noise */
-    printf("noise: %d dBm\n", resp_ies.noise);
+    ENG_LOG("noise: %d dBm\n", resp_ies.noise);
 
     /* Flags: FromBcn RSSI on-channel Channel */
-    printf("Flags: FromBcn RSSI on-channel Channel: %d\n", resp_ies.channel);
+    ENG_LOG("Flags: FromBcn RSSI on-channel Channel: %d\n", resp_ies.channel);
 
     /* BSSID */
-    printf("BSSID: %02X:%02X:%02X:%02X:%02X:%02X\n", resp_ies.bssid[0], resp_ies.bssid[1], resp_ies.bssid[2], resp_ies.bssid[3], resp_ies.bssid[4], resp_ies.bssid[5]);
+    ENG_LOG("BSSID: %02X:%02X:%02X:%02X:%02X:%02X\n", resp_ies.bssid[0], resp_ies.bssid[1], resp_ies.bssid[2], resp_ies.bssid[3], resp_ies.bssid[4], resp_ies.bssid[5]);
 
     /* capability */
     wlnpi_ap_info_print_capa(resp_ies.assoc_resp_info);
@@ -1438,11 +1421,11 @@ int wlnpi_show_get_connected_ap_info(struct wlnpi_cmd_t *cmd, unsigned char *r_b
 
     /* HT Capable: */
     {
-        printf("\n");
-        printf("HT Capable:\n");
-        printf("Chanspec: %s\t", IWNPI_DEFAULT_CHANSPEC);
-        printf("Channel: %d Primary channel: %d\t", resp_ies.channel, resp_ies.channel);
-        printf("BandWidth: %s\n", IWNPI_DEFAULT_BANDWIDTH);
+        ENG_LOG("\n");
+        ENG_LOG("HT Capable:\n");
+        ENG_LOG("Chanspec: %s\t", IWNPI_DEFAULT_CHANSPEC);
+        ENG_LOG("Channel: %d Primary channel: %d\t", resp_ies.channel, resp_ies.channel);
+        ENG_LOG("BandWidth: %s\n", IWNPI_DEFAULT_BANDWIDTH);
 
         /* HT Capabilities */
         {
@@ -1454,7 +1437,7 @@ int wlnpi_show_get_connected_ap_info(struct wlnpi_cmd_t *cmd, unsigned char *r_b
     /* wps */
     wlnpi_ap_info_print_wps(resp_ies.assoc_resp_info);
 
-    printf("\n");
+    ENG_LOG("\n");
 
     ENG_LOG("ADL leaving %s(), return 0\n", __func__);
 
@@ -1484,88 +1467,88 @@ static int wlnpi_ap_info_print_capa(const char *data)
     capability = iwnpi_get_le16(&data[2]);
     ENG_LOG("ADL %s(), capability = 0x%x\n", __func__, capability);
 
-    printf("\n");
-    printf("Capability:\n");
+    ENG_LOG("\n");
+    ENG_LOG("Capability:\n");
     if (capability & 1)
     {
-        printf("ESS Type Network.\t");
+        ENG_LOG("ESS Type Network.\t");
     }
     else if (capability >> 1 & 1)
     {
-        printf("IBSS Type Network.\t");
+        ENG_LOG("IBSS Type Network.\t");
     }
 
     if (capability >> 2 & 1)
     {
-        printf("CF Pollable.\t");
+        ENG_LOG("CF Pollable.\t");
     }
 
     if (capability >> 3 & 1)
     {
-        printf("CF Poll Requested.\t");
+        ENG_LOG("CF Poll Requested.\t");
     }
 
     if (capability >> 4 & 1)
     {
-        printf("Privacy Enabled.\t");
+        ENG_LOG("Privacy Enabled.\t");
     }
 
     if (capability >> 5 & 1)
     {
-        printf("Short Preamble.\t");
+        ENG_LOG("Short Preamble.\t");
     }
 
     if (capability >> 6 & 1)
     {
-        printf("PBCC Allowed.\t");
+        ENG_LOG("PBCC Allowed.\t");
     }
 
     if (capability >> 7 & 1)
     {
-        printf("Channel Agility Used.\t");
+        ENG_LOG("Channel Agility Used.\t");
     }
 
     if (capability >> 8 & 1)
     {
-        printf("Spectrum Mgmt Enabled.\t");
+        ENG_LOG("Spectrum Mgmt Enabled.\t");
     }
 
     if (capability >> 9 & 1)
     {
-        printf("QoS Supported.\t");
+        ENG_LOG("QoS Supported.\t");
     }
 
     if (capability >> 10 & 1)
     {
-        printf("G Mode Short Slot Time.\t");
+        ENG_LOG("G Mode Short Slot Time.\t");
     }
 
     if (capability >> 11 & 1)
     {
-        printf("APSD Supported.\t");
+        ENG_LOG("APSD Supported.\t");
     }
 
     if (capability >> 12 & 1)
     {
-        printf("Radio Measurement.\t");
+        ENG_LOG("Radio Measurement.\t");
     }
 
     if (capability >> 13 & 1)
     {
-        printf("DSSS-OFDM Allowed.\t");
+        ENG_LOG("DSSS-OFDM Allowed.\t");
     }
 
     if (capability >> 14 & 1)
     {
-        printf("Delayed Block Ack Allowed.\t");
+        ENG_LOG("Delayed Block Ack Allowed.\t");
     }
 
     if (capability >> 15 & 1)
     {
-        printf("Immediate Block Ack Allowed.\t");
+        ENG_LOG("Immediate Block Ack Allowed.\t");
     }
 
-    printf("\n");
+    ENG_LOG("\n");
     ENG_LOG("ADL levaling %s()\n", __func__);
     return 0;
 }
@@ -1605,19 +1588,19 @@ static int wlnpi_ap_info_print_wps(const char *data)
     wps_version = vendor_ie[10];
     wifi_protected_setup = vendor_ie[15];
 
-    printf("\nWPS:\t");
-    printf("0x%02x \t", wps_version);
+    ENG_LOG("\nWPS:\t");
+    ENG_LOG("0x%02x \t", wps_version);
 
     if (2 == wifi_protected_setup)
     {
-        printf("Configured.");
+        ENG_LOG("Configured.");
     }
     else if (3 == wifi_protected_setup)
     {
-        printf("AP.");
+        ENG_LOG("AP.");
     }
 
-    printf("\n");
+    ENG_LOG("\n");
 
     ENG_LOG("ADL levaling %s()\n", __func__);
     return 0;
@@ -1648,7 +1631,7 @@ static int wlnpi_ap_info_print_ht_mcs(const char *data)
     ht_capa_ie = wlnpi_bss_get_ie(data, WLAN_EID_HT_CAP);
     if (NULL == ht_capa_ie)
     {
-        printf("error. get mcs failed.\n");
+        ENG_LOG("error. get mcs failed.\n");
         ENG_LOG("ADL %s(), get mcs failed. return -1\n", __func__);
 
         return -1;
@@ -1661,174 +1644,174 @@ static int wlnpi_ap_info_print_ht_mcs(const char *data)
     spatial_stream3 = ht_capa_ie[7];
     spatial_stream4 = ht_capa_ie[8];
 
-    //printf("spatial1 = 0x%x, spatial2 = 0x%x\n", spatial_stream1, spatial_stream2);
+    //ENG_LOG("spatial1 = 0x%x, spatial2 = 0x%x\n", spatial_stream1, spatial_stream2);
 
-    printf("\nSupported MCS:\n");
+    ENG_LOG("\nSupported MCS:\n");
 
     if (spatial_stream1 >> 0 & 1)
     {
-        printf("0 ");
+        ENG_LOG("0 ");
     }
 
     if (spatial_stream1 >> 1 & 1)
     {
-        printf("1 ");
+        ENG_LOG("1 ");
     }
 
     if (spatial_stream1 >> 2 & 1)
     {
-        printf("2 ");
+        ENG_LOG("2 ");
     }
 
     if (spatial_stream1 >> 3 & 1)
     {
-        printf("3 ");
+        ENG_LOG("3 ");
     }
 
     if (spatial_stream1 >> 4 & 1)
     {
-        printf("4 ");
+        ENG_LOG("4 ");
     }
 
     if (spatial_stream1 >> 5 & 1)
     {
-        printf("5 ");
+        ENG_LOG("5 ");
     }
 
     if (spatial_stream1 >> 6 & 1)
     {
-        printf("6 ");
+        ENG_LOG("6 ");
     }
 
     if (spatial_stream1 >> 7 & 1)
     {
-        printf("7");
+        ENG_LOG("7");
     }
 
     /* spatial2 */
     if (spatial_stream2 >> 0 & 1)
     {
-        printf("8 ");
+        ENG_LOG("8 ");
     }
 
     if (spatial_stream2 >> 1 & 1)
     {
-        printf("9 ");
+        ENG_LOG("9 ");
     }
 
     if (spatial_stream2 >> 2 & 1)
     {
-        printf("10 ");
+        ENG_LOG("10 ");
     }
 
     if (spatial_stream2 >> 3 & 1)
     {
-        printf("11 ");
+        ENG_LOG("11 ");
     }
 
     if (spatial_stream2 >> 4 & 1)
     {
-        printf("12 ");
+        ENG_LOG("12 ");
     }
 
     if (spatial_stream2 >> 5 & 1)
     {
-        printf("13 ");
+        ENG_LOG("13 ");
     }
 
     if (spatial_stream2 >> 6 & 1)
     {
-        printf("14 ");
+        ENG_LOG("14 ");
     }
 
     if (spatial_stream2 >> 7 & 1)
     {
-        printf("15");
+        ENG_LOG("15");
     }
 
     /* spatial3 */
     if (spatial_stream3 >> 0 & 1)
     {
-        printf("16 ");
+        ENG_LOG("16 ");
     }
 
     if (spatial_stream3 >> 1 & 1)
     {
-        printf("17 ");
+        ENG_LOG("17 ");
     }
 
     if (spatial_stream3 >> 2 & 1)
     {
-        printf("18 ");
+        ENG_LOG("18 ");
     }
 
     if (spatial_stream3 >> 3 & 1)
     {
-        printf("19 ");
+        ENG_LOG("19 ");
     }
 
     if (spatial_stream3 >> 4 & 1)
     {
-        printf("20 ");
+        ENG_LOG("20 ");
     }
 
     if (spatial_stream3 >> 5 & 1)
     {
-        printf("21 ");
+        ENG_LOG("21 ");
     }
 
     if (spatial_stream3 >> 6 & 1)
     {
-        printf("22 ");
+        ENG_LOG("22 ");
     }
 
     if (spatial_stream3 >> 7 & 1)
     {
-        printf("23");
+        ENG_LOG("23");
     }
 
     /* spatial4 */
     if (spatial_stream4 >> 0 & 1)
     {
-        printf("24 ");
+        ENG_LOG("24 ");
     }
 
     if (spatial_stream4 >> 1 & 1)
     {
-        printf("25 ");
+        ENG_LOG("25 ");
     }
 
     if (spatial_stream4 >> 2 & 1)
     {
-        printf("26 ");
+        ENG_LOG("26 ");
     }
 
     if (spatial_stream4 >> 3 & 1)
     {
-        printf("27 ");
+        ENG_LOG("27 ");
     }
 
     if (spatial_stream4 >> 4 & 1)
     {
-        printf("28 ");
+        ENG_LOG("28 ");
     }
 
     if (spatial_stream4 >> 5 & 1)
     {
-        printf("29 ");
+        ENG_LOG("29 ");
     }
 
     if (spatial_stream4 >> 6 & 1)
     {
-        printf("30 ");
+        ENG_LOG("30 ");
     }
 
     if (spatial_stream4 >> 7 & 1)
     {
-        printf("31 ");
+        ENG_LOG("31 ");
     }
 
-    printf("\n");
+    ENG_LOG("\n");
 
     return 0;
 }
@@ -1857,7 +1840,7 @@ static int wlnpi_ap_info_print_ht_capa(const char *data)
     ht_capa_ie = wlnpi_bss_get_ie(data, WLAN_EID_HT_CAP);
     if (NULL == ht_capa_ie)
     {
-        printf("error. get support_rate failed.\n");
+        ENG_LOG("error. get support_rate failed.\n");
         ENG_LOG("ADL %s(), get support_rate failed. return -1\n", __func__);
 
         return -1;
@@ -1871,77 +1854,77 @@ static int wlnpi_ap_info_print_ht_capa(const char *data)
 
     ENG_LOG("ADL %s(), HT Capabilities = 0x%x\n", __func__, ht_capa);
 
-    printf("\n");
-    printf("HT Capabilities:\n");
+    ENG_LOG("\n");
+    ENG_LOG("HT Capabilities:\n");
 
     if (ht_capa >> 0 & 1)
     {
-        printf("LDPC Coding Capability.\n");
+        ENG_LOG("LDPC Coding Capability.\n");
     }
 
     if (ht_capa >> 1 & 1)
     {
-        printf("20MHz and 40MHz Operation is Supported.\n");
+        ENG_LOG("20MHz and 40MHz Operation is Supported.\n");
     }
 
     if (ht_capa >> 2 & 3)
     {
-        printf("Spatial Multiplexing Enabled.\n");
+        ENG_LOG("Spatial Multiplexing Enabled.\n");
     }
 
     if (ht_capa >> 4 & 1)
     {
-        printf("Can receive PPDUs with HT-Greenfield format.\n");
+        ENG_LOG("Can receive PPDUs with HT-Greenfield format.\n");
     }
 
     if (ht_capa >> 5 & 1)
     {
-        printf("Short GI for 20MHz.\n");
+        ENG_LOG("Short GI for 20MHz.\n");
     }
 
     if (ht_capa >> 6 & 1)
     {
-        printf("Short GI for 40MHz.\n");
+        ENG_LOG("Short GI for 40MHz.\n");
     }
 
     if (ht_capa >> 7 & 1)
     {
-        printf("Transmitter Support Tx STBC.\n");
+        ENG_LOG("Transmitter Support Tx STBC.\n");
     }
 
     if (ht_capa >> 8 & 3)/*2 bit*/
     {
-        printf("Rx STBC Support.\n");
+        ENG_LOG("Rx STBC Support.\n");
     }
 
     if (ht_capa >> 10 & 1)
     {
-        printf("Support HT-Delayed BlockAck Operation.\n");
+        ENG_LOG("Support HT-Delayed BlockAck Operation.\n");
     }
 
     if (ht_capa >> 11 & 1)
     {
-        printf("Maximal A-MSDU size.\n");
+        ENG_LOG("Maximal A-MSDU size.\n");
     }
 
     if (ht_capa >> 12 & 1)
     {
-        printf("BSS Allow use of DSSS/CCK Rates @40MHz\n");
+        ENG_LOG("BSS Allow use of DSSS/CCK Rates @40MHz\n");
     }
 
     if (ht_capa >> 13 & 1)
     {
-        printf("Device/BSS Support use of PSMP.\n");
+        ENG_LOG("Device/BSS Support use of PSMP.\n");
     }
 
     if (ht_capa >> 14 & 1)
     {
-        printf("AP allow use of 40MHz Transmissions In Neighboring BSSs.\n");
+        ENG_LOG("AP allow use of 40MHz Transmissions In Neighboring BSSs.\n");
     }
 
     if (ht_capa >> 15 & 1)
     {
-        printf("L-SIG TXOP Protection Support.\n");
+        ENG_LOG("L-SIG TXOP Protection Support.\n");
     }
 
     ENG_LOG("ADL leval %s()\n", __func__);
@@ -1974,7 +1957,7 @@ static int wlnpi_ap_info_print_support_rate(const char *data)
     support_rate_ie = wlnpi_bss_get_ie(data, WLAN_EID_SUPP_RATES);
     if (NULL == support_rate_ie)
     {
-        printf("error. get support_rate failed.\n");
+        ENG_LOG("error. get support_rate failed.\n");
         ENG_LOG("ADL %s(), get support_rate failed. return -1\n", __func__);
 
         return -1;
@@ -1985,16 +1968,16 @@ static int wlnpi_ap_info_print_support_rate(const char *data)
     length = support_rate_ie[1];
     ENG_LOG("ADL %s(), length = %d\n", __func__, length);
 
-    printf("\n");
-    printf("Support Rates:\n");
+    ENG_LOG("\n");
+    ENG_LOG("Support Rates:\n");
 
     while (i < length)
     {
-        printf("%s  ", wlnpi_get_rate_by_phy(support_rate_ie[2 + i]));
+        ENG_LOG("%s  ", wlnpi_get_rate_by_phy(support_rate_ie[2 + i]));
         i++;
     }
 
-    printf("\n");
+    ENG_LOG("\n");
 
     ENG_LOG("ADL levaling %s()\n", __func__);
 
@@ -2142,16 +2125,16 @@ int wlnpi_show_get_mcs_index(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int 
 
     if(1 != r_len)
     {
-        printf("get msc index err \n");
+        ENG_LOG("get msc index err \n");
         ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
         return -1;
     }
 
     mcs_index = *( (unsigned char *)(r_buf+0) ) ;
-    printf("mcs index: %d\n", mcs_index);
+    ENG_LOG("mcs index: %d\n", mcs_index);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d:end\n", mcs_index);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
     ENG_LOG("ADL leaving %s(), mcs_index = %d, return 0\n", __func__, mcs_index);
 
@@ -2255,9 +2238,9 @@ int wlnpi_show_get_ar(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
     ar_flag  = *(unsigned char *)(r_buf + 0);
     ar_index = *(unsigned char *)(r_buf + 1);
 
-    printf("ret: %d, %d :end\n", ar_flag, ar_index);
+    ENG_LOG("ret: %d, %d :end\n", ar_flag, ar_index);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d, %d :end\n", ar_flag, ar_index);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
     ENG_LOG("ADL leaving %s(), ar_flag = %d, ar_index= %d, return 0\n", __func__, ar_flag, ar_index);
 
@@ -2326,15 +2309,15 @@ int wlnpi_show_get_ar_pktcnt(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int 
 
     if(4 != r_len)
     {
-        printf("get_ar_pktcnt err\n");
+        ENG_LOG("get_ar_pktcnt err\n");
         ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
         return -1;
     }
 
     pktcnt = *((unsigned int *)(r_buf+0));
-    printf("ret: %d :end\n", pktcnt);
+    ENG_LOG("ret: %d :end\n", pktcnt);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d :end\n", pktcnt);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
     ENG_LOG("ADL leaving %s(), pktcnt = %d, return 0\n", __func__, pktcnt);
 
@@ -2403,15 +2386,15 @@ int wlnpi_show_get_ar_retcnt(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int 
 
     if(4 != r_len)
     {
-        printf("get_ar_retcnt err\n");
+        ENG_LOG("get_ar_retcnt err\n");
         ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
         return -1;
     }
 
     retcnt = *((unsigned int *)(r_buf+0));
-    printf("ret: %d :end\n", retcnt);
+    ENG_LOG("ret: %d :end\n", retcnt);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d :end\n", retcnt);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
     ENG_LOG("ADL leaving %s(), retcnt = %d, return 0\n", __func__, retcnt);
 
@@ -2422,7 +2405,6 @@ int wlnpi_show_get_ar_retcnt(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int 
 int wlnpi_cmd_roam(int argc, char **argv,  unsigned char *s_buf, int *s_len)
 {
     char *err;
-    //int index = 0;
     unsigned char *tmp = s_buf;
 	int length;
 
@@ -2559,12 +2541,12 @@ int wlnpi_cmd_set_wmm(int argc, char **argv, unsigned char *s_buf, int *s_len)
     *(unsigned short *)tmp = txop;
     *s_len += 2;
 
-    printf("show para,len : %d \n", *s_len);
-    printf("be|bk|vo|vi : %d \n", *s_buf);
-    printf("cwmin : %d \n", *(s_buf + 1));
-    printf("cwmax : %d \n", *(s_buf + 2));
-    printf("aifs  : %d \n", *(s_buf + 3));
-    printf("txop  : %d \n", *(unsigned short *)(s_buf + 4));
+    ENG_LOG("show para,len : %d \n", *s_len);
+    ENG_LOG("be|bk|vo|vi : %d \n", *s_buf);
+    ENG_LOG("cwmin : %d \n", *(s_buf + 1));
+    ENG_LOG("cwmax : %d \n", *(s_buf + 2));
+    ENG_LOG("aifs  : %d \n", *(s_buf + 3));
+    ENG_LOG("txop  : %d \n", *(unsigned short *)(s_buf + 4));
 
     return 0;
 }
@@ -2636,36 +2618,36 @@ int wlnpi_cmd_set_eng_mode(int argc, char **argv, unsigned char *s_buf, int *s_l
 ********************************************************************/
 int wlnpi_cmd_start_pkt_log(int argc, char **argv,  unsigned char *s_buf, int *s_len )
 {
-    char **err = NULL;
+	char **err = NULL;
 	unsigned short *buffer_num = (unsigned short *)s_buf;
-    unsigned short *duration = (unsigned short *)(s_buf + 2);
+	unsigned short *duration = (unsigned short *)(s_buf + 2);
 
-    ENG_LOG("ADL entry %s(), argc = %d\n", __func__, argc);
+	ENG_LOG("ADL entry %s(), argc = %d\n", __func__, argc);
 
-    if(2 != argc)
-    {
+	if(2 != argc)
+	{
 		ENG_LOG("ADL leaving %s(), argc error. return -1\n", __func__);
 		return -1;
-    }
+	}
 
-    *buffer_num = strtoul(argv[0], err, 10);
-    if(err)
-    {
+	*buffer_num = strtoul(argv[0], err, 10);
+	if(err)
+	{
 		ENG_LOG("ADL leaving %s(), strtol error. return -1\n", __func__);
 		return -1;
-    }
+	}
 
-    *duration = strtoul(argv[1], err, 10);
-    if(err)
-    {
+	*duration = strtoul(argv[1], err, 10);
+	if(err)
+	{
 		ENG_LOG("ADL leaving %s(), strtol error. return -1\n", __func__);
 		return -1;
-    }
+	}
 
-    *s_len = 4;
+	*s_len = 4;
 
-    ENG_LOG("ADL leaving %s()\n", __func__);
-    return 0;
+	ENG_LOG("ADL leaving %s()\n", __func__);
+	return 0;
 }
 
 /*-----CMD ID:78-----------*/
@@ -2709,7 +2691,7 @@ int wlnpi_cmd_set_chain(int argc, char **argv, unsigned char *s_buf, int *s_len)
 
 	*s_len = 1;
 
-	ENG_LOG("ADL leaving %s()\n", __func__);
+	ENG_LOG("ADL leaving %s(), chain : %d\n", __func__, *s_buf);
 	return 0;
 }
 
@@ -2736,7 +2718,7 @@ int wlnpi_show_get_chain(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_le
 
 	if(1 != r_len)
 	{
-		printf("get_chain err\n");
+		ENG_LOG("get_chain err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
@@ -2745,13 +2727,13 @@ int wlnpi_show_get_chain(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_le
 	chain = *((unsigned char *)r_buf);
 	if((chain > 3) || (0 == chain))
 	{
-		printf("get_chain err,not equal to 1,2,3\n");
+		ENG_LOG("get_chain err,not equal to 1,2,3\n");
 		return -1;
 	}
 
-	printf("ret: %d :end\n", chain);
+	ENG_LOG("ret: %d :end\n", chain);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d :end\n", chain);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), chain = %d, return 0\n", __func__, chain);
 
@@ -2827,7 +2809,7 @@ int wlnpi_show_get_sbw(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
 
 	if(1 != r_len)
 	{
-		printf("get_sbw err\n");
+		ENG_LOG("get_sbw err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
@@ -2836,13 +2818,13 @@ int wlnpi_show_get_sbw(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
 	sbw = *( (unsigned char *)r_buf );
 	if(sbw > 3)
 	{
-		printf("get_sbw err\n");
+		ENG_LOG("get_sbw err\n");
 		return -1;
 	}
 
-	printf("ret: %d :end\n", sbw);
+	ENG_LOG("ret: %d :end\n", sbw);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d :end\n", sbw);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), chain = %d, return 0\n", __func__, sbw);
 
@@ -2887,7 +2869,7 @@ int wlnpi_cmd_set_fec(int argc, char **argv, unsigned char *s_buf, int *s_len)
 
 	*s_len = 1;
 
-	ENG_LOG("ADL leaving %s()\n", __func__);
+	ENG_LOG("ADL leaving %s(), fec is : %d\n", __func__, *s_buf);
 	return 0;
 }
 
@@ -2914,7 +2896,7 @@ int wlnpi_show_get_fec(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
 
 	if(1 != r_len)
 	{
-		printf("get_fec err\n");
+		ENG_LOG("get_fec err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
 		return -1;
@@ -2923,18 +2905,92 @@ int wlnpi_show_get_fec(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
 	fec = *( (unsigned char *)r_buf );
 	if((0 != fec) &&(1 != fec))
 	{
-		printf("get_fec err\n");
+		ENG_LOG("get_fec err\n");
 		return -1;
 	}
 
-	printf("ret: %d :end\n", fec);
+	ENG_LOG("ret: %d :end\n", fec);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d :end\n", fec);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), fec = %d, return 0\n", __func__, fec);
 
 	return 0;
 }
+
+/*-----CMD ID:100-----------*/
+/********************************************************************
+*   name   wlnpi_cmd_set_cbank
+*   ---------------------------
+*   description:
+*   ----------------------------
+*   para        IN/OUT      type            note
+*   ----------------------------------------------------
+*   para: [0 - 63] cbank value
+*   return
+*   0:exec successful
+*   -1:error
+*   ------------------
+*   other:
+*
+********************************************************************/
+int wlnpi_cmd_set_cbank(int argc, char **argv, unsigned char *s_buf, int *s_len)
+{
+	char *err;
+
+	ENG_LOG("ADL entry %s(), argc = %d, argv[0] = %s\n", __func__, argc, argv[0]);
+	if(1 != argc)
+	{
+		return -1;
+	}
+
+	*s_buf = strtol(argv[0], &err, 10);
+	if(err == argv[0])
+	{
+		return -1;
+	}
+	/* invalid value : 0 -- 63 */
+	if((*s_buf < 0) ||(*s_buf > 63))
+	{
+		ENG_LOG("invalid cbank value : %d\n", *s_buf);
+		return -1;
+	}
+
+	ENG_LOG("cbank value : %d\n", *s_buf);
+	*s_len = 1;
+	return 0;
+}
+
+int wlnpi_cmd_set_cbank_reg(int argc, char **argv, unsigned char *s_buf, int *s_len)
+{
+	char *err;
+	long val;
+
+	ENG_LOG("ADL entry %s(), argc = %d, argv[0] = %s", __func__, argc, argv[0]);
+	if(1 != argc)
+	{
+		return -1;
+	}
+
+	val = strtol(argv[0], &err, 10);
+	if(err == argv[0])
+	{
+		return -1;
+	}
+
+	if (val > 255)
+	{
+		ENG_LOG("%s param = %d", __func__, val);
+		return -1;
+	}
+
+	*((unsigned char*)s_buf) = val;
+	*s_len = 1;
+
+	ENG_LOG("ADL leaving %s()", __func__);
+	return 0;
+}
+
 
 /*-----CMD ID:115-----------*/
 /********************************************************************
@@ -3062,14 +3118,14 @@ int wlnpi_show_get_prot_mode(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int 
 	}
 	else
 	{
-		printf("get_ar_retcnt err\n");
+		ENG_LOG("get_ar_retcnt err\n");
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 		return -1;
 	}
 
-	printf("ret: %d :end\n", retcnt);
+	ENG_LOG("ret: %d :end\n", retcnt);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d :end\n", retcnt);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
 	ENG_LOG("ADL leaving %s(), retcnt = %d, return 0\n", __func__, retcnt);
 
@@ -3093,44 +3149,44 @@ int wlnpi_show_get_prot_mode(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int 
  ********************************************************************/
 int wlnpi_cmd_set_threshold(int argc, char **argv,  unsigned char *s_buf, int *s_len)
 {
-    char **err = NULL;
+	char **err = NULL;
 	unsigned char *mode = s_buf;
-    unsigned int *rts = (unsigned int *)(s_buf + 1);
-    unsigned int *frag = (unsigned int *)(s_buf + 5);
+	unsigned int *rts = (unsigned int *)(s_buf + 1);
+	unsigned int *frag = (unsigned int *)(s_buf + 5);
 
-    ENG_LOG("ADL entry %s(), argc = %d\n", __func__, argc);
+	ENG_LOG("ADL entry %s(), argc = %d\n", __func__, argc);
 
-    if(3 != argc)
-    {
+	if(3 != argc)
+	{
 		ENG_LOG("ADL leaving %s(), argc error. return -1\n", __func__);
 		return -1;
-    }
+	}
 
-    *mode = strtoul(argv[0], err, 10);
-    if(err)
-    {
+	*mode = strtoul(argv[0], err, 10);
+	if(err)
+	{
 		ENG_LOG("ADL leaving %s(), strtol error. return -1\n", __func__);
 		return -1;
-    }
+	}
 
-    *rts = strtoul(argv[1], err, 10);
-    if(err)
-    {
+	*rts = strtoul(argv[1], err, 10);
+	if(err)
+	{
 		ENG_LOG("ADL leaving %s(), strtol error. return -1\n", __func__);
 		return -1;
-    }
+	}
 
-    *frag = strtoul(argv[2], err, 10);
-    if(err)
-    {
+	*frag = strtoul(argv[2], err, 10);
+	if(err)
+	{
 		ENG_LOG("ADL leaving %s(), strtol error. return -1\n", __func__);
 		return -1;
-    }
-    //iwnpi_hex_dump("D:", 2, s_buf, 9);
-    *s_len = 9;
+	}
+	//iwnpi_hex_dump("D:", 2, s_buf, 9);
+	*s_len = 9;
 
-    ENG_LOG("ADL leaving %s()\n", __func__);
-    return 0;
+	ENG_LOG("ADL leaving %s()\n", __func__);
+	return 0;
 }
 
 /*-----CMD ID:119-----------*/
@@ -3155,16 +3211,16 @@ int wlnpi_show_get_pm_ctl(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_l
 
     if(4 != r_len)
     {
-        printf("get_pm ctl err\n");
+        ENG_LOG("get_pm ctl err\n");
         ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 
         return -1;
     }
 
     ctl = *(unsigned int *)r_buf;
-    printf("ret: %d:end\n", ctl);
+    ENG_LOG("ret: %d:end\n", ctl);
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: %d :end\n", ctl);
-	printf("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
 
     ENG_LOG("ADL leaving %s(), pm_ctl = %d, return 0\n", __func__, ctl);
 
@@ -3182,51 +3238,51 @@ int wlnpi_show_get_pa_infor(struct wlnpi_cmd_t *cmd,
 		__func__, cmd->id, cmd->name, r_len);
 
 	if ((1 > r_len) || (512 < r_len)) {
-		printf("get_cp2_infor cmd_name:%s err\n", cmd->name);
+		ENG_LOG("get_cp2_infor cmd_name:%s err\n", cmd->name);
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n",
 			__func__);
 		return -1;
 	}
 
-	printf("pa status information:\r\n");
-	printf("rx_giveup_cnt:%08x\r\n", pa_info->rx_giveup_cnt);
-	printf("rx_drop_cnt:%08x\r\n", pa_info->rx_drop_cnt);
-	printf("rx_filter_cnt_frmtype:%08x\r\n",
+	ENG_LOG("pa status information:\r\n");
+	ENG_LOG("rx_giveup_cnt:%08x\r\n", pa_info->rx_giveup_cnt);
+	ENG_LOG("rx_drop_cnt:%08x\r\n", pa_info->rx_drop_cnt);
+	ENG_LOG("rx_filter_cnt_frmtype:%08x\r\n",
 	       pa_info->rx_filter_cnt_frmtype);
-	printf("rx_ce_err_info:%08x\r\n", pa_info->rx_ce_err_info);
-	printf("rx_dup_cnt:%08x\r\n", pa_info->rx_dup_cnt);
-	printf("rx_stage23_mpdu_cnt:%08x\r\n", pa_info->rx_stage23_mpdu_cnt);
-	printf("rx_bitmap_chk_cnt:%08x\r\n", pa_info->rx_bitmap_chk_cnt);
-	printf("rx_int_cnt:%08x\r\n", pa_info->rx_int_cnt);
-	printf("rx_mpdu_debug_cnt:%08x\r\n", pa_info->rx_mpdu_debug_cnt);
-	printf("rx_ce_debug:%08x\r\n", pa_info->rx_ce_debug);
-	printf("rx_psdu_cnt:%08x\r\n", pa_info->rx_psdu_cnt);
-	printf("rx_mpdu_cnt1:%08x\r\n", pa_info->rx_mpdu_cnt1);
-	printf("rx_mpdu_cnt2:%08x\r\n", pa_info->rx_mpdu_cnt2);
-	printf("rx_mac1_mpdu_bytecnt:%08x\r\n", pa_info->rx_mac1_mpdu_bytecnt);
-	printf("rx_mac2_mpdu_bytecnt:%08x\r\n", pa_info->rx_mac2_mpdu_bytecnt);
-	printf("rx_mac3_mpdu_bytecnt:%08x\r\n", pa_info->rx_mac3_mpdu_bytecnt);
-	printf("rx_mac4_mpdu_bytecnt:%08x\r\n", pa_info->rx_mac4_mpdu_bytecnt);
-	printf("rx_mac1_lastsuc_datafrm_tsf_l:%08x\r\n",
+	ENG_LOG("rx_ce_err_info:%08x\r\n", pa_info->rx_ce_err_info);
+	ENG_LOG("rx_dup_cnt:%08x\r\n", pa_info->rx_dup_cnt);
+	ENG_LOG("rx_stage23_mpdu_cnt:%08x\r\n", pa_info->rx_stage23_mpdu_cnt);
+	ENG_LOG("rx_bitmap_chk_cnt:%08x\r\n", pa_info->rx_bitmap_chk_cnt);
+	ENG_LOG("rx_int_cnt:%08x\r\n", pa_info->rx_int_cnt);
+	ENG_LOG("rx_mpdu_debug_cnt:%08x\r\n", pa_info->rx_mpdu_debug_cnt);
+	ENG_LOG("rx_ce_debug:%08x\r\n", pa_info->rx_ce_debug);
+	ENG_LOG("rx_psdu_cnt:%08x\r\n", pa_info->rx_psdu_cnt);
+	ENG_LOG("rx_mpdu_cnt1:%08x\r\n", pa_info->rx_mpdu_cnt1);
+	ENG_LOG("rx_mpdu_cnt2:%08x\r\n", pa_info->rx_mpdu_cnt2);
+	ENG_LOG("rx_mac1_mpdu_bytecnt:%08x\r\n", pa_info->rx_mac1_mpdu_bytecnt);
+	ENG_LOG("rx_mac2_mpdu_bytecnt:%08x\r\n", pa_info->rx_mac2_mpdu_bytecnt);
+	ENG_LOG("rx_mac3_mpdu_bytecnt:%08x\r\n", pa_info->rx_mac3_mpdu_bytecnt);
+	ENG_LOG("rx_mac4_mpdu_bytecnt:%08x\r\n", pa_info->rx_mac4_mpdu_bytecnt);
+	ENG_LOG("rx_mac1_lastsuc_datafrm_tsf_l:%08x\r\n",
 	       pa_info->rx_mac1_lastsuc_datafrm_tsf_l);
-	printf("rx_mac2_lastsuc_datafrm_tsf_l:%08x\r\n",
+	ENG_LOG("rx_mac2_lastsuc_datafrm_tsf_l:%08x\r\n",
 		pa_info->rx_mac2_lastsuc_datafrm_tsf_l);
-	printf("rx_mac3_lastsuc_datafrm_tsf_l:%08x\r\n",
+	ENG_LOG("rx_mac3_lastsuc_datafrm_tsf_l:%08x\r\n",
 		pa_info->rx_mac3_lastsuc_datafrm_tsf_l);
-	printf("rx_mac4_lastsuc_datafrm_tsf_l:%08x\r\n",
+	ENG_LOG("rx_mac4_lastsuc_datafrm_tsf_l:%08x\r\n",
 		pa_info->rx_mac4_lastsuc_datafrm_tsf_l);
-	printf("mib_cycle_cnt:%08x\r\n", pa_info->mib_cycle_cnt);
-	printf("mib_rx_clear_cnt_20m:%08x\r\n", pa_info->mib_rx_clear_cnt_20m);
-	printf("mib_rx_clear_cnt_40m:%08x\r\n", pa_info->mib_rx_clear_cnt_40m);
-	printf("mib_rx_clear_cnt_80m:%08x\r\n", pa_info->mib_rx_clear_cnt_80m);
-	printf("mib_rx_cycle_cnt:%08x\r\n", pa_info->mib_rx_cycle_cnt);
-	printf("mib_myrx_uc_cycle_cnt:%08x\r\n",
+	ENG_LOG("mib_cycle_cnt:%08x\r\n", pa_info->mib_cycle_cnt);
+	ENG_LOG("mib_rx_clear_cnt_20m:%08x\r\n", pa_info->mib_rx_clear_cnt_20m);
+	ENG_LOG("mib_rx_clear_cnt_40m:%08x\r\n", pa_info->mib_rx_clear_cnt_40m);
+	ENG_LOG("mib_rx_clear_cnt_80m:%08x\r\n", pa_info->mib_rx_clear_cnt_80m);
+	ENG_LOG("mib_rx_cycle_cnt:%08x\r\n", pa_info->mib_rx_cycle_cnt);
+	ENG_LOG("mib_myrx_uc_cycle_cnt:%08x\r\n",
 		pa_info->mib_myrx_uc_cycle_cnt);
-	printf("mib_myrx_bcmc_cycle_cnt:%08x\r\n",
+	ENG_LOG("mib_myrx_bcmc_cycle_cnt:%08x\r\n",
 		   pa_info->mib_myrx_bcmc_cycle_cnt);
-	printf("mib_rx_idle_cnt:%08x\r\n", pa_info->mib_rx_idle_cnt);
-	printf("mib_tx_cycle_cnt:%08x\r\n", pa_info->mib_tx_cycle_cnt);
-	printf("mib_tx_idle_cnt:%08x\r\n", pa_info->mib_tx_idle_cnt);
+	ENG_LOG("mib_rx_idle_cnt:%08x\r\n", pa_info->mib_rx_idle_cnt);
+	ENG_LOG("mib_tx_cycle_cnt:%08x\r\n", pa_info->mib_tx_cycle_cnt);
+	ENG_LOG("mib_tx_idle_cnt:%08x\r\n", pa_info->mib_tx_idle_cnt);
 	ENG_LOG("ADL leaving %s(), return 0\n", __func__);
 	return 0;
 }
@@ -3235,7 +3291,6 @@ int wlnpi_show_get_tx_status(struct wlnpi_cmd_t *cmd,
 			     unsigned char *r_buf,
 			     int r_len)
 {
-	//int len = 0;
 	int i = 0;
 	struct tx_status_struct *tx_status = (struct tx_status_struct *)r_buf;
 
@@ -3243,45 +3298,45 @@ int wlnpi_show_get_tx_status(struct wlnpi_cmd_t *cmd,
 		    __func__, cmd->id, cmd->name, r_len);
 
 	if ((1 > r_len) || (512 < r_len)) {
-		printf("get_cp2_infor cmd_name:%s err\n", cmd->name);
+		ENG_LOG("get_cp2_infor cmd_name:%s err\n", cmd->name);
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n",
 			__func__);
 		return -1;
 	}
 
-	printf("tx status information:\r\n");
+	ENG_LOG("tx status information:\r\n");
 	for (i = 0; i < 4; i++) {
-		printf("tx_pkt_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("tx_pkt_cnt[%d]:%08x\r\n", i,
 		       tx_status->tx_pkt_cnt[i]);
 	}
 	for (i = 0; i < 4; i++) {
-		printf("tx_suc_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("tx_suc_cnt[%d]:%08x\r\n", i,
 		       tx_status->tx_suc_cnt[i]);
 	}
 	for (i = 0; i < 4; i++) {
-		printf("tx_fail_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("tx_fail_cnt[%d]:%08x\r\n", i,
 		       tx_status->tx_fail_cnt[i]);
 	}
 	for (i = 0; i < 2; i++) {
-		printf("tx_fail_reason_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("tx_fail_reason_cnt[%d]:%08x\r\n", i,
 		       tx_status->tx_fail_reason_cnt[i]);
 	}
-	printf("tx_err_cnt:%08x\r\n", tx_status->tx_err_cnt);
-	printf("rts_success_cnt:%08x\r\n", tx_status->rts_success_cnt);
-	printf("rts_fail_cnt:%08x\r\n", tx_status->rts_fail_cnt);
-	printf("retry_cnt:%08x\r\n", tx_status->retry_cnt);
-	printf("ampdu_retry_cnt:%08x\r\n", tx_status->ampdu_retry_cnt);
-	printf("ba_rx_fail_cnt:%08x\r\n", tx_status->ba_rx_fail_cnt);
+	ENG_LOG("tx_err_cnt:%08x\r\n", tx_status->tx_err_cnt);
+	ENG_LOG("rts_success_cnt:%08x\r\n", tx_status->rts_success_cnt);
+	ENG_LOG("rts_fail_cnt:%08x\r\n", tx_status->rts_fail_cnt);
+	ENG_LOG("retry_cnt:%08x\r\n", tx_status->retry_cnt);
+	ENG_LOG("ampdu_retry_cnt:%08x\r\n", tx_status->ampdu_retry_cnt);
+	ENG_LOG("ba_rx_fail_cnt:%08x\r\n", tx_status->ba_rx_fail_cnt);
 	for (i = 0; i < 4; i++) {
-		printf("color_num_sdio[%d]:%02x\r\n", i,
+		ENG_LOG("color_num_sdio[%d]:%02x\r\n", i,
 		       tx_status->color_num_sdio[i]);
 	}
 	for (i = 0; i < 4; i++) {
-		printf("color_num_mac[%d]:%02x\r\n", i,
+		ENG_LOG("color_num_mac[%d]:%02x\r\n", i,
 		       tx_status->color_num_mac[i]);
 	}
 	for (i = 0; i < 4; i++) {
-		printf("color_num_txc[%d]:%02x\r\n", i,
+		ENG_LOG("color_num_txc[%d]:%02x\r\n", i,
 		       tx_status->color_num_txc[i]);
 	}
 
@@ -3294,7 +3349,6 @@ int wlnpi_show_get_rx_status(struct wlnpi_cmd_t *cmd,
 			     unsigned char *r_buf,
 			     int r_len)
 {
-	//int len = 0;
 	int i = 0;
 	struct rx_status_struct *rx_status = (struct rx_status_struct *)r_buf;
 
@@ -3302,77 +3356,77 @@ int wlnpi_show_get_rx_status(struct wlnpi_cmd_t *cmd,
 		__func__,cmd->id, cmd->name, r_len);
 
 	if ((1 > r_len) || (512 < r_len)) {
-		printf("get_cp2_infor cmd_name:%s err\n", cmd->name);
+		ENG_LOG("get_cp2_infor cmd_name:%s err\n", cmd->name);
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
 		return -1;
 	}
 
-	printf("rx status information:\r\n");
+	ENG_LOG("rx status information:\r\n");
 
 	for (i = 0; i < 4; i++) {
-		printf("rx_pkt_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("rx_pkt_cnt[%d]:%08x\r\n", i,
 		       rx_status->rx_pkt_cnt[i]);
 	}
 	for (i = 0; i < 4; i++) {
-		printf("rx_retry_pkt_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("rx_retry_pkt_cnt[%d]:%08x\r\n", i,
 		       rx_status->rx_retry_pkt_cnt[i]);
 	}
-	printf("rx_su_beamformed_pkt_cnt:%08x\r\n",
+	ENG_LOG("rx_su_beamformed_pkt_cnt:%08x\r\n",
 	       rx_status->rx_su_beamformed_pkt_cnt);
-	printf("rx_mu_pkt_cnt:%08x\r\n",
+	ENG_LOG("rx_mu_pkt_cnt:%08x\r\n",
 	       rx_status->rx_mu_pkt_cnt);
 	for (i = 0; i < 16; i++) {
-		printf("rx_11n_mcs_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("rx_11n_mcs_cnt[%d]:%08x\r\n", i,
 		       rx_status->rx_11n_mcs_cnt[i]);
 	}
 	for (i = 0; i < 16; i++) {
-		printf("rx_11n_sgi_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("rx_11n_sgi_cnt[%d]:%08x\r\n", i,
 		       rx_status->rx_11n_sgi_cnt[i]);
 	}
 	for (i = 0; i < 10; i++) {
-		printf("rx_11ac_mcs_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("rx_11ac_mcs_cnt[%d]:%08x\r\n", i,
 		       rx_status->rx_11ac_mcs_cnt[i]);
 	}
 	for (i = 0; i < 10; i++) {
-		printf("rx_11ac_sgi_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("rx_11ac_sgi_cnt[%d]:%08x\r\n", i,
 		       rx_status->rx_11ac_sgi_cnt[i]);
 	}
 	for (i = 0; i < 2; i++) {
-		printf("rx_11ac_stream_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("rx_11ac_stream_cnt[%d]:%08x\r\n", i,
 		       rx_status->rx_11ac_stream_cnt[i]);
 	}
 	for (i = 0; i < 3; i++) {
-		printf("rx_bandwidth_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("rx_bandwidth_cnt[%d]:%08x\r\n", i,
 		       rx_status->rx_bandwidth_cnt[i]);
 	}
 	for (i = 0; i < 3; i++) {
-		printf("last_rxdata_rssi1[%d]:%02x\r\n", i,
+		ENG_LOG("last_rxdata_rssi1[%d]:%02x\r\n", i,
 		       rx_status->rx_rssi[i].last_rxdata_rssi1);
-		printf("last_rxdata_rssi2[%d]:%02x\r\n", i,
+		ENG_LOG("last_rxdata_rssi2[%d]:%02x\r\n", i,
 		       rx_status->rx_rssi[i].last_rxdata_rssi2);
-		printf("last_rxdata_snr1[%d]:%02x\r\n", i,
+		ENG_LOG("last_rxdata_snr1[%d]:%02x\r\n", i,
 		       rx_status->rx_rssi[i].last_rxdata_snr1);
-		printf("last_rxdata_snr2[%d]:%02x\r\n", i,
+		ENG_LOG("last_rxdata_snr2[%d]:%02x\r\n", i,
 		       rx_status->rx_rssi[i].last_rxdata_snr2);
-		printf("last_rxdata_snr_combo[%d]:%02x\r\n", i,
+		ENG_LOG("last_rxdata_snr_combo[%d]:%02x\r\n", i,
 		       rx_status->rx_rssi[i].last_rxdata_snr_combo);
-		printf("last_rxdata_snr_l[%d]:%02x\r\n", i,
+		ENG_LOG("last_rxdata_snr_l[%d]:%02x\r\n", i,
 		       rx_status->rx_rssi[i].last_rxdata_snr_l);
 	}
 	for (i = 0; i < 5; i++) {
-		printf("rxc_isr_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("rxc_isr_cnt[%d]:%08x\r\n", i,
 		       rx_status->rxc_isr_cnt[i]);
 	}
 	for (i = 0; i < 5; i++) {
-		printf("rxq_buffer_rqst_isr_cnt[%d]:%08x\r\n", i,
+		ENG_LOG("rxq_buffer_rqst_isr_cnt[%d]:%08x\r\n", i,
 		       rx_status->rxq_buffer_rqst_isr_cnt[i]);
 	}
 	for (i = 0; i < 5; i++) {
-		printf("req_tgrt_bu_num[%d]:%04x\r\n", i,
+		ENG_LOG("req_tgrt_bu_num[%d]:%04x\r\n", i,
 		       rx_status->req_tgrt_bu_num[i]);
 	}
 	for (i = 0; i < 3; i++) {
-		printf("rx_alloc_pkt_num[%d]:%04x\r\n", i,
+		ENG_LOG("rx_alloc_pkt_num[%d]:%04x\r\n", i,
 		       rx_status->rx_alloc_pkt_num[i]);
 	}
 	ENG_LOG("ADL leaving %s(), return 0\n", __func__);
@@ -3389,7 +3443,7 @@ int wlnpi_show_get_sta_lut_status(struct wlnpi_cmd_t *cmd,
 		__func__, cmd->id, cmd->name, r_len);
 
 	if ((1 > r_len) || (512 < r_len)) {
-		printf("get_cp2_infor cmd_name:%s err\n", cmd->name);
+		ENG_LOG("get_cp2_infor cmd_name:%s err\n", cmd->name);
 		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n",
 			__func__);
 		return -1;
@@ -3397,17 +3451,199 @@ int wlnpi_show_get_sta_lut_status(struct wlnpi_cmd_t *cmd,
 
 	j = r_len/96;
 
-	printf("sta lut status infor, current sta lut count = %d:\r\n", j);
+	ENG_LOG("sta lut status infor, current sta lut count = %d:\r\n", j);
 	for (i = 1; i <= j; i++) {
-		printf("sta lut %d:\r\n", i);
+		ENG_LOG("sta lut %d:\r\n", i);
 		for(k = 0; k < 24; k++) 	{
-			printf("Word%d:%02x%02x%02x%02x\r\n", k,
+			ENG_LOG("Word%d:%02x%02x%02x%02x\r\n", k,
 			       r_buf[len+3], r_buf[len+2],
 			       r_buf[len+1], r_buf[len]);
 			len += 4;
 		}
 	}
 	ENG_LOG("ADL leaving %s(), return 0\n", __func__);
+	return 0;
+}
+
+int wlnpi_cmd_set_efuse(int argc, char **argv,  unsigned char *s_buf, int *s_len )
+{
+	unsigned char  *index  = s_buf;
+	unsigned int   *value = (unsigned int *)(s_buf + 1);
+	char *err;
+
+	if(argc != 2 ) {
+		ENG_LOG("paramter is not correct.\n");
+		return -1;
+     	}
+
+	*index =  strtol(argv[0], &err, 10);
+      	if(err == argv[0])
+		return -1;
+
+      	if (*index != 11) {
+		ENG_LOG("index must be 11, index : %d\n", *index);
+		return -1;
+	}
+
+	*value =  strtoul(argv[1], &err, 16);
+	if(err == argv[1])
+		return -1;
+
+	*s_len = 5;
+	return 0;
+}
+
+int wlnpi_cmd_get_efuse(int argc, char **argv,  unsigned char *s_buf, int *s_len )
+{
+	unsigned char  *index  = s_buf;
+	char *err;
+
+	if(argc != 1 ) {
+		ENG_LOG("paramter is not correct.\n");
+		return -1;
+     	}
+
+	*index =  strtol(argv[0], &err, 10);
+	if(err == argv[0])
+		return -1;
+
+	if(*index < 0 || *index > 15) {
+		ENG_LOG("index must be 0 -15, index : %d \n", *index);
+		return -1;
+	}
+ 	*s_len = 1;
+	return 0;
+}
+
+int wlnpi_show_get_efuse(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
+{
+	if(4 != r_len)
+	{
+		ENG_LOG("get_efuse err, the rlen is not 4\n");
+		ENG_LOG("ADL leaving %s(), r_len is ERROR, return -1\n", __func__);
+
+		return -1;
+	}
+	ENG_LOG("ret: efuse:%02x%02x%02x%02x :end\n", r_buf[0],r_buf[1], r_buf[2], r_buf[3]);
+	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: efuse:%02x%02x%02x%02x :end\n", r_buf[0],r_buf[1], r_buf[2], r_buf[3]);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+	return 0;
+}
+
+/*-----CMD ID:120-----------*/
+int wlnpi_cmd_set_mac_efuse(int argc, char **argv,  unsigned char *s_buf, int *s_len )
+{
+    if(2 != argc) {
+        ENG_LOG("%s invalid argc : %d\n", argc);
+        return -1;
+    }
+    ENG_LOG("argv[0] : %s\n", argv[0]);
+    ENG_LOG("argv[1] : %s\n", argv[1]);
+    mac_addr_a2n(s_buf, argv[0]);
+    mac_addr_a2n(s_buf + 6, argv[1]);
+    *s_len = 12;
+
+    return 0;
+}
+
+/*-----CMD ID:121-----------*/
+int wlnpi_show_get_mac_efuse(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
+{
+	ENG_LOG("ADL entry %s(), r_len = %d\n", __func__,r_len);
+
+	ENG_LOG("ret: wifi_mac: %02x:%02x:%02x:%02x:%02x:%02x bt_mac: %02x:%02x:%02x:%02x:%02x:%02x :end\n",
+	         r_buf[0], r_buf[1], r_buf[2],r_buf[3],r_buf[4], r_buf[5],
+	         r_buf[6], r_buf[7], r_buf[8],r_buf[9],r_buf[10], r_buf[11]
+	         );
+	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: MAC:%02x%02x%02x%02x%02x%02x,%02x%02x%02x%02x%02x%02x  :end\n",
+	            r_buf[0], r_buf[1], r_buf[2],r_buf[3],r_buf[4], r_buf[5], r_buf[6], r_buf[7], r_buf[8],r_buf[9],r_buf[10], r_buf[11]);
+	ENG_LOG("iwnpi_ret_buf is %s\n", iwnpi_ret_buf);
+
+	return 0;
+}
+
+/*-----CMD ID:122-----------*/
+int wlnpi_show_get_rf_config(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
+{
+	unsigned char config1, config2;
+
+	config1 = *r_buf;
+	config2 = *(r_buf + 1);
+	ENG_LOG("ADL entry %s(), r_len = %d\n", __FUNCTION__,r_len);
+
+	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: ANTINFO=%d,%d  :end\n", r_buf[0], r_buf[1]);
+
+	ENG_LOG("2.4G rf chain: %d, 5G rf chain : %d\n", config1, config2);
+	return 0;
+}
+
+int wlnpi_cmd_set_tssi(int argc, char **argv, unsigned char *s_buf, int *s_len)
+{
+	long val;
+	char *err;
+
+	ENG_LOG("ADL entry %s(), argc = %d, argv[0] = %s", __func__, argc, argv[0]);
+	if(1 != argc)
+	{
+		return -1;
+	}
+
+	val = strtol(argv[0], &err, 10);
+	if(err == argv[0])
+	{
+		return -1;
+	}
+
+	if (val > 255)
+	{
+		ENG_LOG("param error! val = %d", val);
+		return -1;
+	}
+
+	*((unsigned char*)s_buf) = val;
+	*s_len = 1;
+
+	ENG_LOG("ADL leaving %s()", __func__);
+	return 0;
+}
+
+int wlnpi_show_get_tssi(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
+{
+	ENG_LOG("ADL entry %s(), r_len = %d\n", __func__,r_len);
+
+	printf("ret: tssi = %d :end\n", *r_buf);
+	ENG_LOG("ADL leaving %s(), return 0", __func__);
+
+	return 0;
+}
+
+int wlnpi_cmd_set_cca_th(int argc, char **argv, unsigned char *s_buf, int *s_len)
+{
+	long val;
+	char *err;
+
+	ENG_LOG("ADL entry %s(), argc = %d, argv[0] = %s", __func__, argc, argv[0]);
+	if(1 != argc)
+	{
+		return -1;
+	}
+
+	val = strtol(argv[0], &err, 10);
+	if(err == argv[0])
+	{
+		return -1;
+	}
+
+	if (val > 255)
+	{
+		ENG_LOG("param error! val = %d", val);
+		return -1;
+	}
+
+	*((unsigned char*)s_buf) = val;
+	*s_len = 1;
+
+	ENG_LOG("ADL leaving %s()", __func__);
 	return 0;
 }
 
@@ -3427,7 +3663,7 @@ struct wlnpi_cmd_t g_cmd_table[] =
         .name  = "stop",
         .help  = "stop",
         .parse = wlnpi_cmd_no_argv,
-        .show  = wlnpi_show_only_status,
+        .show  = wlnpi_show_stop,
     },
     {
 		/*-----CMD ID:2-----------*/
@@ -4037,17 +4273,17 @@ struct wlnpi_cmd_t g_cmd_table[] =
 		/*-----CMD ID:96-----------*/
 		.id    = WLNPI_CMD_SET_EFUSE,
 		.name  = "set_efuse",
-		.help  = "set_efuse",
-		.parse = wlnpi_cmd_no_argv,
+		.help  = "set_efuse index value",
+		.parse = wlnpi_cmd_set_efuse,
 		.show  = wlnpi_show_only_status,
 	},
 	{
 		/*-----CMD ID:97-----------*/
 		.id    = WLNPI_CMD_GET_EFUSE,
 		.name  = "get_efuse",
-		.help  = "get_efuse",
-		.parse = wlnpi_cmd_no_argv,
-		.show  = wlnpi_show_only_status,
+		.help  = "get_efuse index",
+		.parse = wlnpi_cmd_get_efuse,
+		.show  = wlnpi_show_get_efuse,
 	},
 	{
 		/*-----CMD ID:98-----------*/
@@ -4070,7 +4306,7 @@ struct wlnpi_cmd_t g_cmd_table[] =
 		.id    = WLNPI_CMD_SET_CBANK_REG,
 		.name  = "set_cbank_reg",
 		.help  = "set_cbank_reg",
-		.parse = wlnpi_cmd_no_argv,
+		.parse = wlnpi_cmd_set_cbank_reg,
 		.show  = wlnpi_show_only_status,
 	},
 	{
@@ -4225,6 +4461,62 @@ struct wlnpi_cmd_t g_cmd_table[] =
 		.parse = wlnpi_cmd_no_argv,
 		.show  = wlnpi_show_get_pm_ctl,
 	},
+	{
+		/*-----CMD ID:121-----------*/
+		.id    = WLNPI_CMD_SET_MAC_EFUSE,
+		.name  = "set_mac_efuse",
+		.help  = "set_mac_efuse <xx:xx:xx:xx:xx:xx>",
+		.parse = wlnpi_cmd_set_mac_efuse,
+		.show  = wlnpi_show_only_status,
+	},
+	{
+		/*-----CMD ID:122-----------*/
+		.id    = WLNPI_CMD_GET_MAC_EFUSE,
+		.name  = "get_mac_efuse",
+		.help  = "get_mac_efuse",
+		.parse = wlnpi_cmd_no_argv,
+		.show  = wlnpi_show_get_mac_efuse,
+	},
+	{
+		/*-----CMD ID:122-----------*/
+		.id    = WLNPI_CMD_GET_RF_CONFIG,
+		.name  = "get_rf_config",
+		.help  = "get_rf_config",
+		.parse = wlnpi_cmd_no_argv,
+		.show  = wlnpi_show_get_rf_config,
+	},
+	{
+		/*-----CMD ID:124-----------*/
+		.id    = WLNPI_CMD_SET_TSSI,
+		.name  = "set_tssi",
+		.help  = "set_tssi value",
+		.parse = wlnpi_cmd_set_tssi,
+		.show  = wlnpi_show_only_status,
+	},
+	{
+		/*-----CMD ID:125-----------*/
+		.id    = WLNPI_CMD_GET_TSSI,
+		.name  = "get_tssi",
+		.help  = "get_tssi",
+		.parse = wlnpi_cmd_no_argv,
+		.show  = wlnpi_show_get_tssi,
+	},
+	{
+		/*-----CMD ID:126-----------*/
+		.id    = WLNPI_CMD_SET_CCA_TH,
+		.name  = "set_cca_th",
+		.help  = "set_cca_th value",
+		.parse = wlnpi_cmd_set_cca_th,
+		.show  = wlnpi_show_only_status,
+	},
+	{
+		/*-----CMD ID:127-----------*/
+		.id    = WLNPI_CMD_RESTORE_CCA_TH,
+		.name  = "restore_cca_th",
+		.help  = "restore_cca_th",
+		.parse = wlnpi_cmd_no_argv,
+		.show  = wlnpi_show_only_status,
+	}
 };
 
 struct wlnpi_cmd_t *match_cmd_table(char *name)
@@ -4250,7 +4542,7 @@ void do_help(void)
     max = sizeof(g_cmd_table)/sizeof(struct wlnpi_cmd_t);
     for(i=0; i<max; i++)
     {
-        printk("iwnpi wlan0 %s\n", g_cmd_table[i].help);
+        ENG_LOG("iwnpi wlan0 %s\n", g_cmd_table[i].help);
     }
     return;
 }
@@ -4269,15 +4561,13 @@ void do_help(void)
 *   other:
 *
 ********************************************************************/
-#if 1
+#if 0
 int iwnpi_hex_dump(unsigned char *name, unsigned short nLen, unsigned char *pData, unsigned short len)
 {
     char *str;
     int i, p, ret;
 
     ENG_LOG("ADL entry %s(), len = %d\n", __func__, len);
-
-	return 0;
 
     if (len > 1024)
         len = 1024;
@@ -4286,7 +4576,7 @@ int iwnpi_hex_dump(unsigned char *name, unsigned short nLen, unsigned char *pDat
     memcpy(str, name, nLen);
     if ((NULL == pData) || (0 == len))
     {
-        printf("%s\n", str);
+        ENG_LOG("%s\n", str);
         free(str);
         return 0;
     }
@@ -4304,4 +4594,3 @@ int iwnpi_hex_dump(unsigned char *name, unsigned short nLen, unsigned char *pDat
     return 0;
 }
 #endif
-

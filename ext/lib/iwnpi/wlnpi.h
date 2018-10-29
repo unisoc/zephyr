@@ -8,6 +8,7 @@
 #include <stdlib.h>
 
 #include <net/wifi_mgmt.h>
+#include "../engpc/eng_sscanf.h"
 
 
 #define ETH_ALEN 		    (6)
@@ -24,7 +25,7 @@
 #endif
 
 #define LOG_TAG     "WLNPI"
-//#define ENG_LOG(...)	    _err(format, ##__VA_ARGS__)
+//#define ENG_LOG(...) do{} while(0)
 #define ENG_LOG(...)	    printf(__VA_ARGS__)
 
 typedef unsigned char u8;
@@ -170,6 +171,13 @@ enum WLNPI_CMD_LIST
 	WLNPI_CMD_SET_AUTORATE_DEBUG,
 	WLNPI_CMD_SET_PM_CTL = 119,
 	WLNPI_CMD_GET_PM_CTL = 120,
+	WLNPI_CMD_SET_MAC_EFUSE = 121,
+	WLNPI_CMD_GET_MAC_EFUSE = 122,
+	WLNPI_CMD_GET_RF_CONFIG = 123,
+	WLNPI_CMD_SET_TSSI = 124,
+	WLNPI_CMD_GET_TSSI = 125,
+	WLNPI_CMD_SET_CCA_TH = 126,
+	WLNPI_CMD_RESTORE_CCA_TH = 127,
     /* Max */
     WLNPI_CMD_MAX,
 };
