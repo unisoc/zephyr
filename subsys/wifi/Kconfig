@@ -1,0 +1,38 @@
+# Kconfig - WiFi configuration options
+#
+# Copyright (c) 2016 UNISOC Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menu "WiFi"
+
+config WIFIMGR
+        bool "WiFi Manager"
+        help
+		Enable the WiFi Manager.
+		By default, WiFi manger is build as only a library.
+
+if WIFIMGR
+
+config WIFIMGR_CLI
+	bool "WiFi Manager Client"
+	default y
+	help
+		A client that can interact with WiFi manger,
+		which can be ran from shell.
+
+config WIFIMGR_DHCPC
+	bool "Enable DHCP client"
+	default y
+	help
+		Start DHCP client by WiFi manger.
+
+config BT_WIFIMGR_SERVICE
+	bool "Enable bluetooth WiFi Manager Service"
+	depends on WIFIMGR
+	depends on BT
+
+endif # WiFi
+
+endmenu
