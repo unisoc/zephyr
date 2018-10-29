@@ -1,0 +1,39 @@
+# Kconfig - WiFi configuration options
+#
+# Copyright (c) 2016 UNISOC Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menu "WiFi"
+
+config WIFIMGR
+        bool "WiFi Manager"
+	depends on CONFIG_WIFI
+	select CONFIG_POSIX_API
+	select CONFIG_PTHREAD_IPC
+	select CONFIG_POSIX_MQUEUE
+        help
+		Enable the WiFi Manager.
+		By default, WiFi manger is build as only a library.
+
+if WIFIMGR
+
+config WIFIMGR_CLI
+	bool "WiFi Manager Client"
+	default y
+	help
+		A client that can interact with WiFi manger,
+		which can be ran from shell.
+
+config WIFIMGR_DHCPC
+	bool "Enable DHCP client"
+	select CONFIG_NET_IPV4
+	select CONFIG_NET_DHCPV4
+	default y
+	help
+		Start DHCP client by WiFi manger.
+
+endif # WiFi
+
+endmenu
