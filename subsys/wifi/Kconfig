@@ -9,10 +9,10 @@ menu "WiFi"
 
 config WIFIMGR
         bool "WiFi Manager"
-	depends on CONFIG_WIFI
-	select CONFIG_POSIX_API
-	select CONFIG_PTHREAD_IPC
-	select CONFIG_POSIX_MQUEUE
+	select WIFI
+	select POSIX_API
+	select PTHREAD_IPC
+	select POSIX_MQUEUE
         help
 		Enable the WiFi Manager.
 		By default, WiFi manger is build as only a library.
@@ -28,8 +28,9 @@ config WIFIMGR_CLI
 
 config WIFIMGR_DHCPC
 	bool "Enable DHCP client"
-	select CONFIG_NET_IPV4
-	select CONFIG_NET_DHCPV4
+	select NETWORKING
+	select NET_IPV4
+	select NET_DHCPV4
 	default y
 	help
 		Start DHCP client by WiFi manger.
