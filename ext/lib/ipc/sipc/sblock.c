@@ -13,7 +13,7 @@
 #include "sipc_priv.h"
 #include "sblock.h"
 
-static struct sblock_mgr sblocks[SIPC_ID_NR][SMSG_CH_NR];
+static struct sblock_mgr sblocks[SIPC_ID_NR][SMSG_CH_NR-SMSG_CH_OFFSET];
 
 int sblock_get(u8_t dst, u8_t channel, struct sblock *blk, int timeout);
 int sblock_send(u8_t dst, u8_t channel, u8_t prio, struct sblock *blk);
@@ -23,7 +23,7 @@ extern int sprd_bt_irq_init(void);
 static int sblock_recover(u8_t dst, u8_t channel)
 {
 	int i, j;
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 	struct sblock_ring *ring = NULL;
 
 	volatile struct sblock_ring_header *ringhd = NULL;
@@ -92,7 +92,7 @@ static int get_channel_prio(int channel)
 void sblock_process(struct smsg *msg)
 {
 	int channel = msg->channel;
-	struct sblock_mgr *sblock = &sblocks[0][channel];
+	struct sblock_mgr *sblock = &sblocks[0][channel-SMSG_CH_OFFSET];
 	struct smsg mcmd;
 	int ret = 0;
 	int recovery = 0;
@@ -173,7 +173,7 @@ int sblock_create(u8_t dst, u8_t channel,
 	int i;
 	int ret;
 
-	sblock = &sblocks[dst][channel];
+	sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 
 	sblock->state = SBLOCK_STATE_IDLE;
 	sblock->dst = dst;
@@ -297,7 +297,7 @@ int sblock_create(u8_t dst, u8_t channel,
 
 void sblock_destroy(u8_t dst, u8_t channel)
 {
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 	int prio;
 
 	switch (sblock->channel) {
@@ -321,7 +321,7 @@ void sblock_destroy(u8_t dst, u8_t channel)
 int sblock_unregister_callback(u8_t channel)
 {
 	int dst = 0;
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 
 	ipc_debug("%d channel=%d ", dst, channel);
 
@@ -334,7 +334,7 @@ int sblock_register_callback(u8_t channel,
 		void (*callback)(int ch))
 {
 	int dst = 0;
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 
 	ipc_debug("%d channel=%d %p", dst, channel, callback);
 
@@ -346,7 +346,7 @@ int sblock_register_callback(u8_t channel,
 int sblock_state(u8_t channel)
 {
 	int dst = 0;
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 
 	return sblock->state;
 }
@@ -354,7 +354,7 @@ int sblock_state(u8_t channel)
 int sblock_register_notifier(u8_t dst, u8_t channel,
 		void (*handler)(int event, void *data), void *data)
 {
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 
 #ifndef CONFIG_SIPC_WCN
 	if (sblock->handler) {
@@ -372,7 +372,7 @@ int sblock_register_notifier(u8_t dst, u8_t channel,
 /*这个地方是发送失败了 再重新放入pool*/
 void sblock_put(u8_t dst, u8_t channel, struct sblock *blk)
 {
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 	struct sblock_ring *ring = NULL;
 	volatile struct sblock_ring_header *poolhd = NULL;
 	int txpos;
@@ -398,7 +398,7 @@ void sblock_put(u8_t dst, u8_t channel, struct sblock *blk)
 
 int sblock_get(u8_t dst, u8_t channel, struct sblock *blk, int timeout)
 {
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 	struct sblock_ring *ring = NULL;
 	volatile struct sblock_ring_header *poolhd = NULL;
 	int txpos, index;
@@ -445,7 +445,7 @@ int sblock_get(u8_t dst, u8_t channel, struct sblock *blk, int timeout)
 static int sblock_send_ex(u8_t dst, u8_t channel,
 	u8_t prio, struct sblock *blk, bool yell)
 {
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 	struct sblock_ring *ring;
 	volatile struct sblock_ring_header *ringhd;
 	struct smsg mevt;
@@ -496,7 +496,7 @@ int sblock_send_prepare(u8_t dst, u8_t channel, u8_t prio, struct sblock *blk)
 
 int sblock_send_finish(u8_t dst, u8_t channel)
 {
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 	struct sblock_ring *ring;
 	struct smsg mevt;
 	int ret = 0;
@@ -520,7 +520,7 @@ int sblock_send_finish(u8_t dst, u8_t channel)
 
 int sblock_receive(u8_t dst, u8_t channel, struct sblock *blk, int timeout)
 {
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 	struct sblock_ring *ring;
 	volatile struct sblock_ring_header *ringhd;
 	int rxpos, index, ret = 0;
@@ -593,7 +593,7 @@ int sblock_receive(u8_t dst, u8_t channel, struct sblock *blk, int timeout)
 
 int sblock_get_arrived_count(u8_t dst, u8_t channel)
 {
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 	struct sblock_ring *ring = NULL;
 	volatile struct sblock_ring_header *ringhd = NULL;
 	int blk_count = 0;
@@ -614,7 +614,7 @@ int sblock_get_arrived_count(u8_t dst, u8_t channel)
 
 int sblock_get_free_count(u8_t dst, u8_t channel)
 {
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 	struct sblock_ring *ring = NULL;
 	volatile struct sblock_ring_header *poolhd = NULL;
 	int blk_count = 0;
@@ -636,7 +636,7 @@ int sblock_get_free_count(u8_t dst, u8_t channel)
 
 int sblock_release(u8_t dst, u8_t channel, struct sblock *blk)
 {
-	struct sblock_mgr *sblock = &sblocks[dst][channel];
+	struct sblock_mgr *sblock = &sblocks[dst][channel-SMSG_CH_OFFSET];
 	struct sblock_ring *ring = NULL;
 	volatile struct sblock_ring_header *poolhd = NULL;
 	struct smsg mevt;

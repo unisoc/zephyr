@@ -53,6 +53,7 @@ extern "C" {
 		SMSG_CH_NR,		/* total channel number */
 	};
 
+#define SMSG_CH_OFFSET              12
 #define WIFI_CTRL_MSG_OFFSET		0
 #define WIFI_DATA_NOR_MSG_OFFSET	9
 
