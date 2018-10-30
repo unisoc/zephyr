@@ -12,6 +12,8 @@ target_sources_ifdef(
   src/bluetooth/health.c
   src/bluetooth/throughput.c
   src/bluetooth/mesh.c
+  src/bluetooth/bt_npi.c
+  src/bluetooth/bt_eng.c
   )
 
 target_sources_ifdef(

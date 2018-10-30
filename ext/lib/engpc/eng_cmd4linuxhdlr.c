@@ -19,6 +19,7 @@
 #define NUM_ELEMS(x) (sizeof(x) / sizeof(x[0]))
 
 extern int eng_atdiag_euthdlr(char *buf, int len, char *rsp, int module_index);
+extern void bt_npi_parse(int module_index, char *buf, char *rsp);
 
 static int eng_linuxcmd_getwifiaddr(char *req, char *rsp);
 static int eng_linuxcmd_setwifiaddr(char *req, char *rsp);
@@ -256,7 +257,7 @@ int eng_atdiag_bt_euthdlr(char *buf, int len, char *rsp, int module_index)
 {
 	if (BT_MODULE_INDEX == module_index || BLE_MODULE_INDEX == module_index) {
 		ENG_LOG("handle BT eut command\n");
-		//bt_npi_parse(module_index, buf, rsp);
+		bt_npi_parse(module_index, buf, rsp);
 		return 0;
 	}
 
