@@ -14,7 +14,7 @@ typedef struct {
     uint8_t  device_key[16];
     uint8_t  app_key[16];
     uint16_t  node_address;
-    uint16_t firmware_log_level;
+    uint8_t  firmware_log_mode;
 
 /*
 * Ali Genie

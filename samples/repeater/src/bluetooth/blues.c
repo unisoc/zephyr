@@ -47,7 +47,7 @@ static const conf_entry_t blues_config_table[] = {
 	CONF_ITEM_TABLE(device_key, 0, blues_config, 16),
 	CONF_ITEM_TABLE(app_key, 0, blues_config, 16),
 	CONF_ITEM_TABLE(node_address, 0, blues_config, 1),
-	CONF_ITEM_TABLE(firmware_log_level, 0, blues_config, 1),
+	CONF_ITEM_TABLE(firmware_log_mode, 0, blues_config, 1),
 
 	CONF_ITEM_TABLE(ali_mesh, 0, blues_config, 1),
 	CONF_ITEM_TABLE(ali_pid, 0, blues_config, 1),

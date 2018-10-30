@@ -404,7 +404,7 @@ int marlin3_init(void) {
 
     vnd_load_configure(BT_CONFIG_PSKEY_FILE, &marlin3_pksey_table[0], 0);
     vnd_load_configure(BT_CONFIG_RF_FILE, &marlin3_rf_table[0], 0);
-    marlin3_pskey.Log_BitMask = blues_config.firmware_log_level;
+    marlin3_pskey.cp2_log_mode = blues_config.firmware_log_mode;
     set_mac_address(marlin3_pskey.device_addr);
 
     return 0;
