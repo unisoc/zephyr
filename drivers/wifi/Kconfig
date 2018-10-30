@@ -33,6 +33,14 @@ config WIFI_OFFLOAD
 	help
 	  Enable support for Full-MAC WiFi devices.
 
+config WIFI_STA_NAME
+	string "STA device name"
+	default "WIFI_STA"
+
+config WIFI_AP_NAME
+	string "SoftAP device name"
+	default "WIFI_AP"
+
 source "drivers/wifi/winc1500/Kconfig.winc1500"
 source "drivers/wifi/simplelink/Kconfig.simplelink"
 source "drivers/wifi/uwp/Kconfig.uwp"
