@@ -449,9 +449,9 @@ static int uwp_init(struct device *dev)
 	int ret;
 	struct wifi_priv *priv = DEV_DATA(dev);
 
-	if (!strcmp(dev->config->name, CONFIG_WIFI_STA_NAME)) {
+	if (!strcmp(dev->config->name, CONFIG_WIFI_STA_DRV_NAME)) {
 		priv->mode = WIFI_MODE_STA;
-	} else if (!strcmp(dev->config->name, CONFIG_WIFI_AP_NAME)) {
+	} else if (!strcmp(dev->config->name, CONFIG_WIFI_AP_DRV_NAME)) {
 		priv->mode = WIFI_MODE_AP;
 	} else {
 		SYS_LOG_ERR("Unknown WIFI DEV NAME: %s",
