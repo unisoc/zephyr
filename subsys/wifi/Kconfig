@@ -39,7 +39,6 @@ config WIFIMGR_DHCPC
 config WIFIMGR_LED
 	bool "Enable LED indiction"
 	select LED
-	select USERSPACE
 	default n
 	help
 		Enable LED indiction of WiFi manger.

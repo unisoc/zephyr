@@ -18,6 +18,7 @@ static void wifimgr_dhcp_handler(struct net_mgmt_event_callback *cb,
 				 unsigned int mgmt_event, struct net_if *iface)
 {
 	int i = 0;
+	struct device *led;
 
 	if (mgmt_event != NET_EVENT_IPV4_ADDR_ADD)
 		return;
@@ -45,7 +46,10 @@ static void wifimgr_dhcp_handler(struct net_mgmt_event_callback *cb,
 		syslog(LOG_INFO, "Router: %s\n",
 		       net_addr_ntop(AF_INET, gateway, buf, sizeof(buf)));
 
-		light_turn_on(LED3_GPIO_PIN);
+		led = device_get_binding(WIFIMGR_LED_NAME);
+		if (led) {
+			led_on(led, WIFIMGR_LED_PIN3);
+		}
 	}
 }
 
@@ -65,6 +69,7 @@ void wifimgr_dhcp_start(void *handle)
 void wifimgr_dhcp_stop(void *handle)
 {
 	struct net_if *iface = (struct net_if *)handle;
+	struct device *led;
 
 	syslog(LOG_INFO, "stop DHCP client\n");
 
@@ -72,5 +77,8 @@ void wifimgr_dhcp_stop(void *handle)
 
 	net_dhcpv4_stop(iface);
 
-	light_turn_off(LED3_GPIO_PIN);
+	led = device_get_binding(WIFIMGR_LED_NAME);
+	if (led) {
+		led_off(led, WIFIMGR_LED_PIN3);
+	}
 }
