@@ -21,6 +21,7 @@ if WIFIMGR
 
 config WIFIMGR_CLI
 	bool "WiFi Manager Client"
+	select SHELL
 	default y
 	help
 		A client that can interact with WiFi manger,
@@ -34,6 +35,14 @@ config WIFIMGR_DHCPC
 	default y
 	help
 		Start DHCP client by WiFi manger.
+
+config WIFIMGR_LED
+	bool "Enable LED indiction"
+	select LED
+	select USERSPACE
+	default n
+	help
+		Enable LED indiction of WiFi manger.
 
 endif # WiFi
 
