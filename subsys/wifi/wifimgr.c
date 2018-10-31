@@ -210,8 +210,6 @@ static int wifi_manager_init(struct device *unused)
 	if (ret < 0)
 		syslog(LOG_ERR, "failed to init WiFi state machine!\n");
 
-	led_init();
-
 	return ret;
 }
 

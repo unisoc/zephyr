@@ -106,8 +106,6 @@ static int wifi_manager_disconnect_event(void *arg)
 	syslog(LOG_INFO, "disconnect, reason_code %d!\n", disc->reason_code);
 	fflush(stdout);
 
-	light_turn_off(LED3_GPIO_PIN);
-
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
 
 	if (iface)
