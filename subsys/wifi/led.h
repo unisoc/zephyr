@@ -13,27 +13,19 @@
 #ifndef _WIFI_LED_H_
 #define _WIFI_LED_H_
 
-
-
-
-
-#if defined(CONFIG_GPIO_UWP)
-#include <zephyr/types.h>
-#define GPIO_PORT0	"UWP_GPIO_P0"
-#define LED1_GPIO_PIN 1
-#define LED3_GPIO_PIN 3
-#define LED_OFF_VALUE 1
-#define LED_ON_VALUE 0
-void led_init(void);
-void led_uninit(void);
-int light_turn_on(u32_t pin);
-int light_turn_off(u32_t pin);
+#ifdef CONFIG_LED
+#define WIFIMGR_LED_NAME CONFIG_LED_DRV_NAME
+#define WIFIMGR_LED_PIN1 CONFIG_LED_PIN1
+#define WIFIMGR_LED_PIN3 CONFIG_LED_PIN3
 #else
-#define led_init(...)
-#define led_uninit(...)
-#define light_turn_on(...)
-#define light_turn_off(...)
+#define WIFIMGR_LED_NAME ""
+#define WIFIMGR_LED_PIN1 (0)
+#define WIFIMGR_LED_PIN3 (0)
 #endif
+
+#define WIFIMGR_LED_OFF_VALUE (1)
+#define WIFIMGR_LED_ON_VALUE (0)
+
 
 
 #endif /* _WIFI_LED_H_ */
