@@ -15,6 +15,8 @@
 #include <net/wifimgr_drv.h>
 #include <net/wifimgr_api.h>
 
+#include <led.h>
+
 #include "os_adapter.h"
 #include "cmd_prcs.h"
 #include "evt_lsnr.h"

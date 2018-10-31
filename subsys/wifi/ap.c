@@ -113,6 +113,7 @@ int wifi_manager_start_softap(void *handle)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_config *conf = &mgr->ap_conf;
 	int ret;
+	struct device *led;
 
 	if (!strlen(conf->ssid)) {
 		syslog(LOG_ERR, "no AP config!\n");
@@ -137,7 +138,10 @@ int wifi_manager_start_softap(void *handle)
 		return ret;
 	}
 
-	light_turn_on(LED1_GPIO_PIN);
+	led = device_get_binding(WIFIMGR_LED_NAME);
+	if (led) {
+		led_on(led, WIFIMGR_LED_PIN1);
+	}
 
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_START_AP);
 
@@ -153,6 +157,7 @@ int wifi_manager_stop_softap(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
+	struct device *led;
 
 	ret = wifi_drv_iface_stop_softap(mgr->ap_iface);
 	if (ret) {
@@ -160,7 +165,10 @@ int wifi_manager_stop_softap(void *handle)
 		return ret;
 	}
 
-	light_turn_off(LED1_GPIO_PIN);
+	led = device_get_binding(WIFIMGR_LED_NAME);
+	if (led) {
+		led_off(led, WIFIMGR_LED_PIN1);
+	}
 
 	event_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_NEW_STATION);
 
