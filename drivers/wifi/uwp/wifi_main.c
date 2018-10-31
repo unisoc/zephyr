@@ -43,18 +43,6 @@
 #define DEV_DATA(dev) \
 	((struct wifi_priv *)(dev)->driver_data)
 
-#ifdef CONFIG_WIFI_UWP_USE_SRAM
-#define put_reg32(val, reg) sys_write32(val, reg)
-#define get_reg32(reg) sys_read32(reg)
-
-#define DELAY(time) \
-do { \
-	unsigned int delay_time; \
-	for (delay_time = 0; delay_time < (time * 208); delay_time++) { \
-		*(volatile unsigned int *)0x100000; \
-	} \
-} while (0)
-#endif /* CONFIG_WIFI_UWP_USE_SRAM */
 
 static struct wifi_priv uwp_wifi_sta_priv;
 static struct wifi_priv uwp_wifi_ap_priv;
@@ -406,44 +394,6 @@ static const struct wifi_drv_api uwp_api = {
 	.del_station			= uwp_mgmt_del_station,
 };
 
-#ifdef CONFIG_WIFI_UWP_USE_SRAM
-static void wifi_mem_init(void)
-{
-	SYS_LOG_INF("power on sram start");
-
-	unsigned int val;
-
-	val = get_reg32(0x40130004); /* enable */
-	val |= 0x220;
-	put_reg32(val, 0x40130004);
-	DELAY(1000);
-
-	val = get_reg32(0x4083c088); /* power on WRAP */
-	val &= ~(0x2);
-	put_reg32(val, 0x4083c088);
-	while (!(get_reg32(0x4083c00c) & (0x1 << 14))) {
-	}
-
-	val = get_reg32(0x4083c0a8);
-	val &= ~(0x4);
-	put_reg32(val, 0x4083c0a8);
-	while (!(get_reg32(0x4083c00c) & (0x1 << 16))) {
-	}
-
-	val = get_reg32(0x4083c134); /* close MEM PD */
-	val &= 0xffffff;
-	put_reg32(val, 0x4083c134);
-
-	val = get_reg32(0x4083c130);
-	val &= 0xfffffff0;
-	put_reg32(val, 0x4083c130);
-
-	SYS_LOG_INF("power on sram done");
-}
-#else
-#define wifi_mem_init(...)
-#endif /* CONFIG_WIFI_UWP_USE_SRAM */
-
 static int uwp_init(struct device *dev)
 {
 	int ret;
@@ -462,8 +412,6 @@ static int uwp_init(struct device *dev)
 		if (priv->mode == WIFI_MODE_STA) {
 			/* priv->connecting = false; */
 			/* priv->connected = false; */
-
-			wifi_mem_init();
 
 			ret = uwp_mcu_init();
 			if (ret) {
