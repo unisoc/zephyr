@@ -496,14 +496,14 @@ static int uwp_init(struct device *dev)
 	return 0;
 }
 
-NET_DEVICE_INIT(uwp_sta, CONFIG_WIFI_STA_NAME,
+NET_DEVICE_INIT(uwp_sta, CONFIG_WIFI_STA_DRV_NAME,
 		uwp_init, &uwp_wifi_sta_priv, NULL,
 		CONFIG_WIFI_INIT_PRIORITY,
 		&uwp_api,
 		ETHERNET_L2, NET_L2_GET_CTX_TYPE(ETHERNET_L2),
 		MTU);
 
-NET_DEVICE_INIT(uwp_ap, CONFIG_WIFI_AP_NAME,
+NET_DEVICE_INIT(uwp_ap, CONFIG_WIFI_AP_DRV_NAME,
 		uwp_init, &uwp_wifi_ap_priv, NULL,
 		CONFIG_WIFI_INIT_PRIORITY,
 		&uwp_api,
