@@ -14,9 +14,6 @@
 
 #include "wifimgr.h"
 
-#define WIFI_SHELL_MODULE "wifimgr"
-#define WIFIMGR_CLI_PRIORITY	CONFIG_KERNEL_INIT_PRIORITY_DEFAULT
-
 static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc, char *argv[])
 {
 	char *iface_name = NULL;
@@ -196,41 +193,3 @@ static int cmd_wifimgr(const struct shell *shell, size_t argc, char **argv)
 }
 
 SHELL_CMD_REGISTER(wifimgr, &wifimgr_commands, "WiFi Manager commands", cmd_wifimgr);
-
-/*static const struct shell_cmd wifimgr_commands[] = {
-	{"set_config", wifimgr_cmd_set_config,
-	 "<sta> <SSID> <PSK (optional: valid only for secured SSIDs)>"
-	 "\n\t\t\t     <ap> <SSID> <channel> <PSK (optional: valid only for secured SSIDs)>"},
-	{"get_config", wifimgr_cmd_get_config,
-	 "<iface, sta or ap>"},
-	{"status", wifimgr_cmd_status,
-	 "<iface, sta or ap>"},
-	{"open", wifimgr_cmd_open,
-	 "<iface, sta or ap>"},
-	{"close", wifimgr_cmd_close,
-	 "<iface, sta or ap>"},
-	{"scan", wifimgr_cmd_scan,
-	 NULL},
-	{"connect", wifimgr_cmd_connect,
-	 NULL},
-	{"disconnect", wifimgr_cmd_disconnect,
-	 NULL},
-	{"start_ap", wifimgr_cmd_start_ap,
-	 NULL},
-	{"stop_ap", wifimgr_cmd_stop_ap,
-	 NULL},
-	{"del_station", wifimgr_cmd_del_station,
-	 "<MAC address>"},
-	{NULL, NULL, NULL},
-};*/
-
-/*static int wifimgr_shell_init(struct device *unused)
-{
-	ARG_UNUSED(unused);
-
-	SHELL_CMD_REGISTER(WIFI_SHELL_MODULE, wifimgr_commands);
-
-	return 0;
-}
-
-SYS_INIT(wifimgr_shell_init, APPLICATION, WIFIMGR_CLI_PRIORITY);*/

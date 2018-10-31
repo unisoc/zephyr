@@ -15,8 +15,6 @@
 #include "wifimgr.h"
 #include "led.h"
 
-#define WIFIMGR_PRIORITY	39
-
 static struct wifi_manager wifimgr;
 
 const char *wifimgr_sts2str_cmd(struct wifi_manager *mgr, unsigned int cmd_id)
@@ -217,4 +215,4 @@ static int wifi_manager_init(struct device *unused)
 	return ret;
 }
 
-SYS_INIT(wifi_manager_init, APPLICATION, WIFIMGR_PRIORITY);
+SYS_INIT(wifi_manager_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
