@@ -74,19 +74,19 @@ struct cmd_download_ini {
 struct cmd_start {
 	struct trans_hdr trans_header;
 	char mode;
-	char mac[6];
+	char mac[ETH_ALEN];
 } __packed;
 
 struct cmd_get_cp_info {
 	struct trans_hdr trans_header;
 	u32_t version;
-	char mac[6];
+	char mac[ETH_ALEN];
 } __packed;
 
 struct cmd_stop {
 	struct trans_hdr trans_header;
 	char mode;
-	char mac[6];
+	char mac[ETH_ALEN];
 } __packed;
 
 /* Command struct for ap. */
