@@ -13,7 +13,7 @@
 #define _WIFIMGR_DRV_H_
 
 #include <device.h>
-#include <net/net_if.h>
+#include <net/ethernet.h>
 #include <net/net_mgmt.h>
 #include <net/wifi.h>
 
@@ -61,10 +61,10 @@ struct wifi_drv_api{
 	/**
 	 * Mandatory to get in first position.
 	 * A network device should indeed provide a pointer on such
-	 * net_if_api structure. So we make current structure pointer
+	 * ethernet_api structure. So we make current structure pointer
 	 * that can be casted to a net_if_api structure pointer.
 	 */
-	struct net_if_api iface_api;
+	struct ethernet_api eth_api;
 
 	int (*open)(struct device *dev);
 	int (*close)(struct device *dev);
