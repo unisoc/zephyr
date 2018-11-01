@@ -3565,15 +3565,20 @@ int wlnpi_show_get_mac_efuse(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int 
 /*-----CMD ID:122-----------*/
 int wlnpi_show_get_rf_config(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
 {
-	unsigned char config1, config2;
-
-	config1 = *r_buf;
-	config2 = *(r_buf + 1);
 	ENG_LOG("ADL entry %s(), r_len = %d\n", __FUNCTION__,r_len);
 
 	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: ANTINFO=%d,%d  :end\n", r_buf[0], r_buf[1]);
 
-	ENG_LOG("2.4G rf chain: %d, 5G rf chain : %d\n", config1, config2);
+	return 0;
+}
+
+/*-----CMD ID:135-----------*/
+int wlnpi_show_get_efuse_info(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len)
+{
+	ENG_LOG("ADL entry %s(), r_len = %d\n", __FUNCTION__,r_len);
+
+	snprintf(iwnpi_ret_buf, WLNPI_RESULT_BUF_LEN, "ret: EFUSEINFO=%d,%d,%d  :end\n", r_buf[0], r_buf[1], r_buf[2]);
+	ENG_LOG("%s() %s \n", __func__, iwnpi_ret_buf);
 	return 0;
 }
 
@@ -3612,7 +3617,7 @@ int wlnpi_show_get_tssi(struct wlnpi_cmd_t *cmd, unsigned char *r_buf, int r_len
 	ENG_LOG("ADL entry %s(), r_len = %d\n", __func__,r_len);
 
 	printf("ret: tssi = %d :end\n", *r_buf);
-	ENG_LOG("ADL leaving %s(), return 0", __func__);
+	ENG_LOG("ADL leaving %s(), return 0\n", __func__);
 
 	return 0;
 }
@@ -3644,6 +3649,46 @@ int wlnpi_cmd_set_cca_th(int argc, char **argv, unsigned char *s_buf, int *s_len
 	*s_len = 1;
 
 	ENG_LOG("ADL leaving %s()", __func__);
+	return 0;
+}
+
+/*-----CMD ID:132-----------*/
+int wlnpi_cmd_set_cal_txpower(int argc, char **argv,  unsigned char *s_buf, int *s_len )
+{
+	char *err;
+	if(1 != argc) {
+		ENG_LOG("%s, invalid argc : %d\n", __func__, argc);
+		return -1;
+	}
+	*s_buf =   strtol(argv[0], &err, 10);
+	if(err == argv[0]) {
+		ENG_LOG("%s, parse s_buf error\n", __func__);
+		return -1;
+	}
+	*s_len = 1;
+	ENG_LOG("%s, cal tx power : %d\n", __func__, *s_buf);
+	return 0;
+}
+
+/*-----CMD ID:134-----------*/
+int wlnpi_cmd_set_tpc_mode(int argc, char **argv,  unsigned char *s_buf, int *s_len )
+{
+	char *err;
+	if(1 != argc) {
+		ENG_LOG("%s, invalid argc : %d\n", __func__, argc);
+		return -1;
+	}
+	*s_buf =   strtol(argv[0], &err, 10);
+	if(err == argv[0]) {
+		ENG_LOG("%s, parse s_buf error\n", __func__);
+		return -1;
+	}
+	if ((*s_buf != 0) && (*s_buf != 1)) {
+		ENG_LOG("%s, invalid mode : %d\n", __func__, *s_buf);
+		return -1;
+	}
+	*s_len = 1;
+	ENG_LOG("%s, cal tx power : %d\n", __func__, *s_buf);
 	return 0;
 }
 
@@ -4516,7 +4561,39 @@ struct wlnpi_cmd_t g_cmd_table[] =
 		.help  = "restore_cca_th",
 		.parse = wlnpi_cmd_no_argv,
 		.show  = wlnpi_show_only_status,
-	}
+	},
+	{
+		/*-----CMD ID:128-----------*/
+		.id    = WLNPI_CMD_SET_CAL_TXPOWER,
+		.name  = "set_cal_txpower",
+		.help  = "set_cal_txpower <VALUE>",
+		.parse = wlnpi_cmd_set_cal_txpower,
+		.show  = wlnpi_show_only_status,
+	},
+	{
+		/*-----CMD ID:129-----------*/
+		.id    = WLNPI_CMD_CAL_TXPOWER_EFUSE_EN,
+		.name  = "cal_txpower_efuse_en",
+		.help  = "cal_txpower_efuse_en",
+		.parse = wlnpi_cmd_no_argv,
+		.show  = wlnpi_show_only_status,
+	},
+	{
+		/*-----CMD ID:134-----------*/
+		.id    = WLNPI_CMD_SET_TPC_MODE,
+		.name  = "set_tpc_mode",
+		.help  = "set_tpc_mode <0|1>",
+		.parse = wlnpi_cmd_set_tpc_mode,
+		.show  = wlnpi_show_only_status,
+	},
+	{
+		/*-----CMD ID:135-----------*/
+		.id    = WLNPI_CMD_GET_EFUSE_INFO,
+		.name  = "get_efuse_info",
+		.help  = "get_efuse_info",
+		.parse = wlnpi_cmd_no_argv,
+		.show  = wlnpi_show_get_efuse_info,
+	},
 };
 
 struct wlnpi_cmd_t *match_cmd_table(char *name)
