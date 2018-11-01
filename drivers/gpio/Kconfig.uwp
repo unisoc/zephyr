@@ -22,4 +22,28 @@ config GPIO_UWP_P0_NAME
 	depends on GPIO_UWP_P0
 	default "UWP_GPIO_P0"
 
+config GPIO_UWP_P1
+	bool "GPIO block A1"
+	depends on GPIO_UWP
+	default n
+	help
+	  Include support for the GPIO port A1.
+
+config GPIO_UWP_P1_NAME
+	string "Driver name"
+	depends on GPIO_UWP_P1
+	default "UWP_GPIO_P1"
+
+config GPIO_UWP_P2
+	bool "GPIO block A2"
+	depends on GPIO_UWP
+	default n
+	help
+	  Include support for the GPIO port A2.
+
+config GPIO_UWP_P2_NAME
+	string "Driver name"
+	depends on GPIO_UWP_P2
+	default "UWP_GPIO_P2"
+
 endif # GPIO_UWP
