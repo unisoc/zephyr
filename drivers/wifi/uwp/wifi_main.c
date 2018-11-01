@@ -380,18 +380,18 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 
 
 static const struct wifi_drv_api uwp_api = {
-	.iface_api.init			= uwp_iface_init,
-	.iface_api.send			= uwp_iface_tx,
-	.open					= uwp_mgmt_open,
-	.close					= uwp_mgmt_close,
-	.scan                   = uwp_mgmt_scan,
-	.get_station			= uwp_mgmt_get_station,
-	.connect                = uwp_mgmt_connect,
-	.disconnect             = uwp_mgmt_disconnect,
-	.notify_ip              = uwp_mgmt_set_ip,
-	.start_ap               = uwp_mgmt_start_ap,
-	.stop_ap                = uwp_mgmt_stop_ap,
-	.del_station			= uwp_mgmt_del_station,
+	.eth_api.iface_api.init		= uwp_iface_init,
+	.eth_api.iface_api.send		= uwp_iface_tx,
+	.open						= uwp_mgmt_open,
+	.close						= uwp_mgmt_close,
+	.scan						= uwp_mgmt_scan,
+	.get_station				= uwp_mgmt_get_station,
+	.connect					= uwp_mgmt_connect,
+	.disconnect					= uwp_mgmt_disconnect,
+	.notify_ip					= uwp_mgmt_set_ip,
+	.start_ap					= uwp_mgmt_start_ap,
+	.stop_ap					= uwp_mgmt_stop_ap,
+	.del_station				= uwp_mgmt_del_station,
 };
 
 static int uwp_init(struct device *dev)
