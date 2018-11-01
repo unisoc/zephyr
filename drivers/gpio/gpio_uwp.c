@@ -28,12 +28,6 @@ struct gpio_uwp_data {
 	/* callback enable pin bitmask */
 	u32_t pin_callback_enables;
 };
-static const struct gpio_uwp_config gpio_uwp_p0_config = {
-	.port_base = BASE_AON_GPIOP0,
-};
-
-static struct device DEVICE_NAME_GET(gpio_uwp_p0);
-static struct gpio_uwp_data gpio_uwp_p0_data;
 
 #define DEV_CFG(dev) \
 	((const struct gpio_uwp_config *)(dev)->config->config_info)
@@ -209,9 +203,42 @@ static int gpio_uwp_p0_init(struct device *dev)
 	return 0;
 }
 
+#ifdef CONFIG_GPIO_UWP_P0
+static const struct gpio_uwp_config gpio_uwp_p0_config = {
+	.port_base = BASE_AON_GPIOP0,
+};
+static struct device DEVICE_NAME_GET(gpio_uwp_p0);
+static struct gpio_uwp_data gpio_uwp_p0_data;
 DEVICE_AND_API_INIT(gpio_uwp_p0, CONFIG_GPIO_UWP_P0_NAME,
 		    &gpio_uwp_p0_init, &gpio_uwp_p0_data,
 		    &gpio_uwp_p0_config,
 		    POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEVICE,
 		    &gpio_uwp_api);
+#endif
+
+#ifdef CONFIG_GPIO_UWP_P1
+static const struct gpio_uwp_config gpio_uwp_p1_config = {
+	.port_base = BASE_AON_GPIOP1,
+};
+static struct device DEVICE_NAME_GET(gpio_uwp_p1);
+static struct gpio_uwp_data gpio_uwp_p1_data;
+DEVICE_AND_API_INIT(gpio_uwp_p1, CONFIG_GPIO_UWP_P1_NAME,
+		    &gpio_uwp_p1_init, &gpio_uwp_p1_data,
+		    &gpio_uwp_p1_config,
+		    POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEVICE,
+		    &gpio_uwp_api);
+#endif
+
+#ifdef CONFIG_GPIO_UWP_P2
+static const struct gpio_uwp_config gpio_uwp_p2_config = {
+	.port_base = BASE_AON_GPIOP2,
+};
+static struct device DEVICE_NAME_GET(gpio_uwp_p2);
+static struct gpio_uwp_data gpio_uwp_p2_data;
+DEVICE_AND_API_INIT(gpio_uwp_p2, CONFIG_GPIO_UWP_P2_NAME,
+		    &gpio_uwp_p2_init, &gpio_uwp_p2_data,
+		    &gpio_uwp_p2_config,
+		    POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEVICE,
+		    &gpio_uwp_api);
+#endif
 
