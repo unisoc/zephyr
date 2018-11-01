@@ -43,6 +43,7 @@
 #define WIFI_MAC_EFUSE_REQ_RET ("+SPWIFITEST:MACEFUSE=")
 #define WIFI_ANT_REQ_RET ("+SPWIFITEST:ANT=")
 #define WIFI_ANTINFO_REQ_RET ("+SPWIFITEST:ANTINFO=")
+#define WIFI_EFUSEINFO_REQ_RET ("+SPWIFITEST:EFUSEINFO=")
 #define WIFI_CDEC_EFUSE_REQ_RET ("+SPWIFITEST:CDECEFUSE=")
 #define WIFI_DECODEMODE_REQ_RET ("+SPWIFITEST:DECODEMODE=")
 #define WIFI_INT_INVALID_RET (-100)
@@ -254,6 +255,12 @@ int wifi_cdec_efuse_get(char *rsp);
 int wifi_cbank_set(int cbank, char *rsp);
 int wifi_netmode_set(int chain, char *rsp);
 int eng_atdiag_wifi_euthdlr(char *buf, int len, char *rsp, int module_index);
+
+int wifi_cal_txpower_set(int cal_txpower, char *rsp);
+int wifi_cal_txpower_efuse_en(char *rsp);
+int wifi_set_tpc_mode(int tpc_mode, char *rsp);
+int wifi_set_tssi(int tssi, char *rsp);
+int wifi_set_tpc_para(char *buf, char *rsp);
 /***************************************************************/
 
 #endif /*__ENG_AT_H__*/

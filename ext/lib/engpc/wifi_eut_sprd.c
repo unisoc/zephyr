@@ -30,6 +30,23 @@ WIFI_ELEMENT g_wifi_data;
 #define INIT_CDEC_VAL	100
 unsigned char g_afc_cdec = INIT_CDEC_VAL;
 
+struct tpc_para
+{
+	unsigned char channel;
+	unsigned char chain;
+	unsigned char power;
+};
+struct tpc_para g_tpc_para[12];
+
+enum tpc_status
+{
+	TPC_DEFAULT = 1,
+	TPC_NEED_SET_PARA = 2,
+};
+
+unsigned char g_tpc_status = TPC_DEFAULT;
+char g_tpc_num = -1;
+
 int  get_wcn_afc_cdec()
 {
 	return 	g_afc_cdec;
@@ -340,6 +357,86 @@ static int wifi_set_cbank_after_start(unsigned char cbank)
 	return exec_iwnpi_cmd_with_status(argc, argv);
 }
 
+static int set_tpc_channel(unsigned char channel)
+{
+	char ch_1[8] = {0};
+	char ch_2[8] = {0};
+	int argc = 5;
+	char *argv[argc];
+
+	ENG_LOG("%s(), channel:%d\n", __func__, channel);
+
+	argv[0] = "iwnpi";
+	argv[1] = "wlan0";
+	argv[2] = "set_channel";
+	sprintf(ch_1, "%d", channel);
+	sprintf(ch_2, "%d", channel);
+	argv[3] = ch_1;
+	argv[4] = ch_2;
+	return exec_iwnpi_cmd_with_status(argc, argv);
+}
+
+static int set_tpc_chain(unsigned char chain)
+{
+	char cmd[8] = {0};
+	int argc = 4;
+	char *argv[argc];
+
+	ENG_LOG("%s(), chain:%d\n", __func__, chain);
+
+	argv[0] = "iwnpi";
+	argv[1] = "wlan0";
+	argv[2] = "set_chain";
+	sprintf(cmd, "%d", chain);
+	argv[3] = cmd;
+	return exec_iwnpi_cmd_with_status(argc, argv);
+}
+
+static int set_tpc_power(unsigned char power)
+{
+	char cmd[8] = {0};
+	int argc = 4;
+	char *argv[argc];
+
+	ENG_LOG("%s(), power:%d\n", __func__, power);
+
+	argv[0] = "iwnpi";
+	argv[1] = "wlan0";
+	argv[2] = "set_cal_txpower";
+	sprintf(cmd, "%d", power);
+	argv[3] = cmd;
+	return exec_iwnpi_cmd_with_status(argc, argv);
+}
+
+int wifi_restore_tpc_result(void)
+{
+	/*restore tpc para*/
+	int index;
+	int ret = 0;
+
+	for(index = 0; index < g_tpc_num; index++) {
+		/*set channel*/
+		ret = set_tpc_channel(g_tpc_para[index].channel);
+		if (ret) {
+			ENG_LOG("%s() set tpc channel err, ret : %d\n", __func__, ret);
+			return ret;
+		}
+		/*set chain*/
+		set_tpc_chain(g_tpc_para[index].chain);
+		if (ret) {
+			ENG_LOG("%s() set tpc channel err, ret : %d\n", __func__, ret);
+			return ret;
+		}
+		/*set power*/
+		set_tpc_power(g_tpc_para[index].power);
+		if (ret) {
+			ENG_LOG("%s() set tpc channel err, ret : %d\n", __func__, ret);
+			return ret;
+		}
+	}
+	return ret;
+}
+
 static int start_wifieut(char *rsp)
 {
 	int ret;
@@ -362,6 +459,16 @@ static int start_wifieut(char *rsp)
 		ENG_LOG("%s() need set cbank to cp , g_afc_cdec value:%d \n", __func__, g_afc_cdec);
 		if ( 0 != wifi_set_cbank_after_start(g_afc_cdec)) {
 			ENG_LOG("%s() set cbank error\n", __func__);
+			goto err;
+		}
+	}
+
+	if (g_tpc_status == TPC_DEFAULT) {
+		ENG_LOG("%s() no need set tpc para to cp\n", __func__);
+	} else {
+		ENG_LOG("%s() need set tpc para\n", __func__);
+		if (wifi_restore_tpc_result()) {
+			ENG_LOG("%s() set tpc para error\n", __func__);
 			goto err;
 		}
 	}
@@ -426,6 +533,99 @@ int wifi_eut_set(int cmd, char *rsp)
 		sprintf(rsp, "%s%s", EUT_WIFI_ERROR, "error");
 	}
 	return 0;
+}
+
+int parse_para(char *cmd, int index)
+{
+	char *tmp, *pos;
+	pos = cmd;
+	unsigned channel, chain, power;
+	char chan_str[5] = {0x00};
+	char chain_str[5] = {0x00};
+	char power_str[5] = {0x00};
+
+	/* get channel */
+	pos = cmd;
+	tmp = strchr(pos, ',');
+	if (!tmp) {
+		printf("failed to get channel : %s\n", cmd);
+		return -1;
+	}
+
+	memcpy(chan_str, pos, tmp -pos);
+	channel =  atoi(chan_str);
+	ENG_LOG ("the channel is : %d\n",channel);
+
+	/* get chain */
+	pos = tmp + 1;
+	tmp = strchr(pos, ',');
+	if (!tmp) {
+		ENG_LOG("%s() failed to get chain: %s\n", __func__, cmd);
+		return -1;
+	}
+	memcpy(chain_str, pos, tmp -pos);
+	chain =  atoi(chain_str);
+	ENG_LOG ("the chain is : %d\n",chain);
+
+	/*get power*/
+	pos = tmp + 1;
+	memcpy(power_str, pos, strlen(pos));
+	power =  atoi(power_str);
+	ENG_LOG ("the power is : %d\n", power);
+
+	g_tpc_para[index].channel = channel;
+	g_tpc_para[index].chain = chain;
+	g_tpc_para[index].power = power;
+	return 0;
+}
+
+int save_tpc_para(char *buf,  int len)
+{
+	unsigned char num = 0;
+	int index = 0, result = 0;
+	char *pos;
+	char cmd[20] = {0x00};
+
+	pos = buf;
+	for(index = 0; index < len; index++) {
+		if (buf[index] == ';') {
+			memset(cmd, 0x00, 20);
+			result += 1;
+			memcpy(cmd, pos, num);
+			ENG_LOG("cmd is : %s\n", cmd);
+			parse_para(cmd, result - 1);
+			pos += num;
+			pos += 1;
+			/*reset num*/
+			num = 0;
+		} else {
+			num += 1;
+		}
+	}
+
+	g_tpc_num = result;
+	return 0;
+}
+
+int wifi_set_tpc_para(char *buf, char *rsp)
+{
+	char *value;
+
+	value = strchr(buf, ':');
+	if (value == NULL) {
+		ENG_LOG("%s() Invalid para received\n", __func__);
+	} else {
+		value += 1;
+		ENG_LOG("%s() value is : %s, len is : %d\n", __func__, value, strlen(value));
+		memset(g_tpc_para, 0x00, sizeof(g_tpc_para));
+		save_tpc_para(value, strlen(value));
+	}
+
+	if (g_tpc_status == TPC_DEFAULT) {
+		g_tpc_status = TPC_NEED_SET_PARA;
+	}
+
+	return return_ok(rsp);
 }
 
 int wifi_eut_get(char *rsp)
@@ -1854,6 +2054,72 @@ err:
 }
 
 /********************************************************************
+*   name   wifi_mac_filter_get
+*   ---------------------------
+*   description: get Chip's mac filter switch and mac addr if on, by iwnpi
+*command get_macfilter
+*   ----------------------------
+*   para        IN/OUT      type            note
+*   rsp         OUT         char *          response result
+*   ----------------------------------------------------
+*   return
+*   0:exec successful
+*   -1:error
+*   ------------------
+*   other:
+*
+*
+********************************************************************/
+int wifi_mac_filter_get(char *rsp)
+{
+	int ret = -1;
+	int on_off = 0;
+	int argc = 3, get_mac_argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_macfilter"};
+	char *get_mac_argv[3] = {"iwnpi","wlan0","get_mac"};
+
+	/* inquery mac filter switch */
+	if (0 != exec_iwnpi_cmd(argc, argv)) {
+		goto err;
+	}
+
+	on_off = get_result_from_iwnpi();
+	if (WIFI_INT_INVALID_RET == ret) {
+		ENG_LOG("%s() iwnpi wlan0 get mac filter cmd, err_code = %d", __func__, on_off);
+		goto err;
+	}
+
+	if (1 == on_off) {
+		char mac_str[WIFI_MAC_STR_MAX_LEN] = {0x00};
+
+		/* the mac filter switch is on, get MAC address by iwnpi get_mac command */
+		if (0 != exec_iwnpi_cmd(get_mac_argc, get_mac_argv)) {
+			goto err;
+		}
+
+		ret = get_iwnpi_ret_line(IWNPI_RET_MAC_FLAG, mac_str, WIFI_MAC_STR_MAX_LEN);
+		if (ret <= 0) {
+			ENG_LOG("%s() iwnpi wlan0 get mac failed, err_code = %d", __func__, ret);
+			goto err;
+		}
+
+		snprintf(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d,%s",
+			 WIFI_MAC_FILTER_REQ_RET, on_off, mac_str);
+	} else if (0 == on_off) {
+		snprintf(rsp, WIFI_EUT_COMMAND_RSP_MAX_LEN, "%s%d",
+			 WIFI_MAC_FILTER_REQ_RET, on_off);
+	} else {
+		ENG_LOG("%s(), on_off's value is invalid, on_off = %d", __func__, on_off);
+		goto err;
+	}
+
+	return 0;
+
+err:
+	return return_err(rsp);
+}
+
+/********************************************************************
 *   name   wifi_mac_efuse_get
 *   ---------------------------
 *   description: get Chip's mac from efuse by iwnpi
@@ -2109,6 +2375,34 @@ err:
 	return return_err(rsp);
 }
 
+int wifi_efuse_info(char *rsp)
+{
+	int ret = WIFI_INT_INVALID_RET;
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0","get_efuse_info"};
+	char efuse_info[32] = {0x00};
+	int cdec,mac,tpc;
+
+	if (0 != exec_iwnpi_cmd(argc, argv))
+		goto err;
+
+	ret = get_iwnpi_ret_line("EFUSEINFO", efuse_info, 16);
+	ENG_LOG("%s efuse info is : %s\n",__func__, efuse_info);
+	if (ret <= 0) {
+		ENG_LOG("%s() iwnpi wlan0 get efuse info, err_code = %d", __func__, ret);
+		goto err;
+	}
+	eng_sscanf(efuse_info, "EFUSEINFO=%d,%d,%d", &cdec, &mac, &tpc);
+
+	ENG_LOG("CDEC: %d, MAC: %d, TPC: %d\n", cdec, mac, tpc);
+	sprintf(rsp, "%s%d,%d,%d", WIFI_EFUSEINFO_REQ_RET, cdec, mac, tpc);
+	rsp_debug(rsp);
+	return 0;
+
+err:
+	return return_err(rsp);
+}
+
 /********************************************************************
  *   name   wifi_ant_set
  *   ---------------------------
@@ -2287,6 +2581,149 @@ int wifi_decode_mode_set(int dec_mode, char *rsp)
 
 err:
 	g_wifi_data.decode_mode = DM_BCC;
+	return return_err(rsp);
+}
+
+/********************************************************************
+*   name   wifi_cal_txpower_set
+*   ---------------------------
+*   description: set Chip's cal tx power by iwnpi cmd set_cal_txpower
+*   ----------------------------
+*   para            IN/OUT      type                    note
+*   cal_txpower     IN          int                     wifi cal tx power
+*   rsp             OUT         char *                  response result
+*   ----------------------------------------------------
+*   return
+*   0:exec successful
+*   -1:error
+*   ------------------
+*   other:
+*
+*
+********************************************************************/
+int wifi_cal_txpower_set(int cal_txpower, char *rsp)
+{
+	char cmd[8] = {0};
+	int argc = 4;
+	char *argv[argc];
+
+	if (wifi_enter_eut_mode() == 0)
+		goto err;
+
+	ENG_LOG("%s(), cal_txpower:%d\n", __FUNCTION__, cal_txpower);
+
+	if (cal_txpower < 0)
+		goto err;
+
+	argv[0] = "iwnpi";
+	argv[1] = "wlan0";
+	argv[2] = "set_cal_txpower";
+	sprintf(cmd, "%d", cal_txpower);
+	argv[3] = cmd;
+	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
+		goto err;
+
+	return return_ok(rsp);
+
+err:
+	return return_err(rsp);
+}
+
+/********************************************************************
+*   name   wifi_cal_txpower_efuse_en
+*   ---------------------------
+*   description: Set cal tx power efuse en by iwnpi cmd cal_txpower_efuse_en
+*   ----------------------------
+*   return
+*   0:exec successful
+*   -1:error
+*   ------------------
+*   other:
+*
+********************************************************************/
+int wifi_cal_txpower_efuse_en(char *rsp)
+{
+	int argc = 3;
+	char *argv[3] = {"iwnpi","wlan0"};
+
+	ENG_LOG("ADL entry %s()", __func__);
+
+	if (wifi_enter_eut_mode() == 0)
+		goto err;
+
+	argv[2] = "cal_txpower_efuse_en";
+
+	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
+	goto err;
+
+	return return_ok(rsp);
+
+err:
+	return return_err(rsp);
+}
+
+/********************************************************************
+*   name   wifi_set_tpc_mode
+*   ---------------------------
+*   description: set wifi tpc mode by iwnpi cmd set_tpc_mode
+*   ----------------------------
+*   para            IN/OUT      type                    note
+*   tpc_mode	    IN          int                     wifi tpc mode
+*   rsp             OUT         char *                  response result
+*   ----------------------------------------------------
+*   return
+*   0:exec successful
+*   -1:error
+*   ------------------
+*   other:
+*
+*
+********************************************************************/
+int wifi_set_tpc_mode(int tpc_mode, char *rsp)
+{
+	char cmd[8] = {0};
+	int argc = 4;
+	char *argv[argc];
+
+	if (wifi_enter_eut_mode() == 0)
+		goto err;
+
+	ENG_LOG("%s(), tpc_mode:%d\n", __FUNCTION__, tpc_mode);
+
+	argv[0] = "iwnpi";
+	argv[1] = "wlan0";
+	argv[2] = "set_tpc_mode";
+	sprintf(cmd, "%d", tpc_mode);
+	argv[3] = cmd;
+	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
+		goto err;
+
+	return return_ok(rsp);
+
+err:
+	return return_err(rsp);
+}
+
+int wifi_set_tssi(int tssi, char *rsp)
+{
+	char cmd[8] = {0};
+	int argc = 4;
+	char *argv[argc];
+
+	if (wifi_enter_eut_mode() == 0)
+	goto err;
+
+	argv[0] = "iwnpi";
+	argv[1] = "wlan0";
+	argv[2] = "set_tssi";
+	sprintf(cmd, "%d", tssi);
+	argv[3] = cmd;
+	if (0 != exec_iwnpi_cmd_with_status(argc, argv))
+		goto err;
+
+	return return_ok(rsp);
+
+err:
 	return return_err(rsp);
 }
 /********************************end of the file*************************************/

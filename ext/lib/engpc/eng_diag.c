@@ -22,7 +22,6 @@ static char eng_diag_buf[ENG_DIAG_SIZE];
 static int eng_diag_len = 0;
 static int s_cmd_index = -1;
 
-
 struct eut_cmd eut_cmds[] = {
 	{EUT_REQ_INDEX, ENG_EUT_REQ},  // sprd
 	{EUT_INDEX, ENG_EUT},
@@ -126,7 +125,20 @@ struct eut_cmd eut_cmds[] = {
 	{WIFIMACEFUSE_INDEX, ENG_MACEFUSE},  // sprd
 
 	{WIFIANTINFO_REQ_INDEX, ENG_WIFIANTINFO_REQ},
+
+	/* cal tx power */
+	{WIFICALTXPWR_INDEX,ENG_WIFICALTXPWR},
+	{WIFICALTXPWREFUSEEN_INDEX,ENG_WIFICALTXPWREFUSEEN},
+
+	/* set tpc mode */
+	{WIFITPCMODE_INDEX,ENG_WIFITPCMODE},
+
+	/* set tssi */
+	{WIFITSSI_INDEX,ENG_WIFITSSI},
+	/* get efuse info */
+	{WIFIEFUSEINFO_REQ_INDEX, ENG_WIFIEFUSEINFO_REQ},
 };
+
 void eng_dump(unsigned char *buf, int len, int col, int flag, char *keyword)
 {
 	int index = 0;
@@ -320,8 +332,12 @@ int eng_atdiag_wifi_euthdlr(char *buf, int len, char *rsp, int module_index)
 		ENG_LOG("command name : args0 : %s \n", args0);
 	} else {
 		ENG_LOG("it is a set command\n");
-		get_sub_str(buf, data, '=', ",", 4, 32);
-		ENG_LOG("set command name:%s\n", args0);
+		if (strstr(buf, "TPCPARA") != NULL) {
+			return wifi_set_tpc_para(buf, rsp);
+		} else {
+			get_sub_str(buf, data, '=', ",", 4, 32);
+			ENG_LOG("set command name:%s\n", args0);
+		}
 	}
 
 	cmd_index = get_cmd_index(args0);
@@ -565,6 +581,11 @@ int eng_atdiag_wifi_euthdlr(char *buf, int len, char *rsp, int module_index)
 			wifi_mac_filter_set(atoi(data[1]), data[2], rsp);
 		} break;
 
+		case WIFIMACFILTER_REQ_INDEX: {
+			ENG_LOG("%s(), case:WIFIMACFILTER_REQ_INDEX", __func__);
+			wifi_mac_filter_get(rsp);
+		} break;
+
 		case WIFIMACEFUSE_REQ_INDEX: {
 			ENG_LOG("%s(), case:WIFIMACFILTER_REQ_INDEX", __func__);
 			wifi_mac_efuse_get(rsp);
@@ -585,6 +606,12 @@ int eng_atdiag_wifi_euthdlr(char *buf, int len, char *rsp, int module_index)
 		case WIFIANTINFO_REQ_INDEX: {
 			ENG_LOG("%s(), case:WIFIANTINFO_REQ_INDEX", __func__);
 			wifi_ant_info(rsp);
+		} break;
+
+		/* get efuse info */
+		case WIFIEFUSEINFO_REQ_INDEX: {
+			ENG_LOG("%s(), case:WIFIEFUSEINFO_REQ_INDEX", __func__);
+			wifi_efuse_info(rsp);
 		} break;
 
 		case WIFIANT_INDEX: {
@@ -626,6 +653,26 @@ int eng_atdiag_wifi_euthdlr(char *buf, int len, char *rsp, int module_index)
 			wifi_decode_mode_set(atoi(data[1]), rsp);
 		} break;
 
+		case WIFICALTXPWR_INDEX: {
+			ENG_LOG("%s(), case:WIFICALTXPWR_INDEX", __func__);
+			wifi_cal_txpower_set(atoi(data[1]), rsp);
+		} break;
+
+		case WIFICALTXPWREFUSEEN_INDEX: {
+			ENG_LOG("%s(), case:WIFICALTXPWREFUSEEN_INDEX", __func__);
+			wifi_cal_txpower_efuse_en(rsp);
+		} break;
+
+		case WIFITPCMODE_INDEX: {
+			ENG_LOG("%s(), case:WIFITPCMODE_INDEX", __func__);
+			wifi_set_tpc_mode(atoi(data[1]), rsp);
+		} break;
+
+		case WIFITSSI_INDEX: {
+			ENG_LOG("%s(), case:WIFITSSI_INDEX", __func__);
+			wifi_set_tssi(atoi(data[1]), rsp);
+		} break;
+
 		//-----------------------------------------------------
 		default:
 			strcpy(rsp, "can not match the at command");
@@ -661,6 +708,18 @@ int eng_diag_parse(char *buf, int len, int *num)
 				ret = CMD_COMMON;
 			}
 			break;
+#if 0
+		case DIAG_CMD_FACTORYMODE:
+			if (head_ptr->subtype >= 0x2 && head_ptr->subtype <= 0x4) {
+				// 2: NVITEM_PRODUCT_CTRL_READ
+				// 3: NVITEM_PRODUCT_CTRL_WRITE
+				// 4: NVITEM_PRODUCT_CTRL_ERASE
+				ret = CMD_USER_PRODUCT_CTRL;
+			} else {
+				ret = CMD_COMMON;
+			}
+			break;
+#endif
 		default:
 			ENG_LOG("%s: Default\n", __FUNCTION__);
 			ret = CMD_COMMON;
@@ -786,7 +845,6 @@ int eng_diag(struct device *uart, char *buf, int len)
 {
 	int ret = 0;
 	int type, num;
-	int retry_time = 0;
 	int ret_val = 0;
 	char rsp[128];
 	MSG_HEAD_T head;
@@ -817,12 +875,10 @@ int eng_diag(struct device *uart, char *buf, int len)
 		eng_diag_buf[head.len + 1] = 0x7e;
 		eng_diag_len = head.len + 2;
 
-		retry_time = 0;  // reset retry time counter
-	}
-
-	ret = eng_diag_write2pc(uart, eng_diag_buf, eng_diag_len);
-	if (ret <= 0) {
-		ENG_LOG("%s: eng_diag_write2pc ret=%d !\n", __FUNCTION__, ret);
+		ret = eng_diag_write2pc(uart, eng_diag_buf, eng_diag_len);
+		if (ret <= 0) {
+			ENG_LOG("%s: eng_diag_write2pc ret=%d !\n", __FUNCTION__, ret);
+		}
 	}
 
 	ENG_LOG("%s: ret=%d\n", __FUNCTION__, ret);

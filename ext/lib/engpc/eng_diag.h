@@ -137,6 +137,17 @@ typedef enum {
   WIFIMACEFUSE_INDEX,
 
   WIFIANTINFO_REQ_INDEX,
+
+  /* wifi set cal tx power*/
+  WIFICALTXPWR_INDEX,
+  WIFICALTXPWREFUSEEN_INDEX,
+
+  /*set tpc mode*/
+  WIFITPCMODE_INDEX,
+
+  /* wifi set tssi*/
+  WIFITSSI_INDEX,
+  WIFIEFUSEINFO_REQ_INDEX,
 } eut_cmd_enum;
 
 typedef enum {
