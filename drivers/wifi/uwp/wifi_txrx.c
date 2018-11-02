@@ -84,7 +84,11 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 
 		net_pkt_frag_add(rx_pkt, pkt_buf);
 	}
-	net_recv_data(priv->iface, rx_pkt);
+
+	if (net_recv_data(priv->iface, rx_pkt) < 0) {
+		SYS_LOG_ERR("pkt %p not received by L2 stack.", rx_pkt);
+		net_pkt_unref(rx_pkt);
+	}
 
 	/* Allocate new empty buffer to cp. */
 	wifi_tx_empty_buf(i);
