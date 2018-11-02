@@ -182,6 +182,13 @@ static const struct gpio_driver_api gpio_uwp_api = {
 	.disable_callback = gpio_uwp_disable_callback,
 };
 
+#ifdef CONFIG_GPIO_UWP_P0
+static const struct gpio_uwp_config gpio_uwp_p0_config = {
+	.port_base = BASE_AON_GPIOP0,
+};
+static struct device DEVICE_NAME_GET(gpio_uwp_p0);
+static struct gpio_uwp_data gpio_uwp_p0_data;
+
 static int gpio_uwp_p0_init(struct device *dev)
 {
 	const struct gpio_uwp_config *gpio_config = DEV_CFG(dev);
@@ -199,49 +206,9 @@ static int gpio_uwp_p0_init(struct device *dev)
 	uwp_aon_intc_set_irq_callback(AON_INT_GPIO0, gpio_uwp_isr, dev);
 	/* uwp_aon_irq_enable(AON_INT_GPIO0); */
 #endif
-
 	return 0;
 }
 
-static int gpio_uwp_p1_init(struct device *dev)
-{
-	const struct gpio_uwp_config *gpio_config = DEV_CFG(dev);
-	u32_t base = gpio_config->port_base;
- 	uwp_aon_enable(BIT(AON_EB_GPIO1));
-	uwp_aon_reset(BIT(AON_RST_GPIO1));
-	/* enable all gpio read/write by default */
-	uwp_gpio_enable(base, 0xFFFF);
- 	uwp_gpio_int_disable(base, 0xFFFF);
-	uwp_gpio_disable(base, 0xFFFF);
- #ifdef CONFIG_AON_INTC_UWP
-	uwp_aon_intc_set_irq_callback(AON_INT_GPIO0, gpio_uwp_isr, dev);
-	/* uwp_aon_irq_enable(AON_INT_GPIO0); */
-#endif
- 	return 0;
-}
- static int gpio_uwp_p2_init(struct device *dev)
-{
-	const struct gpio_uwp_config *gpio_config = DEV_CFG(dev);
-	u32_t base = gpio_config->port_base;
- 	uwp_aon_enable(BIT(AON_EB_GPIO2));
-	uwp_aon_reset(BIT(AON_RST_GPIO2));
-	/* enable all gpio read/write by default */
-	uwp_gpio_enable(base, 0xFFFF);
- 	uwp_gpio_int_disable(base, 0xFFFF);
-	uwp_gpio_disable(base, 0xFFFF);
- #ifdef CONFIG_AON_INTC_UWP
-	uwp_aon_intc_set_irq_callback(AON_INT_GPIO0, gpio_uwp_isr, dev);
-	/* uwp_aon_irq_enable(AON_INT_GPIO0); */
-#endif
- 	return 0;
-}
-
-#ifdef CONFIG_GPIO_UWP_P0
-static const struct gpio_uwp_config gpio_uwp_p0_config = {
-	.port_base = BASE_AON_GPIOP0,
-};
-static struct device DEVICE_NAME_GET(gpio_uwp_p0);
-static struct gpio_uwp_data gpio_uwp_p0_data;
 DEVICE_AND_API_INIT(gpio_uwp_p0, CONFIG_GPIO_UWP_P0_NAME,
 		    &gpio_uwp_p0_init, &gpio_uwp_p0_data,
 		    &gpio_uwp_p0_config,
@@ -255,6 +222,24 @@ static const struct gpio_uwp_config gpio_uwp_p1_config = {
 };
 static struct device DEVICE_NAME_GET(gpio_uwp_p1);
 static struct gpio_uwp_data gpio_uwp_p1_data;
+
+static int gpio_uwp_p1_init(struct device *dev)
+{
+	const struct gpio_uwp_config *gpio_config = DEV_CFG(dev);
+	u32_t base = gpio_config->port_base;
+ 	uwp_aon_enable(BIT(AON_EB_GPIO1));
+	uwp_aon_reset(BIT(AON_RST_GPIO1));
+	/* enable all gpio read/write by default */
+	uwp_gpio_enable(base, 0xFFFF);
+ 	uwp_gpio_int_disable(base, 0xFFFF);
+	uwp_gpio_disable(base, 0xFFFF);
+ #ifdef CONFIG_AON_INTC_UWP
+	uwp_aon_intc_set_irq_callback(AON_INT_GPIO1, gpio_uwp_isr, dev);
+	/* uwp_aon_irq_enable(AON_INT_GPIO0); */
+#endif
+ 	return 0;
+}
+
 DEVICE_AND_API_INIT(gpio_uwp_p1, CONFIG_GPIO_UWP_P1_NAME,
 		    &gpio_uwp_p1_init, &gpio_uwp_p1_data,
 		    &gpio_uwp_p1_config,
@@ -268,6 +253,23 @@ static const struct gpio_uwp_config gpio_uwp_p2_config = {
 };
 static struct device DEVICE_NAME_GET(gpio_uwp_p2);
 static struct gpio_uwp_data gpio_uwp_p2_data;
+ static int gpio_uwp_p2_init(struct device *dev)
+{
+	const struct gpio_uwp_config *gpio_config = DEV_CFG(dev);
+	u32_t base = gpio_config->port_base;
+ 	uwp_aon_enable(BIT(AON_EB_GPIO2));
+	uwp_aon_reset(BIT(AON_RST_GPIO2));
+	/* enable all gpio read/write by default */
+	uwp_gpio_enable(base, 0xFFFF);
+ 	uwp_gpio_int_disable(base, 0xFFFF);
+	uwp_gpio_disable(base, 0xFFFF);
+ #ifdef CONFIG_AON_INTC_UWP
+	uwp_aon_intc_set_irq_callback(AON_INT_GPIO2, gpio_uwp_isr, dev);
+	/* uwp_aon_irq_enable(AON_INT_GPIO0); */
+#endif
+ 	return 0;
+}
+
 DEVICE_AND_API_INIT(gpio_uwp_p2, CONFIG_GPIO_UWP_P2_NAME,
 		    &gpio_uwp_p2_init, &gpio_uwp_p2_data,
 		    &gpio_uwp_p2_config,
