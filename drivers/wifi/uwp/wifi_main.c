@@ -340,6 +340,12 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 	u32_t addr;
 	u16_t max_len;
 
+	if (!priv->opened) {
+		SYS_LOG_WRN("iface %d no opened.", priv->mode);
+		net_pkt_unref(pkt);
+		return -EWOULDBLOCK;
+	}
+
 	wifi_tx_fill_msdu_dscr(priv, pkt, SPRDWL_TYPE_DATA, 0);
 
 	total_len = net_pkt_ll_reserve(pkt) + net_pkt_get_len(pkt);
