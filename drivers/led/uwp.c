@@ -16,51 +16,70 @@ LOG_MODULE_REGISTER(led_uwp);
 
 
 #define DEV_DATA(dev) \
-	    ((struct device *)(dev)->driver_data)
+	    ((struct led_priv *)(dev)->driver_data)
 
 #define LED_ON_VALUE (0)
 #define LED_OFF_VALUE (1)
 
-static struct device gpio;
+struct led_priv {
+	struct device *gpio
+};
+
+static struct led_priv led_priv_data;
 
 static int led_uwp_off(struct device *dev, u32_t led)
 {
-	struct device *gpio = DEV_DATA(dev);
+	struct led_priv *priv = DEV_DATA(dev);
 
-	if (!gpio) {
+	if (!priv) {
+		LOG_ERR("Unable to find priv data");
+		return -ENODATA;
+	}
+
+	if (!priv->gpio) {
 		LOG_ERR("No gpio device");
 		return -ENXIO;
 	}
 
-	return gpio_pin_write(gpio, led, LED_OFF_VALUE);
+	return gpio_pin_write(priv->gpio, led, LED_OFF_VALUE);
 }
 
 static int led_uwp_on(struct device *dev, u32_t led)
 {
-	struct device *gpio = DEV_DATA(dev);
+	struct led_priv *priv = DEV_DATA(dev);
 
-	if (!gpio) {
+	if (!priv) {
+		LOG_ERR("Unable to find priv data");
+		return -ENODATA;
+	}
+
+	if (!priv->gpio) {
 		LOG_ERR("No gpio device");
 		return -ENXIO;
 	}
 
-	return gpio_pin_write(gpio, led, LED_ON_VALUE);
+	return gpio_pin_write(priv->gpio, led, LED_ON_VALUE);
 }
 
 static int led_uwp_init(struct device *dev)
 {
-	struct device *gpio = DEV_DATA(dev);
+	struct led_priv *priv = DEV_DATA(dev);
 
-	gpio = device_get_binding(CONFIG_GPIO_UWP_P0_NAME);
-	if (!gpio) {
+	if (!priv) {
+		LOG_ERR("Unable to find priv data");
+		return -ENODATA;
+	}
+
+	priv->gpio = device_get_binding(CONFIG_GPIO_UWP_P0_NAME);
+	if (!priv->gpio) {
 		LOG_ERR("Unable to find %s", CONFIG_GPIO_UWP_P0_NAME);
 		return -ENODEV;
 	}
 
-	gpio_pin_configure(gpio, CONFIG_LED_PIN1,
+	gpio_pin_configure(priv->gpio, CONFIG_LED_PIN1,
 			GPIO_DIR_OUT | GPIO_PUD_PULL_DOWN);
 
-	gpio_pin_configure(gpio, CONFIG_LED_PIN3,
+	gpio_pin_configure(priv->gpio, CONFIG_LED_PIN3,
 			GPIO_DIR_OUT | GPIO_PUD_PULL_DOWN);
 
 	return 0;
@@ -72,5 +91,5 @@ static const struct led_driver_api led_uwp_api = {
 };
 
 DEVICE_AND_API_INIT(led_uwp, CONFIG_LED_DRV_NAME, led_uwp_init,
-			&gpio, NULL, POST_KERNEL,
+			&led_priv_data, NULL, POST_KERNEL,
 			CONFIG_LED_INIT_PRIORITY, &led_uwp_api);
