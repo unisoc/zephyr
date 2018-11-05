@@ -16,20 +16,20 @@ LOG_MODULE_REGISTER(led_uwp);
 
 
 #define DEV_DATA(dev) \
-	    ((struct led_priv *)(dev)->driver_data)
+	    ((struct uwp_led_priv *)(dev)->driver_data)
 
 #define LED_ON_VALUE (0)
 #define LED_OFF_VALUE (1)
 
-struct led_priv {
-	struct device *gpio
+struct uwp_led_priv {
+	struct device *gpio;
 };
 
-static struct led_priv led_priv_data;
+static struct uwp_led_priv uwp_led_data;
 
-static int led_uwp_off(struct device *dev, u32_t led)
+static int uwp_led_off(struct device *dev, u32_t led)
 {
-	struct led_priv *priv = DEV_DATA(dev);
+	struct uwp_led_priv *priv = DEV_DATA(dev);
 
 	if (!priv) {
 		LOG_ERR("Unable to find priv data");
@@ -44,9 +44,9 @@ static int led_uwp_off(struct device *dev, u32_t led)
 	return gpio_pin_write(priv->gpio, led, LED_OFF_VALUE);
 }
 
-static int led_uwp_on(struct device *dev, u32_t led)
+static int uwp_led_on(struct device *dev, u32_t led)
 {
-	struct led_priv *priv = DEV_DATA(dev);
+	struct uwp_led_priv *priv = DEV_DATA(dev);
 
 	if (!priv) {
 		LOG_ERR("Unable to find priv data");
@@ -61,9 +61,9 @@ static int led_uwp_on(struct device *dev, u32_t led)
 	return gpio_pin_write(priv->gpio, led, LED_ON_VALUE);
 }
 
-static int led_uwp_init(struct device *dev)
+static int uwp_led_init(struct device *dev)
 {
-	struct led_priv *priv = DEV_DATA(dev);
+	struct uwp_led_priv *priv = DEV_DATA(dev);
 
 	if (!priv) {
 		LOG_ERR("Unable to find priv data");
@@ -85,11 +85,11 @@ static int led_uwp_init(struct device *dev)
 	return 0;
 }
 
-static const struct led_driver_api led_uwp_api = {
-	.on = led_uwp_on,
-	.off = led_uwp_off,
+static const struct led_driver_api uwp_led_api = {
+	.on = uwp_led_on,
+	.off = uwp_led_off,
 };
 
-DEVICE_AND_API_INIT(led_uwp, CONFIG_LED_DRV_NAME, led_uwp_init,
-			&led_priv_data, NULL, POST_KERNEL,
-			CONFIG_LED_INIT_PRIORITY, &led_uwp_api);
+DEVICE_AND_API_INIT(led_uwp, CONFIG_LED_DRV_NAME, uwp_led_init,
+			&uwp_led_data, NULL, POST_KERNEL,
+			CONFIG_LED_INIT_PRIORITY, &uwp_led_api);
