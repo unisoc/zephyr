@@ -7,7 +7,7 @@
 #include <logging/log.h>
 #define LOG_MODULE_NAME wifi_uwp
 #define LOG_LEVEL CONFIG_WIFI_LOG_LEVEL
-LOG_MODULE_DECLARE(LOG_MODULE_NAME)
+LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 
 #include <zephyr.h>
 #include <string.h>

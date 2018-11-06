@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef __WIFI_MAIN_H_
-#define __WIFI_MAIN_H_
+#ifndef __WIFI_MAIN_H__
+#define __WIFI_MAIN_H__
 
 #include <zephyr.h>
 #include "wifi_cmdevt.h"
@@ -62,4 +62,4 @@ int wifi_get_mac(u8_t *mac, int idx);
 /* struct netif *wifi_ifnet_get_interface(struct adapter *pAd,int ctx_id); */
 
 
-#endif /* __WIFI_MAIN_H_ */
+#endif /* __WIFI_MAIN_H__ */
