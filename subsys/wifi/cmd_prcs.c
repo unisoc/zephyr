@@ -57,13 +57,14 @@ static void command_processor_post_process(void *handle,
 	msg->reply = reply;
 	ret =
 	    mq_send(prcs->mq, (const char *)msg, sizeof(struct cmd_message), 0);
-	if (ret < 0)
+	if (ret < 0) {
 		syslog(LOG_ERR,
 		       "failed to send [%s] reply: %d, errno %d!\n",
 		       wifimgr_cmd2str(msg->cmd_id), ret, errno);
-	else
+	} else {
 		syslog(LOG_DEBUG, "send [%s] reply: %d\n",
 		       wifimgr_cmd2str(msg->cmd_id), msg->reply);
+	}
 }
 
 static void *command_processor(void *handle)
