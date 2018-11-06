@@ -4,13 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define SYS_LOG_LEVEL CONFIG_SYS_LOG_WIFI_LEVEL
-#define SYS_LOG_DOMAIN "dev/wifi"
-#if (SYS_LOG_LEVEL > SYS_LOG_LEVEL_OFF)
-#define NET_LOG_ENABLED (1)
-#endif
 
-#include <logging/sys_log.h>
+#include <logging/log.h>
+#define LOG_MODULE_NAME wifi_uwp
+#define LOG_LEVEL CONFIG_WIFI_LOG_LEVEL
+LOG_MODULE_REGISTER(LOG_MODULE_NAME)
 
 #include <zephyr.h>
 #include <kernel.h>
@@ -66,21 +64,21 @@ static int wifi_rf_init(void)
 {
 	int ret = 0;
 
-	SYS_LOG_DBG("download the first section of config file");
+	LOG_DBG("download the first section of config file");
 	ret = wifi_cmd_load_ini(sec1_table, sizeof(sec1_table), SEC1);
 	if (ret) {
-		SYS_LOG_ERR("download first section ini fail,ret = %d", ret);
+		LOG_ERR("download first section ini fail,ret = %d", ret);
 		return ret;
 	}
 
-	SYS_LOG_DBG("download the second section of config file");
+	LOG_DBG("download the second section of config file");
 	ret = wifi_cmd_load_ini(sec2_table, sizeof(sec2_table), SEC2);
 	if (ret) {
-		SYS_LOG_ERR("download second section ini fail,ret = %d", ret);
+		LOG_ERR("download second section ini fail,ret = %d", ret);
 		return ret;
 	}
 
-	SYS_LOG_DBG("Load wifi ini success.");
+	LOG_DBG("Load wifi ini success.");
 
 	return 0;
 }
@@ -273,7 +271,7 @@ static void uwp_iface_init(struct net_if *iface)
 
 	wifi_cmd_get_cp_info(priv);
 
-	SYS_LOG_INF("mode: %d, cp version: 0x%x.",
+	LOG_INF("mode: %d, cp version: 0x%x.",
 		    priv->mode, priv->cp_version);
 
 	net_if_set_link_addr(iface, priv->mac, sizeof(priv->mac),
@@ -294,7 +292,7 @@ static int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
 	net_pkt_set_ll_reserve(pkt,
 			sizeof(struct tx_msdu_dscr) +
 			net_pkt_ll_reserve(pkt));
-	SYS_LOG_DBG("size msdu: %d", sizeof(struct tx_msdu_dscr));
+	LOG_DBG("size msdu: %d", sizeof(struct tx_msdu_dscr));
 
 	dscr = (struct tx_msdu_dscr *)net_pkt_ll(pkt);
 	memset(dscr, 0x00, sizeof(struct tx_msdu_dscr));
@@ -343,7 +341,7 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 	u16_t max_len;
 
 	if (!priv->opened) {
-		SYS_LOG_WRN("iface %d no opened.", priv->mode);
+		LOG_WRN("iface %d no opened.", priv->mode);
 		net_pkt_unref(pkt);
 		return -EWOULDBLOCK;
 	}
@@ -352,7 +350,7 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 
 	total_len = net_pkt_ll_reserve(pkt) + net_pkt_get_len(pkt);
 
-	SYS_LOG_DBG("wifi tx data: %d bytes, reserve: %d bytes",
+	LOG_DBG("wifi tx data: %d bytes, reserve: %d bytes",
 		    total_len, net_pkt_ll_reserve(pkt));
 
 	for (frag = pkt->frags; frag; frag = frag->frags) {
@@ -375,7 +373,7 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 		max_len = MTU + sizeof(struct tx_msdu_dscr)
 			+ 14 /* link layer header length */;
 		if (data_len > max_len) {
-			SYS_LOG_ERR("Exceed max length %d data_len %d",
+			LOG_ERR("Exceed max length %d data_len %d",
 					max_len, data_len);
 			return -1;
 		}
@@ -412,7 +410,7 @@ static int uwp_init(struct device *dev)
 	} else if (!strcmp(dev->config->name, CONFIG_WIFI_AP_DRV_NAME)) {
 		priv->mode = WIFI_MODE_AP;
 	} else {
-		SYS_LOG_ERR("Unknown WIFI DEV NAME: %s",
+		LOG_ERR("Unknown WIFI DEV NAME: %s",
 			    dev->config->name);
 	}
 
@@ -423,7 +421,7 @@ static int uwp_init(struct device *dev)
 
 			ret = uwp_mcu_init();
 			if (ret) {
-				SYS_LOG_ERR("firmware download failed %i.",
+				LOG_ERR("firmware download failed %i.",
 						ret);
 				return ret;
 			}
@@ -435,7 +433,7 @@ static int uwp_init(struct device *dev)
 			k_sleep(400); /* FIXME: workaround */
 			ret = wifi_rf_init();
 			if (ret) {
-				SYS_LOG_ERR("wifi rf init failed.");
+				LOG_ERR("wifi rf init failed.");
 				return ret;
 			}
 		}
@@ -447,7 +445,7 @@ static int uwp_init(struct device *dev)
 		priv->initialized = true;
 	}
 
-	SYS_LOG_DBG("UWP WIFI driver Initialized");
+	LOG_DBG("UWP WIFI driver Initialized");
 
 	return 0;
 }
