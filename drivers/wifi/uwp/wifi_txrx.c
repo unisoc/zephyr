@@ -4,8 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <logging/log.h>
+#define LOG_MODULE_NAME wifi_uwp
+#define LOG_LEVEL CONFIG_WIFI_LOG_LEVEL
+LOG_MODULE_DECLARE(LOG_MODULE_NAME)
+
 #include <zephyr.h>
-#include <logging/sys_log.h>
 #include <string.h>
 #include <sipc.h>
 #include <sblock.h>
@@ -49,7 +53,7 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 
 	rx_pkt = net_pkt_get_reserve_rx(0, K_NO_WAIT);
 	if (!rx_pkt) {
-		SYS_LOG_ERR("Could not allocate rx packet.");
+		LOG_ERR("Could not allocate rx packet.");
 		return -1;
 	}
 
@@ -86,7 +90,7 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 	}
 
 	if (net_recv_data(priv->iface, rx_pkt) < 0) {
-		SYS_LOG_ERR("pkt %p not received by L2 stack.", rx_pkt);
+		LOG_ERR("pkt %p not received by L2 stack.", rx_pkt);
 		net_pkt_unref(rx_pkt);
 	}
 
@@ -155,7 +159,7 @@ int wifi_data_process(struct wifi_priv *priv, char *data, int len)
 	case SPRDWL_TYPE_DATA_HIGH_SPEED:
 		break;
 	default:
-		SYS_LOG_ERR("unknown type :%d\n", common_hdr->type);
+		LOG_ERR("unknown type :%d\n", common_hdr->type);
 	}
 	return 0;
 }
@@ -168,14 +172,14 @@ static void txrx_thread(void *p1)
 	int len;
 
 	while (1) {
-		SYS_LOG_DBG("wait for data.");
+		LOG_DBG("wait for data.");
 		k_sem_take(&event_sem, K_FOREVER);
 
 		while (1) {
 			memset(addr, 0, RX_BUF_SIZE);
 			ret = wifi_ipc_recv(SMSG_CH_WIFI_CTRL, addr, &len, 0);
 			if (ret == 0) {
-				SYS_LOG_DBG("Receive cmd/evt %p len %i",
+				LOG_DBG("Receive cmd/evt %p len %i",
 						addr, len);
 
 				wifi_cmdevt_process(priv, addr, len);
@@ -188,7 +192,7 @@ static void txrx_thread(void *p1)
 			ret = wifi_ipc_recv(SMSG_CH_WIFI_DATA_NOR,
 					addr, &len, 0);
 			if (ret == 0) {
-				SYS_LOG_DBG("Receive data %p len %i",
+				LOG_DBG("Receive data %p len %i",
 						addr, len);
 				wifi_data_process(priv, addr, len);
 			} else {
@@ -230,7 +234,7 @@ int wifi_tx_data(void *data, int len)
 			    1 * SPRDWL_PHYS_LEN + sizeof(struct hw_addr_buff_t),
 			    WIFI_DATA_NOR_MSG_OFFSET);
 	if (ret < 0) {
-		SYS_LOG_ERR("sprd_wifi_send fail\n");
+		LOG_ERR("sprd_wifi_send fail\n");
 		return ret;
 	}
 
@@ -240,7 +244,7 @@ int wifi_tx_data(void *data, int len)
 static void wifi_rx_data(int ch)
 {
 	if (ch != SMSG_CH_WIFI_DATA_NOR) {
-		SYS_LOG_ERR("Invalid data channel: %d.", ch);
+		LOG_ERR("Invalid data channel: %d.", ch);
 	}
 
 	k_sem_give(&event_sem);
@@ -260,7 +264,7 @@ static int wifi_tx_empty_buf_(int num)
 		/* Reserve a data frag to receive the frame */
 		pkt_buf = net_pkt_get_reserve_rx_data(0, K_NO_WAIT);
 		if (!pkt_buf) {
-			SYS_LOG_ERR("Could not allocate rx packet %d.", i);
+			LOG_ERR("Could not allocate rx packet %d.", i);
 			return -1;
 		}
 
@@ -277,7 +281,7 @@ static int wifi_tx_empty_buf_(int num)
 	}
 
 	if (i == 0) {
-		SYS_LOG_ERR("No more rx packet buffer.");
+		LOG_ERR("No more rx packet buffer.");
 		return -1;
 	}
 
@@ -291,7 +295,7 @@ static int wifi_tx_empty_buf_(int num)
 			i * SPRDWL_PHYS_LEN + 3,
 			WIFI_DATA_NOR_MSG_OFFSET);
 	if (ret < 0) {
-		SYS_LOG_ERR("sprd_wifi_send fail\n");
+		LOG_ERR("sprd_wifi_send fail\n");
 		return ret;
 	}
 
@@ -338,7 +342,7 @@ int wifi_release_rx_buf(void)
 	}
 	k_mutex_unlock(&rx_buf_mutex);
 
-	SYS_LOG_DBG("flush all rx buf");
+	LOG_DBG("flush all rx buf");
 
 	return 0;
 }
@@ -355,21 +359,21 @@ int wifi_txrx_init(struct wifi_priv *priv)
 	ret = wifi_ipc_create_channel(SMSG_CH_WIFI_CTRL,
 				      wifi_rx_event);
 	if (ret < 0) {
-		SYS_LOG_ERR("Create wifi control channel failed.");
+		LOG_ERR("Create wifi control channel failed.");
 		return ret;
 	}
 
 	ret = wifi_ipc_create_channel(SMSG_CH_WIFI_DATA_NOR,
 				      wifi_rx_data);
 	if (ret < 0) {
-		SYS_LOG_ERR("Create wifi data channel failed.");
+		LOG_ERR("Create wifi data channel failed.");
 		return ret;
 	}
 
 	ret = wifi_ipc_create_channel(SMSG_CH_WIFI_DATA_SPEC,
 				      wifi_rx_data);
 	if (ret < 0) {
-		SYS_LOG_ERR("Create wifi data channel failed.");
+		LOG_ERR("Create wifi data channel failed.");
 		return ret;
 	}
 
