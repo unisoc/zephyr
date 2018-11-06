@@ -4,8 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <logging/log.h>
+#define LOG_MODULE_NAME wifi_uwp
+#define LOG_LEVEL CONFIG_WIFI_LOG_LEVEL
+LOG_MODULE_DECLARE(LOG_MODULE_NAME)
+
 #include <zephyr.h>
-#include <logging/sys_log.h>
 #include <string.h>
 #include <sipc.h>
 #include <sblock.h>
@@ -53,7 +57,7 @@ static u16_t CRC16(const u8_t *buf, u16_t len)
 static inline int check_cmdevt_len(int input_len, int expected_len)
 {
 	if (input_len != expected_len) {
-		SYS_LOG_ERR("Invalid len %d, expected len %d",
+		LOG_ERR("Invalid len %d, expected len %d",
 				input_len, expected_len);
 		return -1;
 	}
@@ -73,13 +77,13 @@ int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 
 	cmd = k_malloc(cmd_len);
 	if (!cmd) {
-		SYS_LOG_ERR("cmd is null");
+		LOG_ERR("cmd is null");
 		return ret;
 	}
 
 	/* Calc CRC value. */
 	crc = CRC16(data, len);
-	SYS_LOG_DBG("sec: %d, len: %d, CRC value: 0x%x",
+	LOG_DBG("sec: %d, len: %d, CRC value: 0x%x",
 		    sec_num, len, crc);
 
 	memset(cmd, 0, cmd_len);
@@ -93,7 +97,7 @@ int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 	ret = wifi_cmd_send(WIFI_CMD_DOWNLOAD_INI, (char *)cmd,
 			    cmd_len, NULL, 0);
 	if (ret) {
-		SYS_LOG_ERR("load ini fail");
+		LOG_ERR("load ini fail");
 		k_free(cmd);
 		return ret;
 	}
@@ -120,7 +124,7 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 	case WIFI_BAND_2_4G:
 		cmd = k_malloc(cmd_len);
 		if (!cmd) {
-			SYS_LOG_ERR("cmd is null");
+			LOG_ERR("cmd is null");
 			return ret;
 		}
 
@@ -136,7 +140,7 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 
 			cmd = k_malloc(cmd_len);
 			if (!cmd) {
-				SYS_LOG_ERR("cmd is null");
+				LOG_ERR("cmd is null");
 				return ret;
 			}
 			memset(cmd, 0, cmd_len);
@@ -149,7 +153,7 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 
 			cmd = k_malloc(cmd_len);
 			if (!cmd) {
-				SYS_LOG_ERR("cmd is null");
+				LOG_ERR("cmd is null");
 				return ret;
 			}
 			memset(cmd, 0, cmd_len);
@@ -166,7 +170,7 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 
 			cmd = k_malloc(cmd_len);
 			if (!cmd) {
-				SYS_LOG_ERR("cmd is null");
+				LOG_ERR("cmd is null");
 				return ret;
 			}
 			memset(cmd, 0, cmd_len);
@@ -178,7 +182,7 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 
 			cmd->channels_2g = ALL_2_4_GHZ_CHANNELS;
 		} else {
-			SYS_LOG_ERR("Invalid band %d, channel %d.",
+			LOG_ERR("Invalid band %d, channel %d.",
 					band, channel);
 			return ret;
 		}
@@ -188,7 +192,7 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 	ret = wifi_cmd_send(WIFI_CMD_SCAN, (char *)cmd,
 			    cmd_len, NULL, NULL);
 	if (ret) {
-		SYS_LOG_ERR("scan cmd fail");
+		LOG_ERR("scan cmd fail");
 		k_free(cmd);
 		return ret;
 	}
@@ -207,7 +211,7 @@ int wifi_cmd_connect(struct wifi_priv *priv,
 	memset(&cmd, 0, sizeof(cmd));
 
 	if (params->ssid == NULL) {
-		SYS_LOG_ERR("Invalid SSID.");
+		LOG_ERR("Invalid SSID.");
 		return -1;
 	}
 
@@ -221,7 +225,7 @@ int wifi_cmd_connect(struct wifi_priv *priv,
 	ret = wifi_cmd_send(WIFI_CMD_CONNECT, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
-		SYS_LOG_ERR("connect cmd fail");
+		LOG_ERR("connect cmd fail");
 		return ret;
 	}
 
@@ -238,7 +242,7 @@ int wifi_cmd_disconnect(struct wifi_priv *priv)
 	ret = wifi_cmd_send(WIFI_CMD_DISCONNECT, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
-		SYS_LOG_ERR("disconnect cmd fail");
+		LOG_ERR("disconnect cmd fail");
 		return ret;
 	}
 
@@ -255,7 +259,7 @@ int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 	ret = wifi_cmd_send(WIFI_CMD_GET_CP_INFO, (char *)&cmd, sizeof(cmd),
 			    (char *)&cmd, &len);
 	if (ret) {
-		SYS_LOG_ERR("get cp info fail");
+		LOG_ERR("get cp info fail");
 		return ret;
 	}
 
@@ -275,7 +279,7 @@ int wifi_cmd_open(struct wifi_priv *priv)
 	struct cmd_start cmd;
 	int ret;
 
-	SYS_LOG_DBG("open mode %d", priv->mode);
+	LOG_DBG("open mode %d", priv->mode);
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.mode = priv->mode;
@@ -284,10 +288,10 @@ int wifi_cmd_open(struct wifi_priv *priv)
 	ret = wifi_cmd_send(WIFI_CMD_OPEN, (char *)&cmd, sizeof(cmd),
 			    NULL, NULL);
 	if (ret) {
-		SYS_LOG_ERR("start mode %d fail", priv->mode);
+		LOG_ERR("start mode %d fail", priv->mode);
 		return ret;
 	}
-	SYS_LOG_DBG("open mode success.");
+	LOG_DBG("open mode success.");
 
 	return 0;
 }
@@ -304,7 +308,7 @@ int wifi_cmd_close(struct wifi_priv *priv)
 	ret = wifi_cmd_send(WIFI_CMD_CLOSE, (char *)&cmd, sizeof(cmd),
 			    NULL, NULL);
 	if (ret) {
-		SYS_LOG_ERR("stop mode:%d fail", priv->mode);
+		LOG_ERR("stop mode:%d fail", priv->mode);
 		return ret;
 	}
 
@@ -317,29 +321,29 @@ int wifi_cmd_start_ap(struct wifi_priv *priv,
 	struct cmd_start_ap cmd;
 	int ret;
 
-	SYS_LOG_DBG("start ap at channel: %d.", params->channel);
+	LOG_DBG("start ap at channel: %d.", params->channel);
 	memset(&cmd, 0, sizeof(cmd));
 
 	/* memcpy(cmd.mac, priv->mac, 6); */
 	if (params->ssid_length > 0) {
 		memcpy(cmd.ssid, params->ssid, params->ssid_length);
 		cmd.ssid_len = params->ssid_length;
-		SYS_LOG_DBG("ssid: %s(%d).", cmd.ssid, cmd.ssid_len);
+		LOG_DBG("ssid: %s(%d).", cmd.ssid, cmd.ssid_len);
 	}
 	if (params->psk_length > 0) {
 		memcpy(cmd.password, params->psk, params->psk_length);
 		cmd.password_len = params->psk_length;
-		SYS_LOG_DBG("psk: %s(%d).", cmd.password, cmd.password_len);
+		LOG_DBG("psk: %s(%d).", cmd.password, cmd.password_len);
 	}
 
 	cmd.channel = params->channel;
 	ret = wifi_cmd_send(WIFI_CMD_START_AP, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
-		SYS_LOG_ERR("ap start fail");
+		LOG_ERR("ap start fail");
 		return ret;
 	}
-	SYS_LOG_DBG("start ap ok.");
+	LOG_DBG("start ap ok.");
 
 	return 0;
 }
@@ -355,7 +359,7 @@ int wifi_cmd_stop_ap(struct wifi_priv *priv)
 	ret = wifi_cmd_send(WIFI_CMD_CLOSE, (char *)&cmd, sizeof(cmd),
 			    NULL, NULL);
 	if (ret) {
-		SYS_LOG_ERR("ap stop fail");
+		LOG_ERR("ap stop fail");
 		return ret;
 	}
 
@@ -379,7 +383,7 @@ int wifi_cmd_npi_send(int ictx_id, char *t_buf,
 
 	cmd = k_malloc(cmd_len);
 	if (!cmd) {
-		SYS_LOG_ERR("cmd is null");
+		LOG_ERR("cmd is null");
 		return ret;
 	}
 
@@ -390,7 +394,7 @@ int wifi_cmd_npi_send(int ictx_id, char *t_buf,
 	ret = wifi_cmd_send(WIFI_CMD_NPI_MSG, (char *)cmd,
 			cmd_len, r_buf, r_len);
 	if (ret) {
-		SYS_LOG_ERR("npi_send_command fail");
+		LOG_ERR("npi_send_command fail");
 		k_free(cmd);
 		return ret;
 	}
@@ -427,18 +431,18 @@ int wifi_cmd_set_ip(struct wifi_priv *priv, u8_t *ip_addr, u8_t len)
 		/* Store ipv4 address in wifi_priv. */
 		memcpy(priv->ipv4_addr, ip_addr, len);
 	} else {
-		SYS_LOG_WRN("Currently only ipv4, 4 bytes.");
+		LOG_WRN("Currently only ipv4, 4 bytes.");
 		return ret;
 	}
 
 	ret = wifi_cmd_send(WIFI_CMD_SET_IP, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
-		SYS_LOG_ERR("set ip fail");
+		LOG_ERR("set ip fail");
 		return ret;
 	}
 
-	SYS_LOG_DBG("set ip ok.");
+	LOG_DBG("set ip ok.");
 
 	return 0;
 }
@@ -463,7 +467,7 @@ int wifi_evt_scan_result(struct wifi_priv *priv, char *data, int len)
 	scan_result.channel = event->channel;
 	scan_result.rssi = event->rssi;
 
-	SYS_LOG_DBG("ssid: %s", event->ssid);
+	LOG_DBG("ssid: %s", event->ssid);
 
 	if (priv->scan_result_cb) {
 		priv->scan_result_cb(priv->iface, 0, &scan_result);
@@ -549,7 +553,7 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 	struct trans_hdr *hdr = (struct trans_hdr *)data;
 
 	if (len > RECV_BUF_SIZE) {
-		SYS_LOG_ERR("invalid data len %d.", len);
+		LOG_ERR("invalid data len %d.", len);
 		return -1;
 	}
 
@@ -572,7 +576,7 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 		return 0;
 	}
 
-	SYS_LOG_DBG("Receive event type 0x%x.", hdr->type);
+	LOG_DBG("Receive event type 0x%x.", hdr->type);
 
 	len -= sizeof(*hdr);
 
@@ -606,12 +610,12 @@ int wifi_cmd_send(u8_t cmd, char *data, int len, char *rbuf, int *rlen)
 	struct trans_hdr *hdr = (struct trans_hdr *)data;
 
 	if (cmd > WIFI_CMD_MAX || cmd < WIFI_CMD_BEGIN) {
-		SYS_LOG_ERR("Invalid command %d ", cmd);
+		LOG_ERR("Invalid command %d ", cmd);
 		return -1;
 	}
 
 	if (data != NULL && len == 0) {
-		SYS_LOG_ERR("data len Invalid,data=%p,len=%d", data, len);
+		LOG_ERR("data len Invalid,data=%p,len=%d", data, len);
 		return -1;
 	}
 
@@ -621,19 +625,19 @@ int wifi_cmd_send(u8_t cmd, char *data, int len, char *rbuf, int *rlen)
 
 	ret = wifi_tx_cmd(data, len);
 	if (ret < 0) {
-		SYS_LOG_ERR("wifi send cmd fail");
+		LOG_ERR("wifi send cmd fail");
 		return -1;
 	}
 
 	ret = k_sem_take(&cmd_sem, 3000);
 	if (ret) {
-		SYS_LOG_ERR("wait cmd(%d) timeout.", cmd);
+		LOG_ERR("wait cmd(%d) timeout.", cmd);
 		return ret;
 	}
 
 	hdr = (struct trans_hdr *)recv_buf;
 	if (hdr->status != 0) {
-		SYS_LOG_ERR("invalid cmd status: %i", hdr->status);
+		LOG_ERR("invalid cmd status: %i", hdr->status);
 		return hdr->status;
 	}
 
@@ -644,7 +648,7 @@ int wifi_cmd_send(u8_t cmd, char *data, int len, char *rbuf, int *rlen)
 		*rlen = recv_len;
 	}
 
-	SYS_LOG_DBG("get command response success");
+	LOG_DBG("get command response success");
 	return 0;
 }
 
