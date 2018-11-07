@@ -110,26 +110,6 @@ extern "C" {
 #endif
 #endif
 
-#if 0
-	const NOR_FLASH_CONFIG_T s_platform_patition_config = {
-		1,
-		RUNNIN_NV_SECTOR_NUM,
-		0,
-		FLASH_SECTOR_SIZE,
-		0x00000000,
-		RUNNIN_NV_BASE_ADDR,
-		MAX_FLASH_SIZE,
-		FIXED_NV_BASE_ADDR,
-		PRODUCT_NV_BASE_ADDR,
-		MMI_RES_BASE_ADDR,
-		UDISK_BASE_ADDR,
-		UDISK_SIZE,
-		-1,
-	};
-
-#define FLASH_LOGIC_PATITIION		&s_platform_patition_config
-#endif
-
 #define SPIFLASH_VOLTAGE_3V			1
 #define SPIFLASH_VOLTAGE_1V8		0
 
@@ -250,18 +230,253 @@ extern "C" {
 #define GIGA_ID_25LQ128					0X6018
 #define GIGA_ID_25Q64B					0X4017
 #define GIGA_ID_25Q32B					0X4016
+static struct spi_flash_params giga_flash_table[] = {
+	{
+		GIGA_ID_25LQ16,
+		0,
+		256,
+		16,
+		16,
+		32,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_2CLOCKS,
+		"25LQ16",
+	},
+	{
+		GIGA_ID_25LQ32B,
+		0,
+		256,
+		16,
+		16,
+		64,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_2CLOCKS,
+		"25LQ32B",
+	},
+	{
+		GIGA_ID_25LQ64B,
+		0,
+		256,
+		16,
+		16,
+		128,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_2CLOCKS,
+		"25LQ64B",
+	},
+	{
+		GIGA_ID_25LQ128,
+		0,
+		256,
+		16,
+		16,
+		256,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_2CLOCKS,
+		"25LQ128",
+	},
+	{
+		GIGA_ID_25Q64B,
+		0,
+		256,
+		16,
+		16,
+		128,
+		SPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_2CLOCKS,
+		"25Q64B",
+	},
+	{
+		GIGA_ID_25Q32B,
+		0,
+		256,
+		16,
+		16,
+		64,
+		SPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_2CLOCKS,
+		"25Q32B",
+	},
+	{
+		GIGA_ID_25Q32B,
+		0,
+		256,
+		16,
+		16,
+		64,
+		SPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_2CLOCKS,
+		"25Q32B",
+	},
+};
 
 #define WINBOND_ID_W25X16			0x3015
 #define WINBOND_ID_W25X32			0x3016
 #define WINBOND_ID_W25X64			0x3017
-#define WINBOND_ID_W25Q32DW		0x6016
-#define WINBOND_ID_W25Q64FW		0x6017
+#define WINBOND_ID_W25Q32DW			0x6016
+#define WINBOND_ID_W25Q64FW			0x6017
 #define WINBOND_ID_W25Q128FW		0x6018
 #define WINBOND_ID_W25Q16			0x4015
-#define WINBOND_ID_W25Q32FV		0x4016
-#define WINBOND_ID_W25Q64FV		0x4017
+#define WINBOND_ID_W25Q32FV			0x4016
+#define WINBOND_ID_W25Q64FV			0x4017
 #define WINBOND_ID_W25Q128FV		0x4018
 #define WINBOND_ID_W25Q256FV		0x4019
+static struct spi_flash_params winbond_flash_table[] = {
+	{
+		WINBOND_ID_W25X16,
+		0,
+		256,
+		16,
+		16,
+		32,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_4CLOCKS,
+		"W25X16",
+	},
+	{
+		WINBOND_ID_W25X32,
+		0,
+		256,
+		16,
+		16,
+		64,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_4CLOCKS,
+		"W25X32",
+	},
+	{
+		WINBOND_ID_W25X64,
+		0,
+		256,
+		16,
+		16,
+		128,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_4CLOCKS,
+		"W25X64",
+	},
+	{
+		WINBOND_ID_W25Q32DW,
+		0,
+		256,
+		16,
+		16,
+		64,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_4CLOCKS,
+		"W25Q32DW",
+	},
+	{
+		WINBOND_ID_W25Q64FW,
+		0,
+		256,
+		16,
+		16,
+		128,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_4CLOCKS,
+		"W25Q64FW",
+	},
+	{
+		WINBOND_ID_W25Q128FW,
+		0,
+		256,
+		16,
+		16,
+		256,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_4CLOCKS,
+		"W25Q128FW",
+	},
+	{
+		WINBOND_ID_W25Q16,
+		0,
+		256,
+		16,
+		16,
+		32,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_4CLOCKS,
+		"W25Q16",
+	},
+	{
+		WINBOND_ID_W25Q32FV,
+		0,
+		256,
+		16,
+		16,
+		64,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_4CLOCKS,
+		"W25Q32FV",
+	},
+	{
+		WINBOND_ID_W25Q64FV,
+		0,
+		256,
+		16,
+		16,
+		128,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_4CLOCKS,
+		"W25Q64FV",
+	},
+	{
+		WINBOND_ID_W25Q128FV,
+		0,
+		256,
+		16,
+		16,
+		256,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_4CLOCKS,
+		"W25Q128FV",
+	},
+	{
+		WINBOND_ID_W25Q256FV,
+		0,
+		256,
+		16,
+		16,
+		512,
+		QPI_MODE,
+		READ_FREQ_104M,
+		DUMMY_4CLOCKS,
+		"W25Q256FV",
+	},
+};
+
+
+static struct spi_flash_spec_s spi_flash_spec_table[] = {
+	{
+		GIGA_MFID,
+		ARRAY_SIZE(giga_flash_table),
+		giga_flash_table,
+	},
+	{
+		WINBOND_MFID,
+		ARRAY_SIZE(winbond_flash_table),
+		winbond_flash_table,
+	},
+};
+
 
 #ifdef __cplusplus
 }

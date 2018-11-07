@@ -9,248 +9,41 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 
 #include <kernel.h>
 #include <string.h>
-#include <uwp_hal.h>
 
-//struct spi_flash_struct g_sn;
-static struct spi_flash_params giga_flash_table[] = {
-	{
-		GIGA_ID_25LQ16,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		32,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_2CLOCKS,		//.dummy_clocks = 
-		"25LQ16",		//.name = 
-	},
-	{
-		GIGA_ID_25LQ32B,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		64,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_2CLOCKS,		//.dummy_clocks = 
-		"25LQ32B",		//.name = 
-	},
-	{
-		GIGA_ID_25LQ64B,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		128,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_2CLOCKS,		//.dummy_clocks = 
-		"25LQ64B",		//.name = 
-	},
-	{
-		GIGA_ID_25LQ128,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		256,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_2CLOCKS,		//.dummy_clocks = 
-		"25LQ128",		//.name = 
-	},
-	{
-		GIGA_ID_25Q64B,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		128,			//.nr_blocks = 
-		SPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_2CLOCKS,		//.dummy_clocks = 
-		"25Q64B",		//.name = 
-	},
-	{
-		GIGA_ID_25Q32B,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		64,			//.nr_blocks = 
-		SPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_2CLOCKS,		//.dummy_clocks = 
-		"25Q32B",		//.name = 
-	},
-	{
-		GIGA_ID_25Q32B,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		64,			//.nr_blocks = 
-		SPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_2CLOCKS,		//.dummy_clocks = 
-		"25Q32B",		//.name = 
-	},
-};
+#include <hal_sfc.h>
+#include <hal_sfc_cfg.h>
+#include <hal_sfc_phy.h>
+#include <hal_sfc_hal.h>
 
+void uwp_spi_dump(u32_t arg_in)
+{
+	LOG_INF("dump SFC register:[#### %d ####]\n", arg_in);
 
+	LOG_INF("SFC_CMD_SET		reg, addr:[%08x], value:[0x%08x]\n",
+		0x40890000, sci_read32(0x40890000));
+	LOG_INF("SFC_SOFT_REQ	reg, addr:[%08x], value:[0x%08x]\n",
+		0x40890004, sci_read32(0x40890004));
+	LOG_INF("SFC_CLK_CFG		reg, addr:[%08x], value:[0x%08x]\n",
+		0x4089001C, sci_read32(0x4089001C));
+	LOG_INF("CS0_CMD_BUF0	reg, addr:[%08x], value:[0x%08x]\n",
+		0x40890040, sci_read32(0x40890040));
+	LOG_INF("CS0_TYPE_BUF0	reg, addr:[%08x], value:[0x%08x]\n",
+		0x40890070, sci_read32(0x40890070));
+	LOG_INF("CS0_TYPE_BUF1	reg, addr:[%08x], value:[0x%08x]\n",
+		0x40890074, sci_read32(0x40890074));
+	LOG_INF("CS0_TYPE_BUF2	reg, addr:[%08x], value:[0x%08x]\n",
+		0x40890078, sci_read32(0x40890078));
 
-static struct spi_flash_params winbond_flash_table[] = {
-	{
-		WINBOND_ID_W25X16,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.sector_size = 
-		16,			//.nr_sectors = 
-		32,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_4CLOCKS,		//.dummy_clocks = 
-		"W25X16",		//.name = 
-	},
-	{
-		WINBOND_ID_W25X32,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		64,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_4CLOCKS,		//.dummy_clocks = 
-		"W25X32",		//.name = 
-	},
-	{
-		WINBOND_ID_W25X64,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		128,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_4CLOCKS,		//.dummy_clocks = 
-		"W25X64",		//.name = 
-	},
-	{
-		WINBOND_ID_W25Q32DW,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		64,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_4CLOCKS,		//.dummy_clocks = 
-		"W25Q32DW",		//.name = 
-	},
-	{
-		WINBOND_ID_W25Q64FW,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		128,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_4CLOCKS,		//.dummy_clocks = 
-		"W25Q64FW",		//.name = 
-	},
-	{
-		WINBOND_ID_W25Q128FW,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		256,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_4CLOCKS,		//.dummy_clocks = 
-		"W25Q128FW",		//.name = 
-	},
-	{
-		WINBOND_ID_W25Q16,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		32,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_4CLOCKS,		//.dummy_clocks = 
-		"W25Q16",		//.name = 
-	},
-	{
-		WINBOND_ID_W25Q32FV,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		64,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_4CLOCKS,		//.dummy_clocks = 
-		"W25Q32FV",		//.name = 
-	},
-	{
-		WINBOND_ID_W25Q64FV,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		128,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_4CLOCKS,		//.dummy_clocks = 
-		"W25Q64FV",		//.name = 
-	},
-	{
-		WINBOND_ID_W25Q128FV,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		256,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_4CLOCKS,		//.dummy_clocks = 
-		"W25Q128FV",		//.name = 
-	},
-	{
-		WINBOND_ID_W25Q256FV,	//.idcode1 = 
-		0,			//.idcode2 = 
-		256,			//.page_size = 
-		16,			//.pages_per_sector = 
-		16,			//.nr_sectors = 
-		512,			//.nr_blocks = 
-		QPI_MODE,		//.support_qpi = 
-		READ_FREQ_104M,	//.read_freq_max = 
-		DUMMY_4CLOCKS,		//.dummy_clocks = 
-		"W25Q256FV",		//.name = 
-	},
-};
+	LOG_INF("SFC_1X_CFG		reg, addr:[%08x], value:[0x%08x]\n",
+		REG_AON_CLK_RF_CGM_SFC_1X_CFG,
+		sci_read32(REG_AON_CLK_RF_CGM_SFC_1X_CFG));
+	LOG_INF("SFC_2X_CFG		reg, addr:[%08x], value:[0x%08x]\n",
+		REG_AON_CLK_RF_CGM_SFC_2X_CFG,
+		sci_read32(REG_AON_CLK_RF_CGM_SFC_2X_CFG));
+}
 
-
-static struct spi_flash_spec_s spi_flash_spec_table[] = {
-	{
-		GIGA_MFID,
-		ARRAY_SIZE(giga_flash_table),
-		giga_flash_table,
-	},
-	{
-		WINBOND_MFID,
-		ARRAY_SIZE(winbond_flash_table),
-		winbond_flash_table,
-	},
-};
-
-void create_cmd(SFC_CMD_DES_T * cmd_desc_ptr, u32_t cmd, u32_t byte_len,
+__ramfunc void create_cmd(SFC_CMD_DES_T *cmd_desc_ptr, u32_t cmd,
+		u32_t byte_len,
 		CMD_MODE_E cmd_mode, BIT_MODE_E bit_mode, SEND_MODE_E send_mode)
 {
 	cmd_desc_ptr->cmd = cmd;
@@ -260,7 +53,7 @@ void create_cmd(SFC_CMD_DES_T * cmd_desc_ptr, u32_t cmd, u32_t byte_len,
 	cmd_desc_ptr->send_mode = send_mode;
 }
 
-void spiflash_read_write(SFC_CMD_DES_T * cmd_des_ptr, u32_t cmd_len,
+__ramfunc void spiflash_read_write(SFC_CMD_DES_T *cmd_des_ptr, u32_t cmd_len,
 		u32_t * din)
 {
 	u32_t i;
@@ -282,7 +75,9 @@ void spiflash_read_write(SFC_CMD_DES_T * cmd_des_ptr, u32_t cmd_len,
 		} else
 			SCI_ASSERT(0);
 	}
+
 	SFCDRV_Req();
+
 	if (0 != read_count)
 		SFCDRV_GetReadBuf(read_ptr, read_count);
 }
@@ -357,7 +152,7 @@ BYTE_NUM_E spi_flash_addr(u32_t * addr, u32_t support_4addr)
 	}
 }
 
-struct spi_flash_params *spiflash_scan(void)
+__ramfunc struct spi_flash_params *spiflash_scan(void)
 {
 	u8_t i;
 	u8_t idcode[5];
@@ -366,25 +161,19 @@ struct spi_flash_params *spiflash_scan(void)
 	SFC_CMD_DES_T cmd_desc[2];
 	struct spi_flash_params *params = NULL;
 
-	CREATE_CMD_(cmd_desc[0], CMD_READ_ID, BYTE_NUM_1, CMD_MODE_WRITE,
-			BIT_MODE_1);
+	/* only for spi_mode */
+	CREATE_CMD_(cmd_desc[0], CMD_READ_ID,
+		BYTE_NUM_1, CMD_MODE_WRITE, BIT_MODE_1);
+	CREATE_CMD_(cmd_desc[1], 0, BYTE_NUM_3,
+		CMD_MODE_READ, BIT_MODE_1);
 
-	CREATE_CMD_(cmd_desc[1], 0, BYTE_NUM_3, CMD_MODE_READ, BIT_MODE_1);
 	spiflash_read_write(cmd_desc, 2, (u32_t *) idcode);
+
+	spiflash_select_xip(FALSE);
 
 	LOG_INF("SF: new Got idcode 0: 0x%x 1:0x%x 2:0x%x 3:0x%x 4:0x%x\n",
 			idcode[0], idcode[1], idcode[2], idcode[3], idcode[4]);
-#if 0
-	CREATE_CMD_(cmd_desc[0], CMD_READ_ID, BYTE_NUM_1,
-			CMD_MODE_WRITE, BIT_MODE_1);
-	spi_write(cmd_desc, 1, NULL);
 
-	CREATE_CMD_(cmd_desc[0], 0, BYTE_NUM_3, CMD_MODE_READ, BIT_MODE_1);
-	spi_read(cmd_desc, 1, (u32_t *) idcode);
-
-	LOG_INF("SF: 2new Got idcode 0: 0x%x 1:0x%x 2:0x%x 3:0x%x 4:0x%x\n",
-			idcode[0], idcode[1], idcode[2], idcode[3], idcode[4]);
-#endif
 	manufacturer_id = (u16_t) idcode[0];
 	jedec = idcode[1] << 8 | idcode[2];
 	ext_jedec = idcode[3] << 8 | idcode[4];
@@ -474,7 +263,7 @@ void spiflash_set_xip(SFC_CMD_DES_T * cmd_des_ptr, u32_t cmd_len,
 
 }
 
-void spiflash_set_xip_cmd(struct spi_flash *flash, u8_t cmd_read,
+void spiflash_set_xip_cmd(struct spi_flash *flash, const u8_t *cmd_read,
 		u8_t dummy_bytes)
 {
 	SFC_CMD_DES_T cmd_desc[5];
@@ -493,8 +282,9 @@ void spiflash_set_xip_cmd(struct spi_flash *flash, u8_t cmd_read,
 		bitmode_addr = BIT_MODE_4;
 		bitmode_dummy = BIT_MODE_4;
 		bitmode_data = BIT_MODE_4;
-		CREATE_CMD_(cmd_desc[0], cmd_read, BYTE_NUM_1, CMD_MODE_WRITE,
-				bitmode_cmd);
+		CREATE_CMD_(cmd_desc[0], (*(u32_t *) (cmd_read)) & 0xFF,
+				BYTE_NUM_1, CMD_MODE_WRITE,
+			    bitmode_cmd);
 	} else {
 		bitmode_cmd = BIT_MODE_1;
 		bitmode_addr = BIT_MODE_1;
@@ -532,17 +322,20 @@ void spiflash_set_xip_cmd(struct spi_flash *flash, u8_t cmd_read,
 		} else {
 			bitmode_data = BIT_MODE_1;
 		}
-		CREATE_CMD_(cmd_desc[0], cmd_read, BYTE_NUM_1, CMD_MODE_WRITE,
+		CREATE_CMD_(cmd_desc[0], (*(u32_t *) (cmd_read)) & 0xFF,
+				BYTE_NUM_1, CMD_MODE_WRITE,
 				bitmode_cmd);
 	}
 
-	if (TRUE == flash->support_4addr) {
-		CREATE_CMD_(cmd_desc[1], 0, BYTE_NUM_4, CMD_MODE_WRITE,
-				bitmode_addr);
-	} else {
-		CREATE_CMD_(cmd_desc[1], 0, BYTE_NUM_3, CMD_MODE_WRITE,
-				bitmode_addr);
-	}
+	BYTE_NUM_E addr_byte_num = BYTE_NUM_3;
+	u32_t dest_addr;
+
+	dest_addr = cmd_read[1] << 16 | cmd_read[2] << 8 | cmd_read[3];
+	addr_byte_num =
+	    spi_flash_addr(&dest_addr, flash->support_4addr);
+
+	CREATE_CMD_(cmd_desc[1], dest_addr, addr_byte_num,
+		CMD_MODE_WRITE, bitmode_addr);
 
 	if (dummy_bytes > 4) {
 		dummy[0] = BYTE_NUM_4;
@@ -1204,7 +997,7 @@ int spiflash_unlock(struct spi_flash *flash, u32_t offset, u32_t len)
 
 }
 
-int spiflash_reset_anyway(void)
+__ramfunc int spiflash_reset_anyway(void)
 {
 	int i = 0;
 	SFC_CMD_DES_T cmd_desc[2];
@@ -1214,6 +1007,7 @@ int spiflash_reset_anyway(void)
 	CREATE_CMD_(cmd_desc[0], CMD_RSTEN, BYTE_NUM_1, CMD_MODE_WRITE,
 			bitmode);
 	spiflash_read_write(cmd_desc, 1, NULL);
+
 	CREATE_CMD_(cmd_desc[0], CMD_RST, BYTE_NUM_1, CMD_MODE_WRITE, bitmode);
 	spiflash_read_write(cmd_desc, 1, NULL);
 	for (i = 0; i < 1000; i++) ;
@@ -1285,13 +1079,14 @@ int spiflash_erase_chip(struct spi_flash *flash)
 u32_t spiflash_read_common(struct spi_flash * flash, u32_t offset)
 {
 	/* size: 4MB base: 0x200_0000 */
-	return 0x2000000;
+	return 0x2000000 + offset;
 }
 
 int spiflash_read_data_xip(struct spi_flash *flash, u32_t offset,
 		u32_t * buf, u32_t dump_byte, READ_CMD_TYPE_E type)
 {
 	u8_t cmd;
+	u32_t off_cmd;
 
 	switch (type) {
 		case READ_SPI:
@@ -1330,7 +1125,8 @@ int spiflash_read_data_xip(struct spi_flash *flash, u32_t offset,
 			return FALSE;
 	}
 
-	spiflash_set_xip_cmd(flash, cmd, dump_byte);
+	off_cmd = offset << 8 | cmd;
+	spiflash_set_xip_cmd(flash, (const u8_t *)(&off_cmd), dump_byte);
 	*buf = spiflash_read_common(flash, offset);
 
 	return 0;
@@ -1409,7 +1205,7 @@ static int spiflash_change_4io(struct spi_flash *flash, u32_t op)
 	spiflash_get_statue(flash, &status1, &status2);
 	spiflash_write_enable(flash);
 	cmd = CMD_WRITE_STATUS;
-	if (TRUE == op) {
+	if (op == TRUE) {
 		dout = ((status2 << 8) + (status1)) | (SR_QE);
 	} else {
 		dout = ((status2 << 8) + (status1)) & (~SR_QE);
@@ -1470,14 +1266,35 @@ static int spiflash_set_qpi(struct spi_flash *flash, u32_t op)
 	}
 }
 
-#define SFC_CLK_OUT_DIV_1			(0x0)
-#define SFC_CLK_OUT_DIV_2			BIT(0)
-#define SFC_CLK_OUT_DIV_4			BIT(1)
-#define SFC_CLK_SAMPLE_DELAY_SEL    BIT(2)
-#define SFC_CLK_2X_EN				BIT(10)
-#define SFC_CLK_OUT_2X_EN			BIT(9)
-#define SFC_CLK_SAMPLE_2X_PHASE     BIT(8)
-#define SFC_CLK_SAMPLE_2X_EN        BIT(7)
+__ramfunc static void spiflash_enter_xip(void)
+{
+	/* pin mux and drive configuration */
+	sci_write32(0x40840038, 0x4100);
+
+	sci_write32(SFC_CMD_CFG, 0x00);
+	sci_write32(SFC_CMD_BUF0, 0x06);
+	sci_write32(SFC_TYPE_BUF0, 0x01);
+	sci_write32(SFC_TYPE_BUF1, 0x00000000);
+	sci_write32(SFC_TYPE_BUF2, 0x00000000);
+}
+
+__ramfunc static void spiflash_exit_xip(void)
+{
+	sci_write32(SFC_CMD_CFG, 0x01);
+	sci_write32(SFC_CMD_BUF0, 0x0b);
+	sci_write32(SFC_TYPE_BUF0, 0x419101);
+	sci_write32(SFC_TYPE_BUF1, 0x00000000);
+	sci_write32(SFC_TYPE_BUF2, 0x00000000);
+}
+
+__ramfunc void spiflash_select_xip(u32_t op)
+{
+	if (op == TRUE) {
+		spiflash_enter_xip();
+	} else {
+		spiflash_exit_xip();
+	}
+}
 
 void uwp_spi_xip_init(void)
 {
@@ -1495,17 +1312,16 @@ void uwp_spi_xip_init(void)
 	sci_write32(REG_AON_CLK_RF_CGM_SFC_2X_CFG, 0x4);
 }
 
-int uwp_spi_flash_init(struct spi_flash *flash,
+__ramfunc int uwp_spi_flash_init(struct spi_flash *flash,
 		struct spi_flash_params **params)
 {
-	struct spi_flash_params *p;
 
-	SFCDRV_EnableInt();
-	spiflash_reset_anyway();
-	SFCDRV_ClkCfg(0);
+	struct spi_flash_params *p = spiflash_scan();
 
-	if (NULL == (p = spiflash_scan()))
+	if (p == NULL) {
+		LOG_ERR("[%s] == p:[%p], scan fail!\n", __func__, p);
 		return -1;
+	}
 
 	flash->name = p->name;
 	flash->work_mode = SPI_MODE;
@@ -1517,17 +1333,13 @@ int uwp_spi_flash_init(struct spi_flash *flash,
 	flash->size = p->page_size * p->sector_size
 		* p->nr_sectors * p->nr_blocks;
 
-	LOG_INF("SF: Detected %s with page size %u, total ",
-			p->name, p->page_size);
-	LOG_INF("flash size is 0x%x\n", flash->size);
-
 	*params = p;
 
 	/* flash.read_sec_noxip = spiflash_read_data_noxip; */
 	flash->read_sec = spiflash_read_data_xip;
 	flash->write_sec = spiflash_write_sec;
 	/* flash.read_noxip = spiflash_read_data_noxip; */
-	flash->read = spiflash_read_data_noxip;
+	flash->read = spiflash_read_data_xip;
 	flash->write = spiflash_write;
 	flash->erase = spiflash_erase;
 	flash->erase_chip = spiflash_erase_chip;
@@ -1539,6 +1351,15 @@ int uwp_spi_flash_init(struct spi_flash *flash,
 	flash->set_4io = spiflash_change_4io;
 	flash->set_qpi = spiflash_set_qpi;
 	flash->set_encrypt = spiflash_set_encrypt;
+
+
+	LOG_INF("SF: Detected %s with page size %u,"
+			" total ", flash->name, flash->page_size);
+	LOG_INF("flash size is 0x%x\n", flash->size);
+
+#ifdef CONFIG_QPI_MODE_ENABLE
+	spiflash_set_qpi(flash_ctr(), TRUE);
+#endif
 
 	return 0;
 }

@@ -50,10 +50,15 @@ extern "C" {
 #define __REG_SET_ADDR(reg)		(reg + 0x1000)
 #define __REG_CLR_ADDR(reg)		(reg + 0x2000)
 
-#define sci_write32(reg, val) \
-	sys_write32(val, reg)
+__ramfunc static u32_t sci_read32(mem_addr_t addr)
+{
+	return *(volatile u32_t *)addr;
+}
 
-#define sci_read32 sys_read32
+__ramfunc static void sci_write32(mem_addr_t addr, u32_t data)
+{
+	*(volatile u32_t *)addr = data;
+}
 
 #define sci_reg_and(reg, val) \
 	sci_write32(reg, (sci_read32(reg) & val))
@@ -62,10 +67,10 @@ extern "C" {
 	sci_write32(reg, (sci_read32(reg) | val))
 
 #define sci_glb_set(reg, val) \
-	sys_write32(val, __REG_SET_ADDR(reg))
+	sci_write32(__REG_SET_ADDR(reg), val)
 
 #define sci_glb_clr(reg, val) \
-	sys_write32(val, __REG_CLR_ADDR(reg))
+	sci_write32(__REG_CLR_ADDR(reg), val)
 
 #ifdef __cplusplus
 }

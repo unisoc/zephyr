@@ -315,7 +315,7 @@ int spiflash_erase_chip(struct spi_flash *flash);
 int spiflash_suspend(struct spi_flash *flash);
 int spiflash_resume(struct spi_flash *flash);
 int spiflash_reset(struct spi_flash *flash);
-int spiflash_reset_anyway(void);
+__ramfunc int spiflash_reset_anyway(void);
 
 int spiflash_init(void);
 struct spi_flash *flash_ctr(void);
@@ -330,10 +330,10 @@ void spi_data_read(struct spi_flash *flash, const u8_t * cmd,
 void spi_write_data(struct spi_flash *flash, const void *data_out,
 		    u32_t data_len);
 void spi_read_data(struct spi_flash *flash, void *data_in, u32_t data_len);
-void create_cmd(SFC_CMD_DES_T * cmd_desc_ptr, u32_t cmd,
+__ramfunc void create_cmd(SFC_CMD_DES_T *cmd_desc_ptr, u32_t cmd,
 		u32_t byte_len, CMD_MODE_E cmd_mode,
 		BIT_MODE_E bit_mode, SEND_MODE_E send_mode);
-void spiflash_set_xip_cmd(struct spi_flash *flash, u8_t cmd_read,
+void spiflash_set_xip_cmd(struct spi_flash *flash, const u8_t *cmd_read,
 			  u8_t dummy_bytes);
 
 

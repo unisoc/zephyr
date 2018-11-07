@@ -380,6 +380,15 @@ extern "C" {
 
 #define SFC_REG_NUM         (sizeof(SFC_REG_T)/sizeof(u32_t))
 
+#define SFC_CLK_OUT_DIV_1			(0x0)
+#define SFC_CLK_OUT_DIV_2			BIT(0)
+#define SFC_CLK_OUT_DIV_4			BIT(1)
+#define SFC_CLK_SAMPLE_DELAY_SEL    BIT(2)
+#define SFC_CLK_2X_EN				BIT(10)
+#define SFC_CLK_OUT_2X_EN			BIT(9)
+#define SFC_CLK_SAMPLE_2X_PHASE     BIT(8)
+#define SFC_CLK_SAMPLE_2X_EN        BIT(7)
+
 #define CMDBUF_INDEX_MAX 12
 
 #undef SFC_DEBUG
@@ -466,20 +475,24 @@ extern "C" {
 	void SFCDRV_CSCfg(u32_t value);
 	void SFCDRV_EndianCfg(u32_t value);
 	void SFCDRV_SetCMDBuf(CMD_BUF_INDEX_E index, u32_t value);
-	void SFCDRV_SetCMDBufEx(CMD_BUF_INDEX_E index, const u8_t * buf, u32_t count);
+	void SFCDRV_SetCMDBufEx(CMD_BUF_INDEX_E index,
+		const u8_t *buf, u32_t count);
 	u32_t SFCDRV_GetCMDBuf(CMD_BUF_INDEX_E index);
-	void SFCDRV_SetTypeInfBuf(CMD_BUF_INDEX_E index, BIT_MODE_E bitmode,
+	__ramfunc void SFCDRV_SetTypeInfBuf(CMD_BUF_INDEX_E index,
+			BIT_MODE_E bitmode,
 			BYTE_NUM_E bytenum, CMD_MODE_E cmdmode,
 			SEND_MODE_E sendmode);
-	void SFCDRV_ResetAllBuf(void);
-	void SFCDRV_SetReadBuf(SFC_CMD_DES_T * cmd_des_ptr, u32_t cmd_flag);
-	void SFCDRV_SetCmdData(SFC_CMD_DES_T * cmd_des_ptr, u32_t cmd_flag);
-	void SFCDREV_Req(void);
-	void SFCDRV_GetReadBuf(u32_t * buffer, u32_t word_cnt);
+	__ramfunc void SFCDRV_ResetAllBuf(void);
+	__ramfunc void SFCDRV_SetReadBuf(SFC_CMD_DES_T *cmd_des_ptr,
+			u32_t cmd_flag);
+	__ramfunc void SFCDRV_SetCmdData(SFC_CMD_DES_T *cmd_des_ptr,
+			u32_t cmd_flag);
+	__ramfunc void SFCDREV_Req(void);
+	__ramfunc void SFCDRV_GetReadBuf(u32_t *buffer, u32_t word_cnt);
 	void SFCDRV_GetBuf(void *buffer, u32_t nbytes);
-	void SFCDRV_EnableInt(void);
-	void SFCDRV_ClkCfg(u32_t value);
-	void SFCDRV_Req(void);
+	__ramfunc void SFCDRV_EnableInt(void);
+	__ramfunc void SFCDRV_ClkCfg(u32_t value);
+	__ramfunc void SFCDRV_Req(void);
 
 #ifdef __cplusplus
 }

@@ -17,10 +17,7 @@ extern "C" {
 #include "hal_uart.h"
 #include "hal_pin.h"
 #include "hal_wdg.h"
-#include "hal_sfc.h"
-#include "hal_sfc_cfg.h"
-#include "hal_sfc_phy.h"
-#include "hal_sfc_hal.h"
+
 #include "hal_gpio.h"
 #include "hal_ipi.h"
 #include "hal_intc.h"

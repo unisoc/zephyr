@@ -132,9 +132,14 @@ extern "C" {
 
 	void uwp_spi_xip_init(void);
 
-	int uwp_spi_flash_init(struct spi_flash *flash,
+	__ramfunc void spiflash_select_xip(u32_t op);
+
+	__ramfunc int uwp_spi_flash_init(struct spi_flash *flash,
 			struct spi_flash_params **params);
+
 	void spi_flash_free(struct spi_flash *flash);
+
+	void uwp_spi_dump(u32_t arg_in);
 
 #ifdef __cplusplus
 }
