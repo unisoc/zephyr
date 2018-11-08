@@ -9,6 +9,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_REGISTER(wifimgr);
+
 #include <init.h>
 #include <shell/shell.h>
 
@@ -127,13 +131,13 @@ static void *wifi_manager_drv_iface_init(struct wifi_manager *mgr, char *devname
 
 	dev = device_get_binding(devname);
 	if (!dev) {
-		syslog(LOG_ERR, "failed to get device %s!\n", devname);
+		wifimgr_err("failed to get device %s!\n", devname);
 		return NULL;
 	}
 
 	iface = net_if_lookup_by_dev(dev);
 	if (!iface) {
-		syslog(LOG_ERR, "failed to get iface %s!\n", devname);
+		wifimgr_err("failed to get iface %s!\n", devname);
 		return NULL;
 	}
 
@@ -157,10 +161,10 @@ int wifi_manager_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id)
 	if (devname) {
 		iface = wifi_manager_drv_iface_init(mgr, devname);
 		if (!iface) {
-			syslog(LOG_ERR, "failed to init %s interface!\n", devname);
+			wifimgr_err("failed to init %s interface!\n", devname);
 			return -ENODEV;
 		}
-		syslog(LOG_INFO, "interface %s initialized!\n", devname);
+		wifimgr_info("interface %s initialized!\n", devname);
 	}
 
 	if (!mgr->sta_iface && is_sta_cmd(cmd_id) == true)
@@ -177,11 +181,11 @@ static int wifi_manager_sm_init(struct wifi_manager *mgr)
 
 	ret = sm_sta_init(&mgr->sta_sm);
 	if (ret < 0)
-		syslog(LOG_ERR, "failed to init WiFi STA state machine!\n");
+		wifimgr_err("failed to init WiFi STA state machine!\n");
 
 	ret = sm_ap_init(&mgr->ap_sm);
 	if (ret < 0)
-		syslog(LOG_ERR, "failed to init WiFi AP state machine!\n");
+		wifimgr_err("failed to init WiFi AP state machine!\n");
 
 	return ret;
 }
@@ -194,21 +198,21 @@ static int wifi_manager_init(struct device *unused)
 	ARG_UNUSED(unused);
 
 	/*setlogmask(~(LOG_MASK(LOG_DEBUG))); */
-	syslog(LOG_INFO, "WiFi manager start\n");
+	wifimgr_info("WiFi manager start\n");
 	memset(mgr, 0, sizeof(struct wifi_manager));
 
 	ret = wifi_manager_event_listener_init(&mgr->lsnr);
 	if (ret < 0)
-		syslog(LOG_ERR, "failed to init WiFi event listener!\n");
+		wifimgr_err("failed to init WiFi event listener!\n");
 
 	ret = wifi_manager_command_processor_init(&mgr->prcs);
 	if (ret < 0)
 
-		syslog(LOG_ERR, "failed to init WiFi command processor!\n");
+		wifimgr_err("failed to init WiFi command processor!\n");
 
 	ret = wifi_manager_sm_init(mgr);
 	if (ret < 0)
-		syslog(LOG_ERR, "failed to init WiFi state machine!\n");
+		wifimgr_err("failed to init WiFi state machine!\n");
 
 	return ret;
 }

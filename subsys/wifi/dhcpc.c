@@ -9,6 +9,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_DECLARE(wifimgr);
+
 #include "wifimgr.h"
 #include "led.h"
 
@@ -37,13 +41,13 @@ static void wifimgr_dhcp_handler(struct net_mgmt_event_callback *cb,
 		gateway = iface->config.ip.ipv4->gw.s4_addr;
 		wifi_drv_iface_notify_ip(iface, ipaddr, sizeof(struct in_addr));
 
-		syslog(LOG_INFO, "IP address: %s\n",
+		wifimgr_info("IP address: %s\n",
 		       net_addr_ntop(AF_INET, ipaddr, buf, sizeof(buf)));
-		syslog(LOG_INFO, "Lease time: %us\n",
+		wifimgr_info("Lease time: %us\n",
 		       iface->config.dhcpv4.lease_time);
-		syslog(LOG_INFO, "Subnet: %s\n",
+		wifimgr_info("Subnet: %s\n",
 		       net_addr_ntop(AF_INET, netmask, buf, sizeof(buf)));
-		syslog(LOG_INFO, "Router: %s\n",
+		wifimgr_info("Router: %s\n",
 		       net_addr_ntop(AF_INET, gateway, buf, sizeof(buf)));
 
 		led = device_get_binding(WIFIMGR_LED_NAME);
@@ -57,7 +61,7 @@ void wifimgr_dhcp_start(void *handle)
 {
 	struct net_if *iface = (struct net_if *)handle;
 
-	syslog(LOG_INFO, "start DHCP client\n");
+	wifimgr_info("start DHCP client\n");
 
 	net_mgmt_init_event_callback(&mgmt_cb, wifimgr_dhcp_handler,
 				     NET_EVENT_IPV4_ADDR_ADD);
@@ -71,7 +75,7 @@ void wifimgr_dhcp_stop(void *handle)
 	struct net_if *iface = (struct net_if *)handle;
 	struct device *led;
 
-	syslog(LOG_INFO, "stop DHCP client\n");
+	wifimgr_info("stop DHCP client\n");
 
 	net_mgmt_del_event_callback(&mgmt_cb);
 
