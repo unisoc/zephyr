@@ -9,6 +9,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_DECLARE(wifimgr);
+
 #include "wifimgr.h"
 #include "led.h"
 
@@ -18,20 +22,20 @@ int wifi_manager_get_sta_config(void *handle)
 	struct wifimgr_config *conf = &mgr->sta_conf;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 
-	syslog(LOG_INFO, "STA Config\n");
+	wifimgr_info("STA Config\n");
 	if (strlen(conf->ssid))
-		syslog(LOG_INFO, "SSID:\t\t%s\n", conf->ssid);
+		wifimgr_info("SSID:\t\t%s\n", conf->ssid);
 
 	if (!is_zero_ether_addr(conf->bssid))
-		syslog(LOG_INFO, "BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+		wifimgr_info("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
 		       conf->bssid[0], conf->bssid[1], conf->bssid[2],
 		       conf->bssid[3], conf->bssid[4], conf->bssid[5]);
 
 	if (conf->channel)
-		syslog(LOG_INFO, "Channel:\t%d\n", conf->channel);
+		wifimgr_info("Channel:\t%d\n", conf->channel);
 
 	if (strlen(conf->passphrase))
-		syslog(LOG_INFO, "Passphrase:\t%s\n", conf->passphrase);
+		wifimgr_info("Passphrase:\t%s\n", conf->passphrase);
 	fflush(stdout);
 
 	/* Notify the external caller */
@@ -50,11 +54,11 @@ int wifi_manager_set_sta_config(void *handle)
 {
 	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
-	syslog(LOG_INFO, "Setting STA ...\n");
-	syslog(LOG_INFO, "SSID:\t\t%s\n", conf->ssid);
+	wifimgr_info("Setting STA ...\n");
+	wifimgr_info("SSID:\t\t%s\n", conf->ssid);
 
 	if (strlen(conf->passphrase))
-		syslog(LOG_INFO, "Passphrase:\t%s\n", conf->passphrase);
+		wifimgr_info("Passphrase:\t%s\n", conf->passphrase);
 	fflush(stdout);
 
 	conf->found = false;
@@ -70,18 +74,18 @@ int wifi_manager_get_sta_status(void *handle)
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	int ret = 0;
 
-	syslog(LOG_INFO, "STA Status:\t%s\n",
+	wifimgr_info("STA Status:\t%s\n",
 	       sta_sts2str(sm_sta_query(sm)));
 
 	if (is_zero_ether_addr(sts->own_mac))
 		ret = wifi_drv_iface_get_mac(mgr->sta_iface, sts->own_mac);
-	syslog(LOG_INFO, "Own MAC:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+	wifimgr_info("Own MAC:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
 	       sts->own_mac[0], sts->own_mac[1], sts->own_mac[2],
 	       sts->own_mac[3], sts->own_mac[4], sts->own_mac[5]);
 
 	if (sm_sta_connected(sm) == true) {
 		ret = wifi_drv_iface_get_station(mgr->sta_iface, &sts->rssi);
-		syslog(LOG_INFO, "Signal:\t\t%d\n", sts->rssi);
+		wifimgr_info("Signal:\t\t%d\n", sts->rssi);
 	}
 	fflush(stdout);
 
@@ -103,7 +107,7 @@ static int wifi_manager_disconnect_event(void *arg)
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	int ret = 0;
 
-	syslog(LOG_INFO, "disconnect, reason_code %d!\n", disc->reason_code);
+	wifimgr_info("disconnect, reason_code %d!\n", disc->reason_code);
 	fflush(stdout);
 
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
@@ -145,7 +149,7 @@ static int wifi_manager_connect_event(void *arg)
 	int ret = conn->status;
 
 	if (!ret) {
-		syslog(LOG_INFO, "connect successfully!\n");
+		wifimgr_info("connect successfully!\n");
 
 		/* Register disconnect event here due to AP deauth */
 		event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_DISCONNECT,
@@ -160,7 +164,7 @@ static int wifi_manager_connect_event(void *arg)
 			wifimgr_dhcp_start(iface);
 
 	} else {
-		syslog(LOG_ERR, "failed to connect!\n");
+		wifimgr_err("failed to connect!\n");
 	}
 	fflush(stdout);
 
@@ -178,11 +182,11 @@ int wifi_manager_connect(void *handle)
 	int ret;
 
 	if (!strlen(conf->ssid)) {
-		syslog(LOG_ERR, "no AP specified!\n");
+		wifimgr_err("no AP specified!\n");
 		return -EINVAL;
 	}
 
-	syslog(LOG_INFO, "Connecting to %s\n", conf->ssid);
+	wifimgr_info("Connecting to %s\n", conf->ssid);
 
 	ret = event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_CONNECT,
 					  true, wifi_manager_connect_event,
@@ -207,8 +211,9 @@ static int wifi_manager_scan_result(void *arg)
 	    container_of(scan_res, struct wifi_manager, evt_scan_res);
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 
-	syslog(LOG_INFO, "\t%-32s", scan_res->ssid);
-	syslog(LOG_INFO, "\t%02x:%02x:%02x:%02x:%02x:%02x\t%u\t%d\n",
+
+	wifimgr_info("\t%-32s", scan_res->ssid);
+	wifimgr_info("\t%02x:%02x:%02x:%02x:%02x:%02x\t%u\t%d\n",
 	       scan_res->bssid[0], scan_res->bssid[1], scan_res->bssid[2],
 	       scan_res->bssid[3], scan_res->bssid[4], scan_res->bssid[5],
 	       scan_res->channel, scan_res->rssi);
@@ -245,9 +250,9 @@ static int wifi_manager_scan_done(void *arg)
 	event_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_RESULT);
 
 	if (!ret)
-		syslog(LOG_INFO, "scan done!\n");
+		wifimgr_info("scan done!\n");
 	else
-		syslog(LOG_ERR, "scan abort!\n");
+		wifimgr_err("scan abort!\n");
 	fflush(stdout);
 
 	/* Notify the external caller */
@@ -296,7 +301,7 @@ int wifi_manager_open_station(void *handle)
 
 	ret = wifi_drv_iface_open_station(mgr->sta_iface);
 	if (ret) {
-		syslog(LOG_ERR, "failed to open STA!\n");
+		wifimgr_err("failed to open STA!\n");
 		return ret;
 	}
 
@@ -319,7 +324,7 @@ int wifi_manager_close_station(void *handle)
 
 	ret = wifi_drv_iface_close_station(mgr->sta_iface);
 	if (ret) {
-		syslog(LOG_ERR, "failed to close STA!\n");
+		wifimgr_err("failed to close STA!\n");
 		return ret;
 	}
 
