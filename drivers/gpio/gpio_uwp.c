@@ -204,7 +204,7 @@ static int gpio_uwp_p0_init(struct device *dev)
 
 #ifdef CONFIG_AON_INTC_UWP
 	uwp_aon_intc_set_irq_callback(AON_INT_GPIO0, gpio_uwp_isr, dev);
-	/* uwp_aon_irq_enable(AON_INT_GPIO0); */
+	uwp_aon_irq_enable(AON_INT_GPIO0);
 #endif
 	return 0;
 }
@@ -235,7 +235,7 @@ static int gpio_uwp_p1_init(struct device *dev)
 	uwp_gpio_disable(base, 0xFFFF);
  #ifdef CONFIG_AON_INTC_UWP
 	uwp_aon_intc_set_irq_callback(AON_INT_GPIO1, gpio_uwp_isr, dev);
-	/* uwp_aon_irq_enable(AON_INT_GPIO0); */
+	uwp_aon_irq_enable(AON_INT_GPIO1);
 #endif
  	return 0;
 }
@@ -265,7 +265,7 @@ static struct gpio_uwp_data gpio_uwp_p2_data;
 	uwp_gpio_disable(base, 0xFFFF);
  #ifdef CONFIG_AON_INTC_UWP
 	uwp_aon_intc_set_irq_callback(AON_INT_GPIO2, gpio_uwp_isr, dev);
-	/* uwp_aon_irq_enable(AON_INT_GPIO0); */
+	uwp_aon_irq_enable(AON_INT_GPIO2);
 #endif
  	return 0;
 }
