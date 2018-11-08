@@ -9,6 +9,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_DECLARE(wifimgr);
+
 #include "wifimgr.h"
 
 static int wifi_drv_iface_notify_event(unsigned int evt_id, void *buf,
@@ -24,7 +28,7 @@ static int wifi_drv_iface_notify_event(unsigned int evt_id, void *buf,
 	attr.mq_flags = 0;
 	mq = mq_open(WIFIMGR_EVT_MQUEUE, O_WRONLY | O_CREAT, 0666, &attr);
 	if (!mq) {
-		syslog(LOG_ERR, "failed to open event queue %s!\n",
+		wifimgr_err("failed to open event queue %s!\n",
 		       WIFIMGR_EVT_MQUEUE);
 		return -errno;
 	}
@@ -40,10 +44,10 @@ static int wifi_drv_iface_notify_event(unsigned int evt_id, void *buf,
 	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
 	if (ret < 0) {
 		free(msg.buf);
-		syslog(LOG_ERR, "failed to send [%s]: %d, errno %d!\n",
+		wifimgr_err("failed to send [%s]: %d, errno %d!\n",
 		       wifimgr_evt2str(msg.evt_id), ret, errno);
 	} else {
-		syslog(LOG_DEBUG, "send [%s], buf: 0x%08x\n",
+		wifimgr_dbg("send [%s], buf: 0x%08x\n",
 		       wifimgr_evt2str(msg.evt_id), *(int *)msg.buf);
 	}
 
