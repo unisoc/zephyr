@@ -9,6 +9,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_DECLARE(wifimgr);
+
 #include "wifimgr.h"
 
 K_THREAD_STACK_ARRAY_DEFINE(evt_stacks, 1, WIFIMGR_EVT_LISTENER_STACKSIZE);
@@ -41,7 +45,7 @@ int event_listener_add_receiver(struct evt_listener *handle,
 	while (rcvr != NULL) {
 		/* Check if callback matches */
 		if (rcvr->expected_evt == evt_id) {
-			syslog(LOG_INFO, "[%s] receiver already exist!\n",
+			wifimgr_info("[%s] receiver already exist!\n",
 			       wifimgr_evt2str(evt_id));
 			sem_post(&lsnr->exclsem);
 			return 0;
@@ -56,7 +60,7 @@ int event_listener_add_receiver(struct evt_listener *handle,
 	    wifimgr_slist_remove_first(&lsnr->free_evt_list);
 	if (!rcvr) {
 		ret = -ENOMEM;
-		syslog(LOG_ERR, "no free event receiver: %d\n", ret);
+		wifimgr_err("no free event receiver: %d\n", ret);
 		sem_post(&lsnr->exclsem);
 		return ret;
 	}
@@ -123,7 +127,7 @@ static void *event_listener(void *handle)
 	int prio;
 	int ret;
 
-	syslog(LOG_INFO, "starting %s, pid=%p\n", __func__, pthread_self());
+	wifimgr_info("starting %s, pid=%p\n", __func__, pthread_self());
 
 	if (!lsnr)
 		return NULL;
@@ -134,13 +138,13 @@ static void *event_listener(void *handle)
 		/* Wait for events */
 		ret = mq_receive(lsnr->mq, (char *)&msg, sizeof(msg), &prio);
 		if (ret != sizeof(struct evt_message)) {
-			syslog(LOG_ERR,
+			wifimgr_err(
 			       "failed to receive event: %d, errno %d!\n", ret,
 			       errno);
 			continue;
 		}
 
-		syslog(LOG_DEBUG, "recv [%s], buf: 0x%08x\n",
+		wifimgr_dbg("recv [%s], buf: 0x%08x\n",
 		       wifimgr_evt2str(msg.evt_id), *(int *)msg.buf);
 
 		sem_wait(&lsnr->exclsem);
@@ -156,7 +160,7 @@ static void *event_listener(void *handle)
 									rcvr);
 
 				match = true;
-				syslog(LOG_DEBUG, "receiver 0x%p matches\n",
+				wifimgr_dbg("receiver 0x%p matches\n",
 				       rcvr);
 				break;
 			}
@@ -181,7 +185,7 @@ static void *event_listener(void *handle)
 				/*Step back to previous state when failed callback */
 				wifi_manager_sm_step_back(mgr, msg.evt_id);
 		} else {
-			syslog(LOG_ERR, "unexpected [%s] under %s!\n",
+			wifimgr_err("unexpected [%s] under %s!\n",
 			       wifimgr_evt2str(msg.evt_id),
 			       wifimgr_sts2str_evt(mgr, msg.evt_id));
 		}
@@ -212,7 +216,7 @@ int wifi_manager_event_listener_init(struct evt_listener *handle)
 	/* open message queue of event receiver */
 	lsnr->mq = mq_open(WIFIMGR_EVT_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
 	if (!lsnr->mq) {
-		syslog(LOG_ERR, "failed to open event queue %s!\n",
+		wifimgr_err("failed to open event queue %s!\n",
 		       WIFIMGR_EVT_MQUEUE);
 		return -errno;
 	}
@@ -238,12 +242,12 @@ int wifi_manager_event_listener_init(struct evt_listener *handle)
 
 	ret = pthread_create(&lsnr->evt_pid, &tattr, event_listener, lsnr);
 	if (ret) {
-		syslog(LOG_ERR, "failed to start %s!\n", WIFIMGR_EVT_LISTENER);
+		wifimgr_err("failed to start %s!\n", WIFIMGR_EVT_LISTENER);
 		lsnr->is_setup = false;
 		mq_close(lsnr->mq);
 		return ret;
 	}
-	syslog(LOG_INFO, "started %s, pid=%p\n", WIFIMGR_EVT_LISTENER,
+	wifimgr_info("started %s, pid=%p\n", WIFIMGR_EVT_LISTENER,
 	       lsnr->evt_pid);
 
 	return 0;

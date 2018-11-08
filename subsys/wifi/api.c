@@ -9,6 +9,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_DECLARE(wifimgr);
+
 #include "wifimgr.h"
 
 static struct wifimgr_ctrl_cbs *wifimgr_cbs = NULL;
@@ -28,7 +32,7 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 	attr.mq_flags = 0;
 	mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
 	if (!mq) {
-		syslog(LOG_ERR, "failed to open command queue %s!\n",
+		wifimgr_err("failed to open command queue %s!\n",
 		       WIFIMGR_CMD_MQUEUE);
 		return -errno;
 	}
@@ -44,33 +48,33 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 
 	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
 	if (ret < 0) {
-		syslog(LOG_ERR, "failed to send [%s]: %d, errno %d!\n",
+		wifimgr_err("failed to send [%s]: %d, errno %d!\n",
 		       wifimgr_cmd2str(msg.cmd_id), ret, errno);
 		ret = -errno;
 	} else {
-		syslog(LOG_DEBUG, "send [%s], buf: 0x%08x\n",
+		wifimgr_dbg("send [%s], buf: 0x%08x\n",
 		       wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
 
 		ret = clock_gettime(CLOCK_MONOTONIC, &ts);
 		if (ret)
-			syslog(LOG_ERR, "failed to get clock time: %d!\n", ret);
+			wifimgr_err("failed to get clock time: %d!\n", ret);
 		ts.tv_sec += WIFIMGR_CMD_TIMEOUT;
 		ret =
 		    mq_timedreceive(mq, (char *)&msg, sizeof(msg), &prio, &ts);
 		if (ret != sizeof(struct cmd_message)) {
-			syslog(LOG_ERR,
+			wifimgr_err(
 			       "failed to get command reply: %d, errno %d!\n",
 			       ret, errno);
 			if (errno == ETIME)
-				syslog(LOG_ERR, "[%s] timeout!\n",
+				wifimgr_err("[%s] timeout!\n",
 				       wifimgr_cmd2str(msg.cmd_id));
 			ret = -errno;
 		} else {
-			syslog(LOG_DEBUG, "recv [%s] reply: %d\n",
+			wifimgr_dbg("recv [%s] reply: %d\n",
 			       wifimgr_cmd2str(msg.cmd_id), msg.reply);
 			ret = msg.reply;
 			if (ret)
-				syslog(LOG_ERR, "failed to exec [%s]: %d!\n",
+				wifimgr_err("failed to exec [%s]: %d!\n",
 				       wifimgr_cmd2str(msg.cmd_id), ret);
 		}
 	}
