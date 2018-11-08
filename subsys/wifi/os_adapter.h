@@ -23,20 +23,12 @@
 
 #include <misc/slist.h>
 
-#include <logging/sys_log.h>
-
 #include <net/net_if.h>
 
-#undef LOG_ERR
-#define LOG_ERR         SYS_LOG_LEVEL_ERROR
-#define LOG_WARNING     SYS_LOG_LEVEL_WARNING
-#define LOG_INFO        SYS_LOG_LEVEL_INFO
-#define LOG_DEBUG       SYS_LOG_LEVEL_DEBUG
-
-#define syslog(log_level, ...)	SYS_ ## log_level(__VA_ARGS__)
-#define SYS_LOG_WARNING(...) SYS_LOG_WRN(__VA_ARGS__)
-#define SYS_LOG_INFO(...) printk(__VA_ARGS__)
-#define SYS_LOG_DEBUG(...) SYS_LOG_DBG(__VA_ARGS__)
+#define wifimgr_err(...)	LOG_ERR(__VA_ARGS__)
+#define wifimgr_warn(...)	LOG_WRN(__VA_ARGS__)
+#define wifimgr_info(...)	printk(__VA_ARGS__)
+#define wifimgr_dbg(...)	LOG_DBG(__VA_ARGS__)
 
 /*
  * Copied from include/linux/...
