@@ -9,6 +9,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_DECLARE(wifimgr);
+
 #include "wifimgr.h"
 #include "led.h"
 
@@ -19,21 +23,21 @@ int wifi_manager_get_ap_config(void *handle)
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	int ret = 0;
 
-	syslog(LOG_INFO, "AP Config\n");
+	wifimgr_info("AP Config\n");
 	if (strlen(conf->ssid))
-		syslog(LOG_INFO, "SSID:\t\t%s\n", conf->ssid);
+		wifimgr_info("SSID:\t\t%s\n", conf->ssid);
 
 	if (is_zero_ether_addr(conf->bssid))
 		ret = wifi_drv_iface_get_mac(mgr->ap_iface, conf->bssid);
-	syslog(LOG_INFO, "BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+	wifimgr_info("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
 	       conf->bssid[0], conf->bssid[1], conf->bssid[2],
 	       conf->bssid[3], conf->bssid[4], conf->bssid[5]);
 
 	if (conf->channel)
-		syslog(LOG_INFO, "Channel:\t%d\n", conf->channel);
+		wifimgr_info("Channel:\t%d\n", conf->channel);
 
 	if (strlen(conf->passphrase))
-		syslog(LOG_INFO, "Passphrase:\t%s\n", conf->passphrase);
+		wifimgr_info("Passphrase:\t%s\n", conf->passphrase);
 	fflush(stdout);
 
 	/* Notify the external caller */
@@ -52,12 +56,12 @@ int wifi_manager_set_ap_config(void *handle)
 {
 	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
-	syslog(LOG_INFO, "Setting AP ...\n");
-	syslog(LOG_INFO, "SSID:\t\t%s\n", conf->ssid);
-	syslog(LOG_INFO, "Channel:\t%d\n", conf->channel);
+	wifimgr_info("Setting AP ...\n");
+	wifimgr_info("SSID:\t\t%s\n", conf->ssid);
+	wifimgr_info("Channel:\t%d\n", conf->channel);
 
 	if (strlen(conf->passphrase))
-		syslog(LOG_INFO, "Passphrase:\t%s\n", conf->passphrase);
+		wifimgr_info("Passphrase:\t%s\n", conf->passphrase);
 	fflush(stdout);
 
 	return 0;
@@ -71,11 +75,11 @@ int wifi_manager_get_ap_status(void *handle)
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	int ret = 0;
 
-	syslog(LOG_INFO, "AP Status:\t%s\n", ap_sts2str(sm_ap_query(sm)));
+	wifimgr_info("AP Status:\t%s\n", ap_sts2str(sm_ap_query(sm)));
 
 	if (is_zero_ether_addr(sts->own_mac))
 		ret = wifi_drv_iface_get_mac(mgr->ap_iface, sts->own_mac);
-	syslog(LOG_INFO, "Own MAC:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+	wifimgr_info("Own MAC:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
 	       sts->own_mac[0], sts->own_mac[1], sts->own_mac[2],
 	       sts->own_mac[3], sts->own_mac[4], sts->own_mac[5]);
 
@@ -94,7 +98,7 @@ static int wifi_manager_new_station_event_cb(void *arg)
 	    (struct wifimgr_evt_new_station *)arg;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 
-	syslog(LOG_INFO,
+	wifimgr_info(
 	       "station (%02x:%02x:%02x:%02x:%02x:%02x) %s!\n",
 	       new_sta->mac[0], new_sta->mac[1], new_sta->mac[2],
 	       new_sta->mac[3], new_sta->mac[4], new_sta->mac[5],
@@ -116,7 +120,7 @@ int wifi_manager_start_softap(void *handle)
 	struct device *led;
 
 	if (!strlen(conf->ssid)) {
-		syslog(LOG_ERR, "no AP config!\n");
+		wifimgr_err("no AP config!\n");
 		return -EINVAL;
 	}
 
@@ -125,7 +129,7 @@ int wifi_manager_start_softap(void *handle)
 					  wifi_manager_new_station_event_cb,
 					  &mgr->evt_new_sta);
 	if (ret) {
-		syslog(LOG_ERR, "failed to start AP!\n");
+		wifimgr_err("failed to start AP!\n");
 		return ret;
 	}
 
@@ -161,7 +165,7 @@ int wifi_manager_stop_softap(void *handle)
 
 	ret = wifi_drv_iface_stop_softap(mgr->ap_iface);
 	if (ret) {
-		syslog(LOG_ERR, "failed to stop AP!\n");
+		wifimgr_err("failed to stop AP!\n");
 		return ret;
 	}
 
@@ -186,7 +190,7 @@ int wifi_manager_open_softap(void *handle)
 
 	ret = wifi_drv_iface_open_softap(mgr->ap_iface);
 	if (ret) {
-		syslog(LOG_ERR, "failed to open AP!\n");
+		wifimgr_err("failed to open AP!\n");
 		return ret;
 	}
 
@@ -207,7 +211,7 @@ int wifi_manager_close_softap(void *handle)
 
 	ret = wifi_drv_iface_close_softap(mgr->ap_iface);
 	if (ret) {
-		syslog(LOG_ERR, "failed to close AP!\n");
+		wifimgr_err("failed to close AP!\n");
 		return ret;
 	}
 

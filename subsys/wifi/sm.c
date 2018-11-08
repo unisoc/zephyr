@@ -9,6 +9,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_DECLARE(wifimgr);
+
 #include "wifimgr.h"
 
 #define sm_timer_stop(timerid) sm_timer_start(timerid, 0)
@@ -26,7 +30,7 @@ static int sm_timer_start(timer_t timerid, unsigned int sec)
 
 	ret = timer_settime(timerid, 0, &todelay, NULL);
 	if (ret < 0) {
-		syslog(LOG_ERR, "failed to set the timer: %d\n", errno);
+		wifimgr_err("failed to set the timer: %d\n", errno);
 		ret = -errno;
 	}
 
@@ -47,7 +51,7 @@ static int sm_timer_init(struct wifimgr_state_machine *sm, void *sighand)
 	ret = timer_create(CLOCK_MONOTONIC, &toevent, &sm->timerid);
 	if (ret < 0) {
 		int errorcode = errno;
-		syslog(LOG_ERR, "failed to create a timer: %d\n", errorcode);
+		wifimgr_err("failed to create a timer: %d\n", errorcode);
 		return -errorcode;
 	}
 
@@ -64,7 +68,7 @@ static int sm_timer_release(timer_t timerid)
 	result = timer_delete(timerid);
 	if (result < 0) {
 		int errorcode = errno;
-		syslog(LOG_ERR, "failed to delete the timer: %d\n", errorcode);
+		wifimgr_err("failed to delete the timer: %d\n", errorcode);
 		ret = -errorcode;
 	}
 
@@ -92,7 +96,7 @@ static void sm_sta_timeout(void *sival_ptr)
 		if (cbs && cbs->notify_scan_timeout)
 			cbs->notify_scan_timeout();
 
-		syslog(LOG_ERR, "[%s] timeout!\n",
+		wifimgr_err("[%s] timeout!\n",
 		       wifimgr_evt2str(expected_evt));
 		break;
 	case WIFIMGR_CMD_CONNECT:
@@ -102,7 +106,7 @@ static void sm_sta_timeout(void *sival_ptr)
 		if (cbs && cbs->notify_connect_timeout)
 			cbs->notify_connect_timeout();
 
-		syslog(LOG_ERR, "[%s] timeout!\n",
+		wifimgr_err("[%s] timeout!\n",
 		       wifimgr_evt2str(expected_evt));
 		break;
 	case WIFIMGR_CMD_DISCONNECT:
@@ -111,7 +115,7 @@ static void sm_sta_timeout(void *sival_ptr)
 		if (cbs && cbs->notify_disconnect_timeout)
 			cbs->notify_disconnect_timeout();
 
-		syslog(LOG_ERR, "[%s] timeout!\n",
+		wifimgr_err("[%s] timeout!\n",
 		       wifimgr_evt2str(expected_evt));
 		break;
 	default:
@@ -188,7 +192,7 @@ static void sm_ap_timeout(void *sival_ptr)
 		if (cbs && cbs->notify_del_station_timeout)
 			cbs->notify_del_station_timeout();
 
-		syslog(LOG_ERR, "[%s] timeout!\n",
+		wifimgr_err("[%s] timeout!\n",
 		       wifimgr_evt2str(expected_evt));
 		break;
 	default:
@@ -348,13 +352,13 @@ static void sm_sta_step(struct wifimgr_state_machine *sta_sm,
 {
 	sta_sm->old_state = sta_sm->state;
 	sta_sm->state = next_state;
-	syslog(LOG_INFO, "(%s) -> (%s)\n", sta_sts2str(sta_sm->old_state),
+	wifimgr_info("(%s) -> (%s)\n", sta_sts2str(sta_sm->old_state),
 	       sta_sts2str(sta_sm->state));
 }
 
 void sm_sta_step_back(struct wifimgr_state_machine *sta_sm)
 {
-	syslog(LOG_INFO, "(%s) -> (%s)\n", sta_sts2str(sta_sm->state),
+	wifimgr_info("(%s) -> (%s)\n", sta_sts2str(sta_sm->state),
 	       sta_sts2str(sta_sm->old_state));
 
 	sem_wait(&sta_sm->exclsem);
@@ -448,7 +452,7 @@ int sm_sta_init(struct wifimgr_state_machine *sta_sm)
 
 	ret = sm_sta_timer_init(sta_sm);
 	if (ret < 0)
-		syslog(LOG_ERR, "failed to init WiFi STA timer!\n");
+		wifimgr_err("failed to init WiFi STA timer!\n");
 
 	return ret;
 }
@@ -495,7 +499,7 @@ static void sm_ap_step(struct wifimgr_state_machine *ap_sm,
 {
 	ap_sm->old_state = ap_sm->state;
 	ap_sm->state = next_state;
-	syslog(LOG_INFO, "(%s) -> (%s)\n", ap_sts2str(ap_sm->old_state),
+	wifimgr_info("(%s) -> (%s)\n", ap_sts2str(ap_sm->old_state),
 	       ap_sts2str(ap_sm->state));
 }
 
@@ -552,7 +556,7 @@ int sm_ap_init(struct wifimgr_state_machine *ap_sm)
 
 	ret = sm_ap_timer_init(ap_sm);
 	if (ret < 0)
-		syslog(LOG_ERR, "failed to init WiFi AP timer!\n");
+		wifimgr_err("failed to init WiFi AP timer!\n");
 
 	return ret;
 }

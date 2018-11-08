@@ -9,6 +9,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_DECLARE(wifimgr);
+
 #include <init.h>
 #include <shell/shell.h>
 
@@ -188,7 +192,7 @@ static int cmd_wifimgr(const struct shell *shell, size_t argc, char **argv)
 		return err;
 	}
 
-	syslog(LOG_ERR, "%s: unknown parameter: %s\n", argv[0] , argv[1]);
+	wifimgr_err("%s: unknown parameter: %s\n", argv[0] , argv[1]);
 	return -EINVAL;
 }
 
