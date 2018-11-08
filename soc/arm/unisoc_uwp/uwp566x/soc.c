@@ -19,6 +19,7 @@ static int unisoc_uwp_init(struct device *arg)
 	ARG_UNUSED(arg);
 
 	uwp_glb_init();
+	uwp_cache_init();
 
 	return 0;
 }
