@@ -43,7 +43,8 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 
 static struct wifi_priv uwp_wifi_sta_priv;
-static struct wifi_priv uwp_wifi_ap_priv;
+/* FIXME: Softap priv extern use in event process */
+struct wifi_priv uwp_wifi_ap_priv;
 
 int wifi_get_mac(u8_t *mac, int idx)
 {
@@ -142,6 +143,22 @@ static int uwp_mgmt_close(struct device *dev)
 		wifi_release_rx_buf();
 	}
 
+	/* Flush all callbacks */
+	if (priv->new_station_cb) {
+		priv->new_station_cb = NULL;
+	}
+
+	if (priv->scan_result_cb) {
+		priv->scan_result_cb = NULL;
+	}
+
+	if (priv->connect_cb) {
+		priv->connect_cb = NULL;
+	}
+
+	if (priv->disconnect_cb) {
+		priv->disconnect_cb = NULL;
+	}
 	return 0;
 }
 
@@ -274,12 +291,14 @@ static void uwp_iface_init(struct net_if *iface)
 	LOG_INF("mode: %d, cp version: 0x%x.",
 		    priv->mode, priv->cp_version);
 
-	net_if_set_link_addr(iface, priv->mac, sizeof(priv->mac),
-			     NET_LINK_ETHERNET);
-
-	priv->iface = iface;
-
-	ethernet_init(iface);
+	/* Net stack has not been fit for softap as of now. */
+	if (priv->mode == WIFI_MODE_STA) {
+		net_if_set_link_addr(iface, priv->mac,
+				sizeof(priv->mac),
+				NET_LINK_ETHERNET);
+		priv->iface = iface;
+		ethernet_init(iface);
+	}
 }
 
 static int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
