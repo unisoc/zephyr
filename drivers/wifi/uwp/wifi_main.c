@@ -21,7 +21,10 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 #include "wifi_main.h"
 #include "wifi_rf.h"
+#include "wifi_cmdevt.h"
+#include "wifi_txrx.h"
 #include "sipc.h"
+#include "uwp_hal.h"
 
 /*
  * We do not need <socket/include/socket.h>
@@ -41,24 +44,21 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 #define DEV_DATA(dev) \
 	((struct wifi_priv *)(dev)->driver_data)
 
+static struct wifi_priv uwp_wifi_priv_data;
 
-static struct wifi_priv uwp_wifi_sta_priv;
-/* FIXME: Softap priv extern use in event process */
-struct wifi_priv uwp_wifi_ap_priv;
 
-int wifi_get_mac(u8_t *mac, int idx)
+struct wifi_device *get_wifi_dev_by_dev(struct device *dev)
 {
-	int ret = 0;
+	struct wifi_device *wifi_dev = NULL;
+	struct wifi_priv *priv = DEV_DATA(dev);
 
-	if (idx == WIFI_MODE_STA) {
-		memcpy(mac, uwp_wifi_sta_priv.mac, ETH_ALEN);
-	} else if (idx == WIFI_MODE_AP) {
-		memcpy(mac, uwp_wifi_ap_priv.mac, ETH_ALEN);
-	} else {
-		ret = -1;
+	for (int i = 0; i < MAX_WIFI_DEV_NUM; i++) {
+		if (dev == (priv->wifi_dev[i]).dev) {
+			wifi_dev = &(priv->wifi_dev[i]);
+		}
 	}
 
-	return ret;
+	return wifi_dev;
 }
 
 static int wifi_rf_init(void)
@@ -88,29 +88,36 @@ static int uwp_mgmt_open(struct device *dev)
 {
 	int ret;
 	struct wifi_priv *priv;
+	struct wifi_device *wifi_dev;
 
 	if (!dev) {
 		return -EINVAL;
 	}
 
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
+	}
+
 	priv = DEV_DATA(dev);
 
-	if (priv->opened) {
+	if (wifi_dev->opened) {
 		return -EAGAIN;
 	}
 
-	ret = wifi_cmd_open(priv);
+	ret = wifi_cmd_open(wifi_dev);
 	if (ret) {
 		return ret;
 	}
 
-	/* Whatever mode is firstly opened, assign rx buffer. */
-	if (!uwp_wifi_sta_priv.opened
-			&& !uwp_wifi_ap_priv.opened) {
+	/* Open mode at first time */
+	if (!priv->wifi_dev[WIFI_DEV_STA].opened
+			&& !priv->wifi_dev[WIFI_DEV_AP].opened) {
 		wifi_tx_empty_buf(TOTAL_RX_ADDR_NUM);
 	}
 
-	priv->opened = true;
+	wifi_dev->opened = true;
 
 	return 0;
 }
@@ -119,46 +126,54 @@ static int uwp_mgmt_close(struct device *dev)
 {
 	int ret;
 	struct wifi_priv *priv;
+	struct wifi_device *wifi_dev;
 
 	if (!dev) {
 		return -EINVAL;
 	}
 
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
+	}
+
 	priv = DEV_DATA(dev);
 
-	if (!priv->opened) {
+	if (!wifi_dev->opened) {
 		return -EAGAIN;
 	}
 
-	ret = wifi_cmd_close(priv);
+	ret = wifi_cmd_close(wifi_dev);
 	if (ret) {
 		return ret;
 	}
 
-	priv->opened = false;
+	wifi_dev->opened = false;
 
-	/* Both modes are closed, release rx buffer. */
-	if (!uwp_wifi_sta_priv.opened
-			&& !uwp_wifi_ap_priv.opened) {
+	/* Both are closed */
+	if (!priv->wifi_dev[WIFI_DEV_STA].opened
+			&& !priv->wifi_dev[WIFI_DEV_AP].opened) {
 		wifi_release_rx_buf();
 	}
 
 	/* Flush all callbacks */
-	if (priv->new_station_cb) {
-		priv->new_station_cb = NULL;
+	if (wifi_dev->new_station_cb) {
+		wifi_dev->new_station_cb = NULL;
 	}
 
-	if (priv->scan_result_cb) {
-		priv->scan_result_cb = NULL;
+	if (wifi_dev->scan_result_cb) {
+		wifi_dev->scan_result_cb = NULL;
 	}
 
-	if (priv->connect_cb) {
-		priv->connect_cb = NULL;
+	if (wifi_dev->connect_cb) {
+		wifi_dev->connect_cb = NULL;
 	}
 
-	if (priv->disconnect_cb) {
-		priv->disconnect_cb = NULL;
+	if (wifi_dev->disconnect_cb) {
+		wifi_dev->disconnect_cb = NULL;
 	}
+
 	return 0;
 }
 
@@ -166,38 +181,58 @@ static int uwp_mgmt_start_ap(struct device *dev,
 			     struct wifi_drv_start_ap_params *params,
 				 new_station_t cb)
 {
-	struct wifi_priv *priv;
+	struct wifi_device *wifi_dev;
 
 	if (!dev || !params) {
 		return -EINVAL;
 	}
 
-	priv = DEV_DATA(dev);
-
-	if (priv->new_station_cb) {
-		return -EALREADY;
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
 	}
 
-	priv->new_station_cb = cb;
+	if (wifi_dev->mode != WIFI_MODE_AP) {
+		LOG_WRN("Improper mode %d to start_ap.",
+				wifi_dev->mode);
+		return -EINVAL;
+	}
 
-	return wifi_cmd_start_ap(priv, params);
+	if (wifi_dev->new_station_cb) {
+		return -EAGAIN;
+	}
+
+	wifi_dev->new_station_cb = cb;
+
+	return wifi_cmd_start_ap(wifi_dev, params);
 }
 
 static int uwp_mgmt_stop_ap(struct device *dev)
 {
-	struct wifi_priv *priv;
+	struct wifi_device *wifi_dev;
 
 	if (!dev) {
 		return -EINVAL;
 	}
 
-	priv = DEV_DATA(dev);
-
-	if (priv->new_station_cb) {
-		priv->new_station_cb = NULL;
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
 	}
 
-	return wifi_cmd_stop_ap(priv);
+	if (wifi_dev->mode != WIFI_MODE_AP) {
+		LOG_WRN("Improper mode %d to stop_ap.",
+				wifi_dev->mode);
+		return -EINVAL;
+	}
+
+	if (wifi_dev->new_station_cb) {
+		wifi_dev->new_station_cb = NULL;
+	}
+
+	return wifi_cmd_stop_ap(wifi_dev);
 }
 
 static int uwp_mgmt_del_station(struct device *dev,
@@ -210,21 +245,32 @@ static int uwp_mgmt_scan(struct device *dev,
 		struct wifi_drv_scan_params *params,
 		scan_result_cb_t cb)
 {
-	struct wifi_priv *priv;
+	struct wifi_device *wifi_dev;
 
 	if (!dev || !params) {
 		return -EINVAL;
 	}
 
-	priv = DEV_DATA(dev);
-
-	if (priv->scan_result_cb) {
-		return -EALREADY;
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
 	}
 
-	priv->scan_result_cb = cb;
+	if (wifi_dev->mode != WIFI_MODE_STA) {
+		LOG_WRN("Improper mode %d to scan.",
+				wifi_dev->mode);
+		return -EINVAL;
+	}
 
-	return wifi_cmd_scan(priv, params);
+	if (wifi_dev->scan_result_cb) {
+		return -EAGAIN;
+	}
+
+	wifi_dev->scan_result_cb = cb;
+
+	return wifi_cmd_scan(wifi_dev, params);
+
 }
 
 static int uwp_mgmt_get_station(struct device *dev,
@@ -238,70 +284,117 @@ static int uwp_mgmt_connect(struct device *dev,
 			    struct wifi_drv_connect_params *params,
 				connect_cb_t cb)
 {
-	struct wifi_priv *priv;
+	struct wifi_device *wifi_dev;
 
 	if (!dev || !params) {
 		return -EINVAL;
 	}
 
-	priv = DEV_DATA(dev);
-
-	if (priv->connect_cb) {
-		return -EALREADY;
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
 	}
 
-	priv->connect_cb = cb;
+	if (wifi_dev->mode != WIFI_MODE_STA) {
+		LOG_WRN("Improper mode %d to connect.",
+				wifi_dev->mode);
+		return -EINVAL;
+	}
 
-	return wifi_cmd_connect(priv, params);
+	if (wifi_dev->connect_cb) {
+		return -EAGAIN;
+	}
+
+	wifi_dev->connect_cb = cb;
+
+	return wifi_cmd_connect(wifi_dev, params);
 }
 
 static int uwp_mgmt_disconnect(struct device *dev,
 		disconnect_cb_t cb)
 {
-	struct wifi_priv *priv;
+	struct wifi_device *wifi_dev;
 
 	if (!dev) {
 		return -EINVAL;
 	}
 
-	priv = DEV_DATA(dev);
-
-	if (priv->disconnect_cb) {
-		return -EALREADY;
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
 	}
 
-	priv->disconnect_cb = cb;
+	if (wifi_dev->mode != WIFI_MODE_STA) {
+		LOG_WRN("Improper mode %d to disconnect.",
+				wifi_dev->mode);
+		return -EINVAL;
+	}
 
-	return wifi_cmd_disconnect(priv);
+	if (wifi_dev->disconnect_cb) {
+		return -EAGAIN;
+	}
+
+	wifi_dev->disconnect_cb = cb;
+
+	return wifi_cmd_disconnect(wifi_dev);
 }
 
 static int uwp_mgmt_set_ip(struct device *dev, u8_t *ip, u8_t len)
 {
-	struct wifi_priv *priv = DEV_DATA(dev);
+	struct wifi_device *wifi_dev;
 
-	return wifi_cmd_set_ip(priv, ip, len);
+	if (!dev || !ip) {
+		return -EINVAL;
+	}
+
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
+	}
+
+	if (wifi_dev->mode != WIFI_MODE_STA) {
+		LOG_WRN("Improper mode %d to connect.",
+				wifi_dev->mode);
+		return -EINVAL;
+	}
+
+	return wifi_cmd_set_ip(wifi_dev, ip, len);
 }
 
 static void uwp_iface_init(struct net_if *iface)
 {
-	struct wifi_priv *priv = DEV_DATA(iface->if_dev->dev);
+	struct wifi_device *wifi_dev;
+	struct device *dev;
 
-	wifi_cmd_get_cp_info(priv);
+	if (!iface) {
+		return;
+	}
 
-	LOG_INF("mode: %d, cp version: 0x%x.",
-		    priv->mode, priv->cp_version);
+	dev = iface->if_dev->dev;
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return;
+	}
 
 	/* Net stack has not been fit for softap as of now. */
-	if (priv->mode == WIFI_MODE_STA) {
-		net_if_set_link_addr(iface, priv->mac,
-				sizeof(priv->mac),
-				NET_LINK_ETHERNET);
-		priv->iface = iface;
+	if (wifi_dev->mode == WIFI_MODE_STA) {
 		ethernet_init(iface);
 	}
+
+	net_if_set_link_addr(iface, wifi_dev->mac,
+			sizeof(wifi_dev->mac),
+			NET_LINK_ETHERNET);
+
+	/* Store iface in wifi device */
+	wifi_dev->iface = iface;
+
 }
 
-static int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
+static int wifi_tx_fill_msdu_dscr(struct wifi_device *wifi_dev,
 			   struct net_pkt *pkt, u8_t type, u8_t offset)
 {
 	u32_t addr = 0;
@@ -324,9 +417,13 @@ static int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
 	dscr->common.type =
 		(type == SPRDWL_TYPE_CMD ? SPRDWL_TYPE_CMD : SPRDWL_TYPE_DATA);
 	dscr->common.direction_ind = TRANS_FOR_TX_PATH;
-	dscr->common.next_buf = 0;
+	dscr->common.buffer_type = 0;
 
-	dscr->common.interface = 0;
+	if (wifi_dev->mode == WIFI_MODE_STA) {
+		dscr->common.interface = WIFI_DEV_STA;
+	} else if (wifi_dev->mode == WIFI_MODE_AP) {
+		dscr->common.interface = WIFI_DEV_AP;
+	}
 
 	dscr->pkt_len = reserve_len + net_pkt_get_len(pkt);
 	dscr->offset = 11;
@@ -350,8 +447,9 @@ static int wifi_tx_fill_msdu_dscr(struct wifi_priv *priv,
 
 static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 {
-	struct wifi_priv *priv = DEV_DATA(iface->if_dev->dev);
+	struct device *dev;
 	struct net_buf *frag;
+	struct wifi_device *wifi_dev;
 	bool first_frag = true;
 	u8_t *data_ptr;
 	u16_t data_len;
@@ -359,13 +457,31 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 	u32_t addr;
 	u16_t max_len;
 
-	if (!priv->opened) {
-		LOG_WRN("iface %d no opened.", priv->mode);
+	if (!iface) {
+		return -EINVAL;
+	}
+
+	dev = iface->if_dev->dev;
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		net_pkt_unref(pkt);
+		return -EINVAL;
+	}
+
+	if (!wifi_dev->opened
+			&& wifi_dev->mode == WIFI_MODE_AP) {
+		LOG_WRN("AP mode %d not opened.", wifi_dev->mode);
+		net_pkt_unref(pkt);
+		return -EWOULDBLOCK;
+	} else if (!wifi_dev->connected
+			&& wifi_dev->mode == WIFI_MODE_STA) {
+		LOG_WRN("STA mode %d not connected.", wifi_dev->mode);
 		net_pkt_unref(pkt);
 		return -EWOULDBLOCK;
 	}
 
-	wifi_tx_fill_msdu_dscr(priv, pkt, SPRDWL_TYPE_DATA, 0);
+	wifi_tx_fill_msdu_dscr(wifi_dev, pkt, SPRDWL_TYPE_DATA, 0);
 
 	total_len = net_pkt_ll_reserve(pkt) + net_pkt_get_len(pkt);
 
@@ -394,7 +510,7 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 		if (data_len > max_len) {
 			LOG_ERR("Exceed max length %d data_len %d",
 					max_len, data_len);
-			return -1;
+			return -EINVAL;
 		}
 
 		wifi_tx_data((void *)addr, data_len);
@@ -422,45 +538,55 @@ static const struct wifi_drv_api uwp_api = {
 static int uwp_init(struct device *dev)
 {
 	int ret;
-	struct wifi_priv *priv = DEV_DATA(dev);
+	struct wifi_priv *priv;
+	struct wifi_device *wifi_dev;
+
+	if (!dev) {
+		return -EINVAL;
+	}
+
+	priv = DEV_DATA(dev);
 
 	if (!strcmp(dev->config->name, CONFIG_WIFI_STA_DRV_NAME)) {
-		priv->mode = WIFI_MODE_STA;
+		wifi_dev = &(priv->wifi_dev[WIFI_DEV_STA]);
+		wifi_dev->mode = WIFI_MODE_STA;
+		/* Store device in wifi device */
+		wifi_dev->dev = dev;
 	} else if (!strcmp(dev->config->name, CONFIG_WIFI_AP_DRV_NAME)) {
-		priv->mode = WIFI_MODE_AP;
+		wifi_dev = &(priv->wifi_dev[WIFI_DEV_AP]);
+		wifi_dev->mode = WIFI_MODE_AP;
+		/* Store device in wifi device */
+		wifi_dev->dev = dev;
 	} else {
 		LOG_ERR("Unknown WIFI DEV NAME: %s",
 			    dev->config->name);
 	}
 
 	if (!priv->initialized) {
-		if (priv->mode == WIFI_MODE_STA) {
-			/* priv->connecting = false; */
-			/* priv->connected = false; */
-
-			ret = uwp_mcu_init();
-			if (ret) {
-				LOG_ERR("firmware download failed %i.",
-						ret);
-				return ret;
-			}
-
-			wifi_cmdevt_init();
-			wifi_txrx_init(priv);
-			wifi_irq_init();
-
-			k_sleep(400); /* FIXME: workaround */
-			ret = wifi_rf_init();
-			if (ret) {
-				LOG_ERR("wifi rf init failed.");
-				return ret;
-			}
+		ret = uwp_mcu_init();
+		if (ret) {
+			LOG_ERR("Firmware download failed %i.",
+					ret);
+			return ret;
 		}
 
-		/* CP does not need to do initialization twice
-		 * because softap and sta are initialized at one time.
-		 */
-		priv->opened = false;
+		wifi_cmdevt_init();
+		wifi_txrx_init(priv);
+		wifi_irq_init();
+
+		k_sleep(400); /* FIXME: workaround */
+		ret = wifi_rf_init();
+		if (ret) {
+			LOG_ERR("wifi rf init failed.");
+			return ret;
+		}
+
+		ret = wifi_cmd_get_cp_info(priv);
+		if (ret) {
+			LOG_ERR("Get cp info failed.");
+			return ret;
+		}
+
 		priv->initialized = true;
 	}
 
@@ -470,14 +596,14 @@ static int uwp_init(struct device *dev)
 }
 
 NET_DEVICE_INIT(uwp_ap, CONFIG_WIFI_AP_DRV_NAME,
-		uwp_init, &uwp_wifi_ap_priv, NULL,
+		uwp_init, &uwp_wifi_priv_data, NULL,
 		CONFIG_WIFI_INIT_PRIORITY,
 		&uwp_api,
 		ETHERNET_L2, NET_L2_GET_CTX_TYPE(ETHERNET_L2),
 		MTU);
 
 NET_DEVICE_INIT(uwp_sta, CONFIG_WIFI_STA_DRV_NAME,
-		uwp_init, &uwp_wifi_sta_priv, NULL,
+		uwp_init, &uwp_wifi_priv_data, NULL,
 		CONFIG_WIFI_INIT_PRIORITY,
 		&uwp_api,
 		ETHERNET_L2, NET_L2_GET_CTX_TYPE(ETHERNET_L2),

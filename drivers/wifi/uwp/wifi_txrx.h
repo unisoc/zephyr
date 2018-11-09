@@ -7,6 +7,8 @@
 #ifndef __WIFI_TXRX_H__
 #define __WIFI_TXRX_H__
 
+#include "wifi_main.h"
+
 #define SPRD_AP_CP_DRAM_MAP_BASE (0x40400000)
 
 #define SPRD_AP_DRAM_BEGIN (0x00100000)
@@ -212,19 +214,7 @@ struct rx_mh_desc {
 struct tx_msdu_dscr {
 	unsigned int next_buf_addr_low;
 	unsigned char next_buf_addr_high;
-	struct {
-		/* 0:cmd, 1:event, 2:normal data,
-		 * 3:special data, 4:PCIE remote addr.
-		 */
-		unsigned char type : 3;
-		/* Direction of address buffer of cmd/event,
-		 * 0:Tx, 1:Rx.
-		 */
-		unsigned char direction_ind : 1;
-		unsigned char next_buf : 1;
-		/* ctxt_id. */
-		unsigned char interface : 3;
-	} common;
+	struct sprdwl_common_hdr common;
 	unsigned char offset;
 	struct {
 		/* 1:need HW to do checksum. */
@@ -264,6 +254,11 @@ struct txc_addr_buff {
 	unsigned short number;
 	unsigned short rsvd;
 	unsigned char data[0];
+} __packed;
+
+struct txc {
+	struct sprdwl_common_hdr common;
+	struct txc_addr_buff txc_addr;
 } __packed;
 
 struct rx_empty_buff {

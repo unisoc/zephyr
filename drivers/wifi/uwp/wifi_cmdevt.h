@@ -9,14 +9,12 @@
 
 #include <net/wifimgr_drv.h>
 
+#include "wifi_main.h"
+
 #define MAX_SSID_LEN (33) /* SSID end with 0 */
 #define MAX_KEY_LEN (128) /* FIXME: Max size 64 */
 #define MAX_AP_KEY_LEN (64)
-#define ETH_ALEN (6)
-#define IPV4_LEN (4)
 
-
-struct wifi_priv;
 
 enum cmd_type {
 	WIFI_CMD_BEGIN = 0x00,
@@ -71,7 +69,7 @@ struct cmd_download_ini {
 	char data[0];
 } __packed;
 
-struct cmd_start {
+struct cmd_open {
 	struct trans_hdr trans_header;
 	char mode;
 	char mac[ETH_ALEN];
@@ -190,20 +188,20 @@ struct event_new_station {
 /* int wifi_cmd_load_ini(u8_t *pAd); */
 /* int wifi_cmd_set_sta_connect_info(u8_t *pAd, char *ssid, char *key); */
 int wifi_cmd_get_cp_info(struct wifi_priv *priv);
-int wifi_cmd_open(struct wifi_priv *priv);
-int wifi_cmd_close(struct wifi_priv *priv);
-int wifi_cmd_scan(struct wifi_priv *priv,
+int wifi_cmd_open(struct wifi_device *wifi_dev);
+int wifi_cmd_close(struct wifi_device *wifi_dev);
+int wifi_cmd_scan(struct wifi_device *wifi_dev,
 		struct wifi_drv_scan_params *params);
-int wifi_cmd_connect(struct wifi_priv *priv,
+int wifi_cmd_connect(struct wifi_device *wifi_dev,
 			    struct wifi_drv_connect_params *params);
-int wifi_cmd_disconnect(struct wifi_priv *priv);
-int wifi_cmd_start_ap(struct wifi_priv *priv,
+int wifi_cmd_disconnect(struct wifi_device *wifi_dev);
+int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 		struct wifi_drv_start_ap_params *params);
-int wifi_cmd_stop_ap(struct wifi_priv *priv);
-int wifi_cmd_npi_send(int ictx_id, char *t_buf,
+int wifi_cmd_stop_ap(struct wifi_device *wifi_dev);
+int wifi_cmd_npi_send(struct device *dev, int ictx_id, char *t_buf,
 		u32_t t_len, char *r_buf, u32_t *r_len);
-int wifi_cmd_npi_get_mac(int ictx_id, char *buf);
-int wifi_cmd_set_ip(struct wifi_priv *priv, u8_t *ip, u8_t len);
+int wifi_cmd_npi_get_mac(struct device *dev, char *buf);
+int wifi_cmd_set_ip(struct wifi_device *wifi_dev, u8_t *ip, u8_t len);
 
 int wifi_cmd_send(u8_t cmd, char *data, int len,
 			 char *rbuf, int *rlen);
