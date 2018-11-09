@@ -16,6 +16,9 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 #include <net/net_pkt.h>
 
 #include "wifi_main.h"
+#include "wifi_txrx.h"
+#include "wifi_ipc.h"
+#include "wifi_cmdevt.h"
 
 #define RX_BUF_SIZE (2000)
 #define TXRX_STACK_SIZE (1024)
@@ -38,10 +41,10 @@ static wifi_slist_t rx_buf_list;
 
 int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 {
-	/* struct rxc *rx_complete_buf = (struct rxc *)data; */
-	struct rxc_ddr_addr_trans_t *rxc_addr =
-		(struct rxc_ddr_addr_trans_t *)data;
+	struct rxc *rx_complete_buf = (struct rxc *)data;
+	struct rxc_ddr_addr_trans_t *rxc_addr = &rx_complete_buf->rxc_addr;
 	struct rx_msdu_desc *rx_msdu = NULL;
+	struct net_if *iface = NULL;
 	u32_t payload = 0;
 	u32_t buf;
 
@@ -54,7 +57,7 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 	rx_pkt = net_pkt_get_reserve_rx(0, K_NO_WAIT);
 	if (!rx_pkt) {
 		LOG_ERR("Could not allocate rx packet.");
-		return -1;
+		return -ENOMEM;
 	}
 
 	for (i = 0; i < rxc_addr->num; i++) {
@@ -89,9 +92,22 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 		net_pkt_frag_add(rx_pkt, pkt_buf);
 	}
 
-	if (net_recv_data(priv->iface, rx_pkt) < 0) {
-		LOG_ERR("pkt %p not received by L2 stack.", rx_pkt);
+	if (rx_complete_buf->common.interface == 0) {
+		/* Sta data */
+		iface = priv->wifi_dev[WIFI_DEV_IDX_0].iface;
+	} else if (rx_complete_buf->common.interface == 1) {
+		/* Softap data */
+		iface = priv->wifi_dev[WIFI_DEV_IDX_1].iface;
+	}
+
+	if (!iface) {
+		LOG_ERR("Iface null.");
 		net_pkt_unref(rx_pkt);
+	} else {
+		if (net_recv_data(iface, rx_pkt) < 0) {
+			LOG_ERR("pkt %p not received by L2 stack.", rx_pkt);
+			net_pkt_unref(rx_pkt);
+		}
 	}
 
 	/* Allocate new empty buffer to cp. */
@@ -102,7 +118,8 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 
 int wifi_tx_complete_handle(void *data, int len)
 {
-	struct txc_addr_buff *txc_addr = (struct txc_addr_buff *)data;
+	struct txc *txc_complete_buf = (struct txc *)data;
+	struct txc_addr_buff *txc_addr = &txc_complete_buf->txc_addr;
 	u16_t payload_num;
 	u32_t payload_addr;
 	u32_t tx_pkt;
@@ -134,19 +151,14 @@ int wifi_tx_complete_handle(void *data, int len)
 
 int wifi_tx_cmd(void *data, int len)
 {
-	int ret;
-
-	ret = wifi_ipc_send(SMSG_CH_WIFI_CTRL, QUEUE_PRIO_HIGH,
+	return wifi_ipc_send(SMSG_CH_WIFI_CTRL, QUEUE_PRIO_HIGH,
 			    data, len, WIFI_CTRL_MSG_OFFSET);
-
-	return ret;
 }
 
 int wifi_data_process(struct wifi_priv *priv, char *data, int len)
 {
 	struct sprdwl_common_hdr *common_hdr = (struct sprdwl_common_hdr *)data;
 
-	data += sizeof(struct sprdwl_common_hdr);
 	switch (common_hdr->type) {
 	case SPRDWL_TYPE_DATA_SPECIAL:
 		if (common_hdr->direction_ind) { /* Rx data. */
@@ -159,7 +171,7 @@ int wifi_data_process(struct wifi_priv *priv, char *data, int len)
 	case SPRDWL_TYPE_DATA_HIGH_SPEED:
 		break;
 	default:
-		LOG_ERR("unknown type :%d\n", common_hdr->type);
+		LOG_ERR("Unknown type :%d\n", common_hdr->type);
 	}
 	return 0;
 }
@@ -172,7 +184,7 @@ static void txrx_thread(void *p1)
 	int len;
 
 	while (1) {
-		LOG_DBG("wait for data.");
+		LOG_DBG("Wait for data.");
 		k_sem_take(&event_sem, K_FOREVER);
 
 		while (1) {
@@ -234,7 +246,7 @@ int wifi_tx_data(void *data, int len)
 			    1 * SPRDWL_PHYS_LEN + sizeof(struct hw_addr_buff_t),
 			    WIFI_DATA_NOR_MSG_OFFSET);
 	if (ret < 0) {
-		LOG_ERR("sprd_wifi_send fail\n");
+		LOG_ERR("IPC send fail %d", ret);
 		return ret;
 	}
 
@@ -264,8 +276,8 @@ static int wifi_tx_empty_buf_(int num)
 		/* Reserve a data frag to receive the frame */
 		pkt_buf = net_pkt_get_reserve_rx_data(0, K_NO_WAIT);
 		if (!pkt_buf) {
-			LOG_ERR("Could not allocate rx packet %d.", i);
-			return -1;
+			LOG_ERR("Could not allocate rx buf %d.", i);
+			return -ENOMEM;
 		}
 
 		k_mutex_lock(&rx_buf_mutex, K_FOREVER);
@@ -282,7 +294,7 @@ static int wifi_tx_empty_buf_(int num)
 
 	if (i == 0) {
 		LOG_ERR("No more rx packet buffer.");
-		return -1;
+		return -EINVAL;
 	}
 
 	buf.type = EMPTY_DDR_BUFF;
@@ -295,7 +307,7 @@ static int wifi_tx_empty_buf_(int num)
 			i * SPRDWL_PHYS_LEN + 3,
 			WIFI_DATA_NOR_MSG_OFFSET);
 	if (ret < 0) {
-		LOG_ERR("sprd_wifi_send fail\n");
+		LOG_ERR("IPC send fail %d", ret);
 		return ret;
 	}
 
@@ -318,9 +330,11 @@ int wifi_tx_empty_buf(int num)
 				return ret;
 			}
 		}
-		ret = wifi_tx_empty_buf_(rest);
-		if (ret) {
-			return ret;
+		if (rest) {
+			ret = wifi_tx_empty_buf_(rest);
+			if (ret) {
+				return ret;
+			}
 		}
 	} else {
 		ret = wifi_tx_empty_buf_(num);
@@ -342,7 +356,7 @@ int wifi_release_rx_buf(void)
 	}
 	k_mutex_unlock(&rx_buf_mutex);
 
-	LOG_DBG("flush all rx buf");
+	LOG_DBG("Flush all rx buf");
 
 	return 0;
 }
