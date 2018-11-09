@@ -20,9 +20,9 @@ int wifi_ipc_create_channel(int ch, void (*callback)(int ch))
 {
 	int ret = 0;
 
-	if (callback == NULL) {
-		LOG_ERR("invalid callback.");
-		return -1;
+	if (!callback) {
+		LOG_ERR("Invalid callback.");
+		return -EINVAL;
 	}
 
 	switch (ch) {
@@ -48,18 +48,18 @@ int wifi_ipc_create_channel(int ch, void (*callback)(int ch))
 				DATAPATH_SPEC_RX_BLOCK_SIZE);
 		break;
 	default:
-		ret = -1;
+		ret = -EINVAL;
 		break;
 	}
 
 	if (ret < 0) {
-		LOG_ERR("ipc create channel %d failed.", ch);
+		LOG_ERR("Ipc create channel %d failed.", ch);
 		return ret;
 	}
 
 	ret = sblock_register_callback(ch, callback);
 	if (ret < 0) {
-		LOG_ERR("register ipc callback failed");
+		LOG_ERR("Register ipc callback failed");
 		return ret;
 	}
 
@@ -72,9 +72,9 @@ int wifi_ipc_send(int ch, int prio, void *data, int len, int offset)
 	struct sblock blk;
 
 	ret = sblock_get(0, ch, &blk, 0);
-	if (ret != 0) {
-		LOG_ERR("get block error: %d", ch);
-		return -1;
+	if (ret) {
+		LOG_ERR("Get block error: %d", ch);
+		return ret;
 	}
 	LOG_DBG("IPC Channel %d Send data:", ch);
 	memcpy((char *)blk.addr + BLOCK_HEADROOM_SIZE + offset, data, len);
