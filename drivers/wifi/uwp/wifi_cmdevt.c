@@ -20,6 +20,8 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 #define ALL_2_4_GHZ_CHANNELS (0X3FFF)
 #define CHANNEL_2_4_GHZ_BIT(n) (1 << (n - 1))
 
+extern struct wifi_priv uwp_wifi_ap_priv;
+
 static unsigned char recv_buf[RECV_BUF_SIZE];
 static unsigned int recv_len;
 static unsigned int seq = 1;
@@ -542,7 +544,6 @@ int wifi_evt_new_sta(struct wifi_priv *priv, char *data, int len)
 		priv->new_station_cb(priv->iface,
 				event->is_connect,
 				event->mac);
-		priv->new_station_cb = NULL;
 	}
 
 	return 0;
@@ -595,7 +596,11 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 		wifi_evt_connect(priv, hdr->data, len);
 		break;
 	case WIFI_EVENT_NEW_STATION:
-		wifi_evt_new_sta(priv, hdr->data, len);
+		/*
+		 * FIXME: This is for softap iface.
+		 * We might need a proper solution.
+		 */
+		wifi_evt_new_sta(&uwp_wifi_ap_priv, hdr->data, len);
 		break;
 	default:
 		break;
