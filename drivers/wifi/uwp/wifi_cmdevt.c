@@ -14,7 +14,8 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 #include <sipc.h>
 #include <sblock.h>
 
-#include "wifi_main.h"
+#include "wifi_cmdevt.h"
+#include "wifi_txrx.h"
 
 #define RECV_BUF_SIZE (128)
 #define ALL_2_4_GHZ_CHANNELS (0X3FFF)
@@ -61,7 +62,7 @@ static inline int check_cmdevt_len(int input_len, int expected_len)
 	if (input_len != expected_len) {
 		LOG_ERR("Invalid len %d, expected len %d",
 				input_len, expected_len);
-		return -1;
+		return -EINVAL;
 	}
 
 	return 0;
@@ -69,7 +70,7 @@ static inline int check_cmdevt_len(int input_len, int expected_len)
 
 int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 {
-	int ret = -1;
+	int ret;
 	u16_t crc = 0;
 	int cmd_len;
 	struct cmd_download_ini *cmd;
@@ -79,13 +80,13 @@ int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 
 	cmd = k_malloc(cmd_len);
 	if (!cmd) {
-		LOG_ERR("cmd is null");
-		return ret;
+		LOG_ERR("Cmd is null");
+		return -ENOMEM;
 	}
 
 	/* Calc CRC value. */
 	crc = CRC16(data, len);
-	LOG_DBG("sec: %d, len: %d, CRC value: 0x%x",
+	LOG_DBG("Sec: %d, len: %d, CRC value: 0x%x",
 		    sec_num, len, crc);
 
 	memset(cmd, 0, cmd_len);
@@ -99,7 +100,7 @@ int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 	ret = wifi_cmd_send(WIFI_CMD_DOWNLOAD_INI, (char *)cmd,
 			    cmd_len, NULL, 0);
 	if (ret) {
-		LOG_ERR("load ini fail");
+		LOG_ERR("Load ini fail");
 		k_free(cmd);
 		return ret;
 	}
@@ -109,10 +110,10 @@ int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 	return 0;
 }
 
-int wifi_cmd_scan(struct wifi_priv *priv,
+int wifi_cmd_scan(struct wifi_device *wifi_dev,
 		struct wifi_drv_scan_params *params)
 {
-	int ret = -1;
+	int ret;
 	int ssid_len = 0;
 	int cmd_len = 0;
 	struct cmd_scan *cmd;
@@ -126,8 +127,8 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 	case WIFI_BAND_2_4G:
 		cmd = k_malloc(cmd_len);
 		if (!cmd) {
-			LOG_ERR("cmd is null");
-			return ret;
+			LOG_ERR("Cmd is null");
+			return -ENOMEM;
 		}
 
 		if (channel == 0) { /* All 2.4GH channel */
@@ -143,7 +144,7 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 			cmd = k_malloc(cmd_len);
 			if (!cmd) {
 				LOG_ERR("cmd is null");
-				return ret;
+				return -ENOMEM;
 			}
 			memset(cmd, 0, cmd_len);
 
@@ -156,7 +157,7 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 			cmd = k_malloc(cmd_len);
 			if (!cmd) {
 				LOG_ERR("cmd is null");
-				return ret;
+				return -ENOMEM;
 			}
 			memset(cmd, 0, cmd_len);
 
@@ -173,7 +174,7 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 			cmd = k_malloc(cmd_len);
 			if (!cmd) {
 				LOG_ERR("cmd is null");
-				return ret;
+				return -ENOMEM;
 			}
 			memset(cmd, 0, cmd_len);
 
@@ -186,7 +187,7 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 		} else {
 			LOG_ERR("Invalid band %d, channel %d.",
 					band, channel);
-			return ret;
+			return -EINVAL;
 		}
 		break;
 	}
@@ -194,7 +195,7 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 	ret = wifi_cmd_send(WIFI_CMD_SCAN, (char *)cmd,
 			    cmd_len, NULL, NULL);
 	if (ret) {
-		LOG_ERR("scan cmd fail");
+		LOG_ERR("Scan cmd fail");
 		k_free(cmd);
 		return ret;
 	}
@@ -204,7 +205,7 @@ int wifi_cmd_scan(struct wifi_priv *priv,
 	return 0;
 }
 
-int wifi_cmd_connect(struct wifi_priv *priv,
+int wifi_cmd_connect(struct wifi_device *wifi_dev,
 		     struct wifi_drv_connect_params *params)
 {
 	int ret;
@@ -212,9 +213,9 @@ int wifi_cmd_connect(struct wifi_priv *priv,
 
 	memset(&cmd, 0, sizeof(cmd));
 
-	if (params->ssid == NULL) {
+	if (!params->ssid) {
 		LOG_ERR("Invalid SSID.");
-		return -1;
+		return -EINVAL;
 	}
 
 	cmd.channel = params->channel;
@@ -227,14 +228,14 @@ int wifi_cmd_connect(struct wifi_priv *priv,
 	ret = wifi_cmd_send(WIFI_CMD_CONNECT, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
-		LOG_ERR("connect cmd fail");
+		LOG_ERR("Connect cmd fail");
 		return ret;
 	}
 
 	return 0;
 }
 
-int wifi_cmd_disconnect(struct wifi_priv *priv)
+int wifi_cmd_disconnect(struct wifi_device *wifi_dev)
 {
 	int ret;
 	struct cmd_disconnect cmd;
@@ -244,7 +245,7 @@ int wifi_cmd_disconnect(struct wifi_priv *priv)
 	ret = wifi_cmd_send(WIFI_CMD_DISCONNECT, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
-		LOG_ERR("disconnect cmd fail");
+		LOG_ERR("Disconnect cmd fail");
 		return ret;
 	}
 
@@ -261,107 +262,106 @@ int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 	ret = wifi_cmd_send(WIFI_CMD_GET_CP_INFO, (char *)&cmd, sizeof(cmd),
 			    (char *)&cmd, &len);
 	if (ret) {
-		LOG_ERR("get cp info fail");
+		LOG_ERR("Get cp info send cmd fail");
 		return ret;
 	}
 
 	priv->cp_version = cmd.version;
-	if (priv->mode == WIFI_MODE_STA) {
-		memcpy(priv->mac, cmd.mac, 6);
-	} else if (priv->mode == WIFI_MODE_AP) {
-		cmd.mac[4] ^= 0x80;
-		memcpy(priv->mac, cmd.mac, 6);
-	}
+
+	/* Set sta mac */
+	memcpy(priv->wifi_dev[WIFI_DEV_STA].mac, cmd.mac, ETH_ALEN);
+	/* Set softap mac */
+	cmd.mac[4] ^= 0x80;
+	memcpy(priv->wifi_dev[WIFI_DEV_AP].mac, cmd.mac, ETH_ALEN);
 
 	return 0;
 }
 
-int wifi_cmd_open(struct wifi_priv *priv)
+int wifi_cmd_open(struct wifi_device *wifi_dev)
 {
-	struct cmd_start cmd;
+	struct cmd_open cmd;
 	int ret;
 
-	LOG_DBG("open mode %d", priv->mode);
+	LOG_DBG("Open mode %d", wifi_dev->mode);
 
 	memset(&cmd, 0, sizeof(cmd));
-	cmd.mode = priv->mode;
-	memcpy(cmd.mac, priv->mac, 6);
+	cmd.mode = wifi_dev->mode;
+	memcpy(cmd.mac, wifi_dev->mac, ETH_ALEN);
 
 	ret = wifi_cmd_send(WIFI_CMD_OPEN, (char *)&cmd, sizeof(cmd),
 			    NULL, NULL);
 	if (ret) {
-		LOG_ERR("start mode %d fail", priv->mode);
+		LOG_ERR("Open mode %d send cmd fail", wifi_dev->mode);
 		return ret;
 	}
-	LOG_DBG("open mode success.");
+	LOG_DBG("Open mode success.");
 
 	return 0;
 }
 
-int wifi_cmd_close(struct wifi_priv *priv)
+int wifi_cmd_close(struct wifi_device *wifi_dev)
 {
 	struct cmd_stop cmd;
 	int ret;
 
 	memset(&cmd, 0, sizeof(cmd));
-	cmd.mode = priv->mode;
-	memcpy(cmd.mac, priv->mac, 6);
+	cmd.mode = wifi_dev->mode;
+	memcpy(cmd.mac, wifi_dev->mac, 6);
 
 	ret = wifi_cmd_send(WIFI_CMD_CLOSE, (char *)&cmd, sizeof(cmd),
 			    NULL, NULL);
 	if (ret) {
-		LOG_ERR("stop mode:%d fail", priv->mode);
+		LOG_ERR("Stop mode:%d send cmd fail", wifi_dev->mode);
 		return ret;
 	}
 
 	return 0;
 }
 
-int wifi_cmd_start_ap(struct wifi_priv *priv,
+int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 		struct wifi_drv_start_ap_params *params)
 {
 	struct cmd_start_ap cmd;
 	int ret;
 
-	LOG_DBG("start ap at channel: %d.", params->channel);
+	LOG_DBG("Start ap at channel: %d.", params->channel);
 	memset(&cmd, 0, sizeof(cmd));
 
-	/* memcpy(cmd.mac, priv->mac, 6); */
 	if (params->ssid_length > 0) {
 		memcpy(cmd.ssid, params->ssid, params->ssid_length);
 		cmd.ssid_len = params->ssid_length;
-		LOG_DBG("ssid: %s(%d).", cmd.ssid, cmd.ssid_len);
+		LOG_DBG("Ssid: %s(%d).", cmd.ssid, cmd.ssid_len);
 	}
 	if (params->psk_length > 0) {
 		memcpy(cmd.password, params->psk, params->psk_length);
 		cmd.password_len = params->psk_length;
-		LOG_DBG("psk: %s(%d).", cmd.password, cmd.password_len);
+		LOG_DBG("Psk: %s(%d).", cmd.password, cmd.password_len);
 	}
 
 	cmd.channel = params->channel;
 	ret = wifi_cmd_send(WIFI_CMD_START_AP, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
-		LOG_ERR("ap start fail");
+		LOG_ERR("Ap start fail %d", ret);
 		return ret;
 	}
-	LOG_DBG("start ap ok.");
+	LOG_DBG("Start ap ok.");
 
 	return 0;
 }
 
-int wifi_cmd_stop_ap(struct wifi_priv *priv)
+int wifi_cmd_stop_ap(struct wifi_device *wifi_dev)
 {
 	struct cmd_stop cmd;
 	int ret;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.mode = WIFI_MODE_AP;
-	memcpy(cmd.mac, priv->mac, 6);
+	memcpy(cmd.mac, wifi_dev->mac, ETH_ALEN);
 	ret = wifi_cmd_send(WIFI_CMD_CLOSE, (char *)&cmd, sizeof(cmd),
 			    NULL, NULL);
 	if (ret) {
-		LOG_ERR("ap stop fail");
+		LOG_ERR("Ap stop send cmd fail");
 		return ret;
 	}
 
@@ -373,11 +373,12 @@ int wifi_cmd_stop_ap(struct wifi_priv *priv)
  * @param r_buf: address of return value
  * @param r_len: length of return value
  */
-int wifi_cmd_npi_send(int ictx_id, char *t_buf,
-		u32_t t_len, char *r_buf, u32_t *r_len)
+int wifi_cmd_npi_send(struct device *dev, int ictx_id,
+		char *t_buf, u32_t t_len, char *r_buf,
+		u32_t *r_len)
 {
 	struct cmd_npi *cmd;
-	int ret = -1;
+	int ret;
 	int cmd_len;
 
 	/* Calculate total command length. */
@@ -385,8 +386,8 @@ int wifi_cmd_npi_send(int ictx_id, char *t_buf,
 
 	cmd = k_malloc(cmd_len);
 	if (!cmd) {
-		LOG_ERR("cmd is null");
-		return ret;
+		LOG_ERR("Cmd is null");
+		return -ENOMEM;
 	}
 
 	memset(cmd, 0, cmd_len);
@@ -396,7 +397,7 @@ int wifi_cmd_npi_send(int ictx_id, char *t_buf,
 	ret = wifi_cmd_send(WIFI_CMD_NPI_MSG, (char *)cmd,
 			cmd_len, r_buf, r_len);
 	if (ret) {
-		LOG_ERR("npi_send_command fail");
+		LOG_ERR("Cmd send fail %d", ret);
 		k_free(cmd);
 		return ret;
 	}
@@ -412,15 +413,29 @@ int wifi_cmd_npi_send(int ictx_id, char *t_buf,
 	return 0;
 }
 
-int wifi_cmd_npi_get_mac(int ictx_id, char *buf)
+int wifi_cmd_npi_get_mac(struct device *dev, char *buf)
 {
-	return wifi_get_mac((u8_t *)buf, ictx_id);
+	struct wifi_device *wifi_dev;
+
+	if (!dev || !buf) {
+		return -EINVAL;
+	}
+
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
+	}
+
+	memcpy(buf, wifi_dev->mac, ETH_ALEN);
+
+	return 0;
 }
 
 
-int wifi_cmd_set_ip(struct wifi_priv *priv, u8_t *ip_addr, u8_t len)
+int wifi_cmd_set_ip(struct wifi_device *wifi_dev, u8_t *ip_addr, u8_t len)
 {
-	int ret = -1;
+	int ret;
 	struct cmd_set_ip cmd;
 
 	memset(&cmd, 0, sizeof(cmd));
@@ -430,11 +445,11 @@ int wifi_cmd_set_ip(struct wifi_priv *priv, u8_t *ip_addr, u8_t len)
 		 * TODO: support ipv6 address, need to reserve more bytes.
 		 */
 		memcpy(cmd.ip, ip_addr, len);
-		/* Store ipv4 address in wifi_priv. */
-		memcpy(priv->ipv4_addr, ip_addr, len);
+		/* Store ipv4 address in wifi device. */
+		memcpy(wifi_dev->ipv4_addr, ip_addr, len);
 	} else {
 		LOG_WRN("Currently only ipv4, 4 bytes.");
-		return ret;
+		return -EINVAL;
 	}
 
 	ret = wifi_cmd_send(WIFI_CMD_SET_IP, (char *)&cmd,
@@ -444,12 +459,13 @@ int wifi_cmd_set_ip(struct wifi_priv *priv, u8_t *ip_addr, u8_t len)
 		return ret;
 	}
 
-	LOG_DBG("set ip ok.");
+	LOG_DBG("Set ip ok.");
 
 	return 0;
 }
 
-int wifi_evt_scan_result(struct wifi_priv *priv, char *data, int len)
+static int wifi_evt_scan_result(struct wifi_device *wifi_dev,
+		char *data, int len)
 {
 	struct event_scan_result *event =
 		(struct event_scan_result *)data;
@@ -458,7 +474,7 @@ int wifi_evt_scan_result(struct wifi_priv *priv, char *data, int len)
 	memset(&scan_result, 0, sizeof(scan_result));
 
 	if (check_cmdevt_len(len, sizeof(struct event_scan_result))) {
-		return -1;
+		return -EINVAL;
 	}
 
 	scan_result.security = WIFI_SECURITY_TYPE_NONE;
@@ -471,8 +487,8 @@ int wifi_evt_scan_result(struct wifi_priv *priv, char *data, int len)
 
 	LOG_DBG("ssid: %s", event->ssid);
 
-	if (priv->scan_result_cb) {
-		priv->scan_result_cb(priv->iface, 0, &scan_result);
+	if (wifi_dev->scan_result_cb) {
+		wifi_dev->scan_result_cb(wifi_dev->iface, 0, &scan_result);
 	}
 
 	k_yield();
@@ -480,68 +496,73 @@ int wifi_evt_scan_result(struct wifi_priv *priv, char *data, int len)
 	return 0;
 }
 
-int wifi_evt_scan_done(struct wifi_priv *priv, char *data, int len)
+static int wifi_evt_scan_done(struct wifi_device *wifi_dev, char *data, int len)
 {
 	struct event_scan_done *event =
 		(struct event_scan_done *)data;
 
 	if (check_cmdevt_len(len, sizeof(struct event_scan_done))) {
-		return -1;
+		return -EINVAL;
 	}
 
-	if (priv->scan_result_cb) {
-		priv->scan_result_cb(priv->iface, event->status, NULL);
-		priv->scan_result_cb = NULL;
+	if (wifi_dev->scan_result_cb) {
+		wifi_dev->scan_result_cb(wifi_dev->iface, event->status, NULL);
+		wifi_dev->scan_result_cb = NULL;
 	}
 
 	return 0;
 }
 
-int wifi_evt_connect(struct wifi_priv *priv, char *data, int len)
+static int wifi_evt_connect(struct wifi_device *wifi_dev, char *data, int len)
 {
 	struct event_connect *event =
 		(struct event_connect *)data;
 
 	if (check_cmdevt_len(len, sizeof(struct event_connect))) {
-		return -1;
+		return -EINVAL;
 	}
 
-	if (priv->connect_cb) {
-		priv->connect_cb(priv->iface, event->status);
-		priv->connect_cb = NULL;
+	if (wifi_dev->connect_cb) {
+		wifi_dev->connect_cb(wifi_dev->iface, event->status);
+		wifi_dev->connect_cb = NULL;
 	}
+
+	wifi_dev->connected = true;
 
 	return 0;
 }
 
-int wifi_evt_disconnect(struct wifi_priv *priv, char *data, int len)
+static int wifi_evt_disconnect(struct wifi_device *wifi_dev,
+		char *data, int len)
 {
 	struct event_disconnect *event =
 		(struct event_disconnect *)data;
 
 	if (check_cmdevt_len(len, sizeof(struct event_disconnect))) {
-		return -1;
+		return -EINVAL;
 	}
 
-	if (priv->disconnect_cb) {
-		priv->disconnect_cb(priv->iface, event->reason_code);
-		priv->disconnect_cb = NULL;
+	if (wifi_dev->disconnect_cb) {
+		wifi_dev->disconnect_cb(wifi_dev->iface, event->reason_code);
+		wifi_dev->disconnect_cb = NULL;
 	}
+
+	wifi_dev->connected = false;
 
 	return 0;
 }
 
-int wifi_evt_new_sta(struct wifi_priv *priv, char *data, int len)
+static int wifi_evt_new_sta(struct wifi_device *wifi_dev, char *data, int len)
 {
 	struct event_new_station *event =
 		(struct event_new_station *)data;
 
 	if (check_cmdevt_len(len, sizeof(struct event_new_station))) {
-		return -1;
+		return -EINVAL;
 	}
 
-	if (priv->new_station_cb) {
-		priv->new_station_cb(priv->iface,
+	if (wifi_dev->new_station_cb) {
+		wifi_dev->new_station_cb(wifi_dev->iface,
 				event->is_connect,
 				event->mac);
 	}
@@ -554,8 +575,8 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 	struct trans_hdr *hdr = (struct trans_hdr *)data;
 
 	if (len > RECV_BUF_SIZE) {
-		LOG_ERR("invalid data len %d.", len);
-		return -1;
+		LOG_ERR("Invalid data len %d.", len);
+		return -EINVAL;
 	}
 
 	/* Receive command response. */
@@ -584,23 +605,24 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 	/* Receive Events */
 	switch (hdr->type) {
 	case WIFI_EVENT_SCAN_RESULT:
-		wifi_evt_scan_result(priv, hdr->data, len);
+		wifi_evt_scan_result(&priv->wifi_dev[WIFI_DEV_STA],
+				hdr->data, len);
 		break;
 	case WIFI_EVENT_SCAN_DONE:
-		wifi_evt_scan_done(priv, hdr->data, len);
+		wifi_evt_scan_done(&priv->wifi_dev[WIFI_DEV_STA],
+				hdr->data, len);
 		break;
 	case WIFI_EVENT_DISCONNECT:
-		wifi_evt_disconnect(priv, hdr->data, len);
+		wifi_evt_disconnect(&priv->wifi_dev[WIFI_DEV_STA],
+				hdr->data, len);
 		break;
 	case WIFI_EVENT_CONNECT:
-		wifi_evt_connect(priv, hdr->data, len);
+		wifi_evt_connect(&priv->wifi_dev[WIFI_DEV_STA],
+				hdr->data, len);
 		break;
 	case WIFI_EVENT_NEW_STATION:
-		/*
-		 * FIXME: This is for softap iface.
-		 * We might need a proper solution.
-		 */
-		wifi_evt_new_sta(&uwp_wifi_ap_priv, hdr->data, len);
+		wifi_evt_new_sta(&priv->wifi_dev[WIFI_DEV_AP],
+				hdr->data, len);
 		break;
 	default:
 		break;
@@ -616,12 +638,12 @@ int wifi_cmd_send(u8_t cmd, char *data, int len, char *rbuf, int *rlen)
 
 	if (cmd > WIFI_CMD_MAX || cmd < WIFI_CMD_BEGIN) {
 		LOG_ERR("Invalid command %d ", cmd);
-		return -1;
+		return -EINVAL;
 	}
 
-	if (data != NULL && len == 0) {
-		LOG_ERR("data len Invalid,data=%p,len=%d", data, len);
-		return -1;
+	if (data && len == 0) {
+		LOG_ERR("Data len Invalid,data=%p,len=%d", data, len);
+		return -EINVAL;
 	}
 
 	hdr->len = len;
@@ -630,19 +652,19 @@ int wifi_cmd_send(u8_t cmd, char *data, int len, char *rbuf, int *rlen)
 
 	ret = wifi_tx_cmd(data, len);
 	if (ret < 0) {
-		LOG_ERR("wifi send cmd fail");
-		return -1;
+		LOG_ERR("tx cmd fail %d", ret);
+		return ret;
 	}
 
 	ret = k_sem_take(&cmd_sem, 3000);
 	if (ret) {
-		LOG_ERR("wait cmd(%d) timeout.", cmd);
+		LOG_ERR("Wait cmd(%d) timeout.", cmd);
 		return ret;
 	}
 
 	hdr = (struct trans_hdr *)recv_buf;
 	if (hdr->status != 0) {
-		LOG_ERR("invalid cmd status: %i", hdr->status);
+		LOG_ERR("Invalid cmd status: %i", hdr->status);
 		return hdr->status;
 	}
 
@@ -653,7 +675,7 @@ int wifi_cmd_send(u8_t cmd, char *data, int len, char *rbuf, int *rlen)
 		*rlen = recv_len;
 	}
 
-	LOG_DBG("get command response success");
+	LOG_DBG("Get command response success");
 	return 0;
 }
 
