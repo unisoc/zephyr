@@ -12,8 +12,17 @@ menuconfig WIFI_UWP
 	select NETWORKING
 	select NET_BUF
 	select NET_L2_ETHERNET
+	select NET_IPV4
 
 if WIFI_UWP
+
+config WIFI_STA_DRV_NAME
+	string "STA driver name"
+	default "WIFI_STA"
+
+config WIFI_AP_DRV_NAME
+	string "SoftAP driver name"
+	default "WIFI_AP"
 
 config WIFI_UWP_MAX_RX_ADDR_NUM
 	int "Max rx addr num each time"
