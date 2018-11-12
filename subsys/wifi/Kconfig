@@ -43,6 +43,10 @@ config WIFIMGR_LED
 	help
 		Enable LED indiction of WiFi manger.
 
+module = WIFIMGR
+module-str = Log for wifi manager
+source "subsys/logging/Kconfig.template.log_config"
+
 endif # WiFi
 
 endmenu

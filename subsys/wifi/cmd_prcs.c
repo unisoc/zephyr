@@ -9,6 +9,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_DECLARE(wifimgr);
+
 #include "wifimgr.h"
 
 K_THREAD_STACK_ARRAY_DEFINE(cmd_stacks, 1, WIFIMGR_CMD_PROCESSOR_STACKSIZE);
@@ -58,11 +62,11 @@ static void command_processor_post_process(void *handle,
 	ret =
 	    mq_send(prcs->mq, (const char *)msg, sizeof(struct cmd_message), 0);
 	if (ret < 0) {
-		syslog(LOG_ERR,
+		wifimgr_err(
 		       "failed to send [%s] reply: %d, errno %d!\n",
 		       wifimgr_cmd2str(msg->cmd_id), ret, errno);
 	} else {
-		syslog(LOG_DEBUG, "send [%s] reply: %d\n",
+		wifimgr_dbg("send [%s] reply: %d\n",
 		       wifimgr_cmd2str(msg->cmd_id), msg->reply);
 	}
 }
@@ -77,7 +81,7 @@ static void *command_processor(void *handle)
 	int prio;
 	int ret;
 
-	syslog(LOG_INFO, "starting %s, pid=%p\n", __func__, pthread_self());
+	wifimgr_info("starting %s, pid=%p\n", __func__, pthread_self());
 
 	if (!prcs)
 		return NULL;
@@ -86,18 +90,18 @@ static void *command_processor(void *handle)
 		/* Wait for commands */
 		ret = mq_receive(prcs->mq, (char *)&msg, sizeof(msg), &prio);
 		if (ret != sizeof(struct cmd_message)) {
-			syslog(LOG_ERR,
+			wifimgr_err(
 			       "failed to get command: %d, errno %d!\n", ret,
 			       errno);
 			continue;
 		} else if (msg.reply) {
 			/* Drop command reply when receiving it */
-			syslog(LOG_ERR, "recv [%s] reply: %d? drop it\n",
+			wifimgr_err("recv [%s] reply: %d? drop it\n",
 			       wifimgr_cmd2str(msg.cmd_id), msg.reply);
 			continue;
 		}
 
-		syslog(LOG_DEBUG, "recv [%s], buf: 0x%08x\n",
+		wifimgr_dbg("recv [%s], buf: 0x%08x\n",
 		       wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
 
 		/* Ask state machine whether the command could be executed */
@@ -106,7 +110,7 @@ static void *command_processor(void *handle)
 			command_processor_post_process(prcs, &msg, ret);
 
 			if (ret == -EBUSY)
-				syslog(LOG_ERR, "Busy! try again later\n");
+				wifimgr_err("Busy! try again later\n");
 			continue;
 		}
 
@@ -114,7 +118,7 @@ static void *command_processor(void *handle)
 		ret = wifi_manager_low_level_init(mgr, msg.cmd_id);
 		if (ret == -ENODEV) {
 			command_processor_post_process(prcs, &msg, ret);
-			syslog(LOG_ERR, "No such device!\n");
+			wifimgr_err("No such device!\n");
 			continue;
 		}
 
@@ -134,13 +138,13 @@ static void *command_processor(void *handle)
 				wifi_manager_sm_start_timer(mgr, msg.cmd_id);
 			} else {
 				/*Remain current state when failed sending */
-				syslog(LOG_ERR,
+				wifimgr_err(
 				       "failed to exec [%s]! remains %s\n",
 				       wifimgr_cmd2str(msg.cmd_id),
 				       wifimgr_sts2str_cmd(mgr, msg.cmd_id));
 			}
 		} else {
-			syslog(LOG_ERR, "[%s] not allowed under %s!\n",
+			wifimgr_err("[%s] not allowed under %s!\n",
 			       wifimgr_cmd2str(msg.cmd_id),
 			       wifimgr_sts2str_cmd(mgr, msg.cmd_id));
 			ret = -EPERM;
@@ -172,7 +176,7 @@ int wifi_manager_command_processor_init(struct cmd_processor *handle)
 	/* open message queue of command sender */
 	prcs->mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
 	if (!prcs->mq) {
-		syslog(LOG_ERR, "failed to open command queue %s!\n",
+		wifimgr_err("failed to open command queue %s!\n",
 		       WIFIMGR_CMD_MQUEUE);
 		return -errno;
 	}
@@ -191,12 +195,12 @@ int wifi_manager_command_processor_init(struct cmd_processor *handle)
 
 	ret = pthread_create(&prcs->pid, &tattr, command_processor, prcs);
 	if (ret) {
-		syslog(LOG_ERR, "failed to start %s!\n", WIFIMGR_CMD_PROCESSOR);
+		wifimgr_err("failed to start %s!\n", WIFIMGR_CMD_PROCESSOR);
 		prcs->is_setup = false;
 		mq_close(prcs->mq);
 		return ret;
 	}
-	syslog(LOG_INFO, "started %s, pid=%p\n", WIFIMGR_CMD_PROCESSOR,
+	wifimgr_info("started %s, pid=%p\n", WIFIMGR_CMD_PROCESSOR,
 	       prcs->pid);
 
 	return 0;
