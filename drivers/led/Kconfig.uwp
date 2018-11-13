@@ -4,9 +4,29 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+
 menuconfig LED_UWP
 	bool "Unisoc uwp led driver support"
 	default n
 	depends on LED
 	depends on GPIO_UWP
 
+if LED_UWP
+
+config LED_DRV_NAME
+	string "Driver name"
+	default "led"
+
+config LED_PIN1
+	int "GPIO pin that the LED is connected to"
+	default 1
+
+config LED_PIN2
+	int "GPIO pin that the LED is connected to"
+	default 3
+
+config LED_PIN3
+	int "GPIO pin that the LED is connected to"
+	default 2
+
+endif
