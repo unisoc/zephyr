@@ -81,7 +81,7 @@ static void *command_processor(void *handle)
 	int prio;
 	int ret;
 
-	wifimgr_info("starting %s, pid=%p\n", __func__, pthread_self());
+	wifimgr_dbg("starting %s, pid=%p\n", __func__, pthread_self());
 
 	if (!prcs)
 		return NULL;
@@ -200,7 +200,7 @@ int wifi_manager_command_processor_init(struct cmd_processor *handle)
 		mq_close(prcs->mq);
 		return ret;
 	}
-	wifimgr_info("started %s, pid=%p\n", WIFIMGR_CMD_PROCESSOR,
+	wifimgr_dbg("started %s, pid=%p\n", WIFIMGR_CMD_PROCESSOR,
 	       prcs->pid);
 
 	return 0;

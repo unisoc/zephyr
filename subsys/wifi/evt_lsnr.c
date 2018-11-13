@@ -127,7 +127,7 @@ static void *event_listener(void *handle)
 	int prio;
 	int ret;
 
-	wifimgr_info("starting %s, pid=%p\n", __func__, pthread_self());
+	wifimgr_dbg("starting %s, pid=%p\n", __func__, pthread_self());
 
 	if (!lsnr)
 		return NULL;
@@ -247,7 +247,7 @@ int wifi_manager_event_listener_init(struct evt_listener *handle)
 		mq_close(lsnr->mq);
 		return ret;
 	}
-	wifimgr_info("started %s, pid=%p\n", WIFIMGR_EVT_LISTENER,
+	wifimgr_dbg("started %s, pid=%p\n", WIFIMGR_EVT_LISTENER,
 	       lsnr->evt_pid);
 
 	return 0;
