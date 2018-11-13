@@ -23,18 +23,6 @@ config LED_INIT_PRIORITY
 	help
 	  System initialization priority for LED drivers.
 
-config LED_DRV_NAME
-	string "Driver name"
-	default "led"
-
-config LED_PIN1
-	int "GPIO pin that the LED is connected to"
-	default 1
-
-config LED_PIN3
-	int "GPIO pin that the LED is connected to"
-	default 3
-
 source "drivers/led/Kconfig.lp3943"
 source "drivers/led/Kconfig.lp5562"
 source "drivers/led/Kconfig.pca9633"
