@@ -15,8 +15,6 @@
 #include <net/wifimgr_drv.h>
 #include <net/wifimgr_api.h>
 
-#include <led.h>
-
 #include "os_adapter.h"
 #include "cmd_prcs.h"
 #include "evt_lsnr.h"
@@ -24,6 +22,7 @@
 #include "drv_iface.h"
 #include "api.h"
 #include "dhcpc.h"
+#include "led.h"
 
 #define WIFIMGR_DEV_NAME_STA	CONFIG_WIFI_STA_DRV_NAME
 #define WIFIMGR_DEV_NAME_AP	CONFIG_WIFI_AP_DRV_NAME
