@@ -352,19 +352,7 @@ int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 
 int wifi_cmd_stop_ap(struct wifi_device *wifi_dev)
 {
-	struct cmd_stop cmd;
-	int ret;
-
-	memset(&cmd, 0, sizeof(cmd));
-	cmd.mode = WIFI_MODE_AP;
-	memcpy(cmd.mac, wifi_dev->mac, ETH_ALEN);
-	ret = wifi_cmd_send(WIFI_CMD_CLOSE, (char *)&cmd, sizeof(cmd),
-			    NULL, NULL);
-	if (ret) {
-		LOG_ERR("Ap stop send cmd fail");
-		return ret;
-	}
-
+	/* Stop ap is not supported by CP */
 	return 0;
 }
 
