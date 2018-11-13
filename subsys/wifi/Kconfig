@@ -14,8 +14,8 @@ config WIFIMGR
 	select PTHREAD_IPC
 	select POSIX_MQUEUE
         help
-		Enable the WiFi Manager.
-		By default, WiFi manger is build as only a library.
+	  Enable the WiFi Manager.
+	  By default, WiFi manger is build as only a library.
 
 if WIFIMGR
 
@@ -24,8 +24,8 @@ config WIFIMGR_CLI
 	select SHELL
 	default y
 	help
-		A client that can interact with WiFi manger,
-		which can be ran from shell.
+	  A client that can interact with WiFi manger,
+	  which can be ran from shell.
 
 config WIFIMGR_DHCPC
 	bool "Enable DHCP client"
@@ -34,14 +34,35 @@ config WIFIMGR_DHCPC
 	select NET_DHCPV4
 	default y
 	help
-		Start DHCP client by WiFi manger.
+	  Start DHCP client by WiFi manger.
 
 config WIFIMGR_LED
 	bool "Enable LED indiction"
-	select LED
 	default n
+        depends on LED_UWP
 	help
-		Enable LED indiction of WiFi manger.
+	  Enable LED indiction of WiFi manger.
+
+config WIFIMGR_LED_NAME
+	string "LED device name"
+	default "led"
+        depends on WIFIMGR_LED
+        help
+          Specify the LED device name.
+
+config WIFIMGR_LED_STA
+	int "STA LED"
+	default 2
+        depends on WIFIMGR_LED
+        help
+          Specify the STA LED.
+
+config WIFIMGR_LED_AP
+	int "AP LED"
+	default 3
+        depends on WIFIMGR_LED
+        help
+          Specify the AP LED.
 
 module = WIFIMGR
 module-str = Log for wifi manager
