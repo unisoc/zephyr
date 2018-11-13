@@ -79,6 +79,9 @@ static int uwp_led_init(struct device *dev)
 	gpio_pin_configure(priv->gpio, CONFIG_LED_PIN1,
 			GPIO_DIR_OUT | GPIO_PUD_PULL_DOWN);
 
+	gpio_pin_configure(priv->gpio, CONFIG_LED_PIN2,
+			GPIO_DIR_OUT | GPIO_PUD_PULL_DOWN);
+
 	gpio_pin_configure(priv->gpio, CONFIG_LED_PIN3,
 			GPIO_DIR_OUT | GPIO_PUD_PULL_DOWN);
 
