@@ -198,7 +198,6 @@ static int wifi_manager_init(struct device *unused)
 	ARG_UNUSED(unused);
 
 	/*setlogmask(~(LOG_MASK(LOG_DEBUG))); */
-	wifimgr_info("WiFi manager start\n");
 	memset(mgr, 0, sizeof(struct wifi_manager));
 
 	ret = wifi_manager_event_listener_init(&mgr->lsnr);
@@ -213,6 +212,8 @@ static int wifi_manager_init(struct device *unused)
 	ret = wifi_manager_sm_init(mgr);
 	if (ret < 0)
 		wifimgr_err("failed to init WiFi state machine!\n");
+
+	wifimgr_info("WiFi manager started\n");
 
 	return ret;
 }
