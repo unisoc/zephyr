@@ -1,0 +1,19 @@
+# Kconfig - DRIVER PINMUX
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menuconfig PINMUX_UWP
+	bool "UWP pinmux driver"
+	depends on PINMUX
+	help
+	  Enable the pinmux driver.
+
+if PINMUX_UWP
+
+config PINMUX_UWP_DEV_NAME
+	string "Pinmux driver name"
+	depends on PINMUX_UWP
+	default "pinmux_drv"
+
+endif # PINMUX_UWP
