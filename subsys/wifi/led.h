@@ -1,5 +1,5 @@
 /*
- *@file
+ * @file
  * @brief LED lighting header
  */
 
@@ -10,22 +10,21 @@
  */
 
 
-#ifndef _WIFI_LED_H_
-#define _WIFI_LED_H_
+#ifndef _WIFIMGR_LED_H_
+#define _WIFIMGR_LED_H_
 
-#ifdef CONFIG_LED
-#define WIFIMGR_LED_NAME CONFIG_LED_DRV_NAME
-#define WIFIMGR_LED_PIN1 CONFIG_LED_PIN1
-#define WIFIMGR_LED_PIN3 CONFIG_LED_PIN3
+#include <led.h>
+
+#ifdef CONFIG_WIFIMGR_LED
+int wifimgr_sta_led_on(void);
+int wifimgr_sta_led_off(void);
+int wifimgr_ap_led_on(void);
+int wifimgr_ap_led_off(void);
 #else
-#define WIFIMGR_LED_NAME ""
-#define WIFIMGR_LED_PIN1 (0)
-#define WIFIMGR_LED_PIN3 (0)
+#define wifimgr_sta_led_on(...)
+#define wifimgr_sta_led_off(...)
+#define wifimgr_ap_led_on(...)
+#define wifimgr_ap_led_off(...)
 #endif
 
-#define WIFIMGR_LED_OFF_VALUE (1)
-#define WIFIMGR_LED_ON_VALUE (0)
-
-
-
-#endif /* _WIFI_LED_H_ */
+#endif
