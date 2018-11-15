@@ -72,7 +72,7 @@ struct wifi_drv_api{
 		    scan_result_cb_t cb);
 	int (*connect)(struct device *dev,
 		       struct wifi_drv_connect_params *params,
-		       connect_cb_t cb);
+		       connect_cb_t conn_cb, disconnect_cb_t disc_cb);
 	int (*disconnect)(struct device *dev, disconnect_cb_t cb);
 	int (*get_station)(struct device *dev, u8_t *signal);
 	int (*notify_ip)(struct device *dev, u8_t *ipaddr, u8_t len);
