@@ -124,6 +124,28 @@ int wifi_drv_iface_scan(void *iface, unsigned char band, unsigned char channel)
 	return drv_api->scan(dev, &params, wifi_drv_iface_scan_result_cb);
 }
 
+void wifi_drv_iface_disconnect_cb(void *iface, int status)
+{
+	struct wifimgr_evt_disconnect disc;
+
+	disc.reason_code = status;
+
+	wifi_drv_iface_notify_event(WIFIMGR_EVT_DISCONNECT, &disc,
+				    sizeof(disc));
+}
+
+int wifi_drv_iface_disconnect(void *iface)
+{
+	struct device *dev = net_if_get_device((struct net_if *)iface);
+	struct wifi_drv_api *drv_api =
+	    (struct wifi_drv_api *)dev->driver_api;
+
+	if (!drv_api->disconnect)
+		return -EIO;
+
+	return drv_api->disconnect(dev, wifi_drv_iface_disconnect_cb);
+}
+
 void wifi_drv_iface_connect_cb(void *iface, int status)
 {
 	struct wifimgr_evt_connect conn;
@@ -148,29 +170,8 @@ int wifi_drv_iface_connect(void *iface, char *ssid, char *passwd)
 	params.psk = passwd;
 	params.psk_length = strlen(passwd);
 
-	return drv_api->connect(dev, &params, wifi_drv_iface_connect_cb);
-}
-
-void wifi_drv_iface_disconnect_cb(void *iface, int status)
-{
-	struct wifimgr_evt_disconnect disc;
-
-	disc.reason_code = status;
-
-	wifi_drv_iface_notify_event(WIFIMGR_EVT_DISCONNECT, &disc,
-				    sizeof(disc));
-}
-
-int wifi_drv_iface_disconnect(void *iface)
-{
-	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
-
-	if (!drv_api->disconnect)
-		return -EIO;
-
-	return drv_api->disconnect(dev, wifi_drv_iface_disconnect_cb);
+	return drv_api->connect(dev, &params, wifi_drv_iface_connect_cb,
+				wifi_drv_iface_disconnect_cb);
 }
 
 int wifi_drv_iface_get_station(void *iface, char *signal)
