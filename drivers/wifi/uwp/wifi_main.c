@@ -282,7 +282,8 @@ static int uwp_mgmt_get_station(struct device *dev,
 
 static int uwp_mgmt_connect(struct device *dev,
 			    struct wifi_drv_connect_params *params,
-				connect_cb_t cb)
+				connect_cb_t con_cb,
+				disconnect_cb_t discon_cb)
 {
 	struct wifi_device *wifi_dev;
 
@@ -302,11 +303,12 @@ static int uwp_mgmt_connect(struct device *dev,
 		return -EINVAL;
 	}
 
-	if (wifi_dev->connect_cb) {
-		return -EAGAIN;
+	if (wifi_dev->connected) {
+		LOG_WRN("Connect again in connected.");
 	}
 
-	wifi_dev->connect_cb = cb;
+	wifi_dev->connect_cb = con_cb;
+	wifi_dev->disconnect_cb = discon_cb;
 
 	return wifi_cmd_connect(wifi_dev, params);
 }
@@ -332,8 +334,8 @@ static int uwp_mgmt_disconnect(struct device *dev,
 		return -EINVAL;
 	}
 
-	if (wifi_dev->disconnect_cb) {
-		return -EAGAIN;
+	if (!wifi_dev->connected) {
+		LOG_WRN("Disconnect again in disconnected.");
 	}
 
 	wifi_dev->disconnect_cb = cb;
