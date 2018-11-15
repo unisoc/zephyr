@@ -100,7 +100,7 @@ int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 	ret = wifi_cmd_send(WIFI_CMD_DOWNLOAD_INI, (char *)cmd,
 			    cmd_len, NULL, 0);
 	if (ret) {
-		LOG_ERR("Load ini fail");
+		LOG_ERR("Load ini send cmd fail");
 		k_free(cmd);
 		return ret;
 	}
@@ -195,7 +195,7 @@ int wifi_cmd_scan(struct wifi_device *wifi_dev,
 	ret = wifi_cmd_send(WIFI_CMD_SCAN, (char *)cmd,
 			    cmd_len, NULL, NULL);
 	if (ret) {
-		LOG_ERR("Scan cmd fail");
+		LOG_ERR("Scan send cmd fail");
 		k_free(cmd);
 		return ret;
 	}
@@ -228,7 +228,7 @@ int wifi_cmd_connect(struct wifi_device *wifi_dev,
 	ret = wifi_cmd_send(WIFI_CMD_CONNECT, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
-		LOG_ERR("Connect cmd fail");
+		LOG_ERR("Connect send cmd fail");
 		return ret;
 	}
 
@@ -245,7 +245,7 @@ int wifi_cmd_disconnect(struct wifi_device *wifi_dev)
 	ret = wifi_cmd_send(WIFI_CMD_DISCONNECT, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
-		LOG_ERR("Disconnect cmd fail");
+		LOG_ERR("Disconnect send cmd fail");
 		return ret;
 	}
 
@@ -273,6 +273,8 @@ int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 	/* Set softap mac */
 	cmd.mac[4] ^= 0x80;
 	memcpy(priv->wifi_dev[WIFI_DEV_AP].mac, cmd.mac, ETH_ALEN);
+
+	printk("	CP version: 0x%x\n", priv->cp_version);
 
 	return 0;
 }
@@ -342,7 +344,7 @@ int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 	ret = wifi_cmd_send(WIFI_CMD_START_AP, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
-		LOG_ERR("Ap start fail %d", ret);
+		LOG_ERR("Ap start send cmd fail %d", ret);
 		return ret;
 	}
 	LOG_DBG("Start ap ok.");
@@ -385,7 +387,7 @@ int wifi_cmd_npi_send(struct device *dev, int ictx_id,
 	ret = wifi_cmd_send(WIFI_CMD_NPI_MSG, (char *)cmd,
 			cmd_len, r_buf, r_len);
 	if (ret) {
-		LOG_ERR("Cmd send fail %d", ret);
+		LOG_ERR("Npi send cmd fail %d", ret);
 		k_free(cmd);
 		return ret;
 	}
@@ -443,7 +445,7 @@ int wifi_cmd_set_ip(struct wifi_device *wifi_dev, u8_t *ip_addr, u8_t len)
 	ret = wifi_cmd_send(WIFI_CMD_SET_IP, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
-		LOG_ERR("set ip fail");
+		LOG_ERR("Set ip send cmd fail");
 		return ret;
 	}
 
@@ -477,6 +479,8 @@ static int wifi_evt_scan_result(struct wifi_device *wifi_dev,
 
 	if (wifi_dev->scan_result_cb) {
 		wifi_dev->scan_result_cb(wifi_dev->iface, 0, &scan_result);
+	} else {
+		LOG_WRN("No scan_result callback.");
 	}
 
 	k_yield();
@@ -496,6 +500,8 @@ static int wifi_evt_scan_done(struct wifi_device *wifi_dev, char *data, int len)
 	if (wifi_dev->scan_result_cb) {
 		wifi_dev->scan_result_cb(wifi_dev->iface, event->status, NULL);
 		wifi_dev->scan_result_cb = NULL;
+	} else {
+		LOG_WRN("No scan_result callback.");
 	}
 
 	return 0;
@@ -512,7 +518,8 @@ static int wifi_evt_connect(struct wifi_device *wifi_dev, char *data, int len)
 
 	if (wifi_dev->connect_cb) {
 		wifi_dev->connect_cb(wifi_dev->iface, event->status);
-		wifi_dev->connect_cb = NULL;
+	} else {
+		LOG_WRN("No connect callback.");
 	}
 
 	wifi_dev->connected = true;
@@ -532,7 +539,8 @@ static int wifi_evt_disconnect(struct wifi_device *wifi_dev,
 
 	if (wifi_dev->disconnect_cb) {
 		wifi_dev->disconnect_cb(wifi_dev->iface, event->reason_code);
-		wifi_dev->disconnect_cb = NULL;
+	} else {
+		LOG_WRN("No disconnect callback.");
 	}
 
 	wifi_dev->connected = false;
@@ -553,6 +561,8 @@ static int wifi_evt_new_sta(struct wifi_device *wifi_dev, char *data, int len)
 		wifi_dev->new_station_cb(wifi_dev->iface,
 				event->is_connect,
 				event->mac);
+	} else {
+		LOG_WRN("No new_station callback.");
 	}
 
 	return 0;
