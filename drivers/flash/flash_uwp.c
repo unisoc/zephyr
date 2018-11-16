@@ -74,6 +74,8 @@ static int flash_uwp_read(struct device *dev, off_t offset, void *data,
 			    size_t len)
 {
 	int ret = 0;
+	struct flash_uwp_config *cfg = DEV_CFG(dev);
+	struct spi_flash *flash = &(cfg->flash);
 
 	if (!len) {
 		return 0;
@@ -81,7 +83,8 @@ static int flash_uwp_read(struct device *dev, off_t offset, void *data,
 
 	flash_uwp_lock(dev);
 
-	memcpy(data, CONFIG_FLASH_BASE_ADDRESS + (void *)offset, len);
+	ret = flash->read(flash, ((u32_t)CONFIG_FLASH_BASE_ADDRESS + offset),
+		(u32_t *)data, len, READ_SPI_FAST);
 
 	flash_uwp_unlock(dev);
 
@@ -100,7 +103,8 @@ static int flash_uwp_erase(struct device *dev, off_t offset, size_t len)
 
 	flash_uwp_lock(dev);
 
-	ret = flash->erase(flash, CONFIG_FLASH_BASE_ADDRESS + offset, len);
+	ret = flash->erase(flash, ((u32_t)CONFIG_FLASH_BASE_ADDRESS + offset),
+			len);
 
 	flash_uwp_unlock(dev);
 
@@ -120,7 +124,8 @@ static int flash_uwp_write(struct device *dev, off_t offset,
 
 	flash_uwp_lock(dev);
 
-	ret = flash->write(flash, CONFIG_FLASH_BASE_ADDRESS + offset, len, data);
+	ret = flash->write(flash, ((u32_t)CONFIG_FLASH_BASE_ADDRESS + offset),
+			len, data);
 
 	flash_uwp_unlock(dev);
 
@@ -151,7 +156,7 @@ __ramfunc static int uwp_flash_init(struct device *dev)
 	struct flash_uwp_config *cfg = DEV_CFG(dev);
 	struct spi_flash *flash = &(cfg->flash);
 
-	spiflash_select_xip(TRUE);
+	spiflash_select_xip(FALSE);
 
 	SFCDRV_EnableInt();
 
