@@ -175,7 +175,7 @@ __ramfunc static int uwp_flash_init(struct device *dev)
 	return ret;
 }
 
-DEVICE_AND_API_INIT(uwp_flash, FLASH_DEV_NAME,
+DEVICE_AND_API_INIT(uwp_flash, DT_FLASH_DEV_NAME,
 		    uwp_flash_init,
 			&uwp_data,
 			&uwp_config, APPLICATION,
