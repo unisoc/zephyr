@@ -1,0 +1,1 @@
+#define DT_FLASH_DEV_NAME		FLASH_LABEL
