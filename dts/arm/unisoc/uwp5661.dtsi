@@ -25,9 +25,11 @@
 		compatible = "mmio-sram";
 		reg = <0x100000 DT_SIZE_K(832)>;
 	};
+
 	flash0: flash@200000 {
 		compatible = "serial-flash";
 		reg = <0x2000000 DT_SIZE_M(4)>;
+		label = "UWP_FLASH";
 	};
 
 	soc {
