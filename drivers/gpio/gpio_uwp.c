@@ -10,10 +10,10 @@
 #include <init.h>
 #include <kernel.h>
 #include <sys_io.h>
+#include <irq_nextlevel.h>
 
 #include "uwp_hal.h"
 #include "gpio_utils.h"
-#include "../interrupt_controller/intc_uwp.h"
 
 struct gpio_uwp_config {
 	/* base address of GPIO port */
@@ -151,7 +151,7 @@ static int gpio_uwp_disable_callback(struct device *dev,
 }
 
 #ifdef CONFIG_AON_INTC_UWP
-static void gpio_uwp_isr(int ch, void *arg)
+static void gpio_uwp_isr(void *arg)
 {
 	struct device *dev = arg;
 	const struct gpio_uwp_config *gpio_config = DEV_CFG(dev);
@@ -203,8 +203,19 @@ static int gpio_uwp_p0_init(struct device *dev)
 	uwp_gpio_disable(base, 0xFFFF);
 
 #ifdef CONFIG_AON_INTC_UWP
-	uwp_aon_intc_set_irq_callback(AON_INT_GPIO0, gpio_uwp_isr, dev);
-	uwp_aon_irq_enable(AON_INT_GPIO0);
+	struct device *aon_int_dev;
+
+	aon_int_dev = device_get_binding(CONFIG_UWP_ICTL_2_NAME);
+	if (aon_int_dev == NULL) {
+		printk("Can not find device: %s.\n",
+				CONFIG_UWP_ICTL_2_NAME);
+		return;
+	}
+
+	IRQ_CONNECT(0x0B14, 0,
+				uart_uwp_isr,
+				DEVICE_GET(uart_uwp_2), 0);
+	irq_enable_next_level(aon_int_dev, AON_INT_GPIO0);
 #endif
 	return 0;
 }
