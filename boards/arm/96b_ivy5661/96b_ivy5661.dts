@@ -1,6 +1,7 @@
 /dts-v1/;
 
 #include <unisoc/uwp5661.dtsi>
+#include <dt-bindings/gpio/gpio.h>
 
 / {
 	model = "IVY5661 96Boards";
@@ -10,6 +11,22 @@
 		zephyr,sram = &sram0;
 		zephyr,console = &uart0;
 		zephyr,flash = &flash0;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		label = "led";
+		led_1 {
+			gpios = <&port0 1 (GPIO_PUD_PULL_DOWN | GPIO_DIR_OUT)>;
+		};
+
+		led_2 {
+			gpios = <&port0 3 (GPIO_PUD_PULL_DOWN | GPIO_DIR_OUT)>;
+		};
+
+		led_3 {
+			gpios = <&port0 2 (GPIO_PUD_PULL_DOWN | GPIO_DIR_OUT)>;
+		};
 	};
 };
 
