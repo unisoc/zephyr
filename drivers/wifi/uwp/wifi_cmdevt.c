@@ -113,6 +113,8 @@ int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 int wifi_cmd_scan(struct wifi_device *wifi_dev,
 		struct wifi_drv_scan_params *params)
 {
+	ARG_UNUSED(wifi_dev);
+
 	int ret;
 	int ssid_len = 0;
 	int cmd_len = 0;
@@ -208,6 +210,8 @@ int wifi_cmd_scan(struct wifi_device *wifi_dev,
 int wifi_cmd_connect(struct wifi_device *wifi_dev,
 		     struct wifi_drv_connect_params *params)
 {
+	ARG_UNUSED(wifi_dev);
+
 	int ret;
 	struct cmd_connect cmd;
 
@@ -237,6 +241,8 @@ int wifi_cmd_connect(struct wifi_device *wifi_dev,
 
 int wifi_cmd_disconnect(struct wifi_device *wifi_dev)
 {
+	ARG_UNUSED(wifi_dev);
+
 	int ret;
 	struct cmd_disconnect cmd;
 
@@ -274,7 +280,7 @@ int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 	cmd.mac[4] ^= 0x80;
 	memcpy(priv->wifi_dev[WIFI_DEV_AP].mac, cmd.mac, ETH_ALEN);
 
-	printk("	CP version: 0x%x\n", priv->cp_version);
+	LOG_INF("CP version: 0x%x\n", priv->cp_version);
 
 	return 0;
 }
@@ -323,6 +329,8 @@ int wifi_cmd_close(struct wifi_device *wifi_dev)
 int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 		struct wifi_drv_start_ap_params *params)
 {
+	ARG_UNUSED(wifi_dev);
+
 	struct cmd_start_ap cmd;
 	int ret;
 
@@ -354,6 +362,8 @@ int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 
 int wifi_cmd_stop_ap(struct wifi_device *wifi_dev)
 {
+	ARG_UNUSED(wifi_dev);
+
 	/* Stop ap is not supported by CP */
 	return 0;
 }
@@ -363,10 +373,12 @@ int wifi_cmd_stop_ap(struct wifi_device *wifi_dev)
  * @param r_buf: address of return value
  * @param r_len: length of return value
  */
-int wifi_cmd_npi_send(struct device *dev, int ictx_id,
-		char *t_buf, u32_t t_len, char *r_buf,
-		u32_t *r_len)
+int wifi_cmd_hw_test(struct wifi_device *wifi_dev,
+		int ictx_id, char *t_buf, u32_t t_len,
+		char *r_buf, u32_t *r_len)
 {
+	ARG_UNUSED(wifi_dev);
+
 	struct cmd_npi *cmd;
 	int ret;
 	int cmd_len;
@@ -402,26 +414,6 @@ int wifi_cmd_npi_send(struct device *dev, int ictx_id,
 
 	return 0;
 }
-
-int wifi_cmd_npi_get_mac(struct device *dev, char *buf)
-{
-	struct wifi_device *wifi_dev;
-
-	if (!dev || !buf) {
-		return -EINVAL;
-	}
-
-	wifi_dev = get_wifi_dev_by_dev(dev);
-	if (!wifi_dev) {
-		LOG_ERR("Unable to find wifi dev by dev %p", dev);
-		return -EINVAL;
-	}
-
-	memcpy(buf, wifi_dev->mac, ETH_ALEN);
-
-	return 0;
-}
-
 
 int wifi_cmd_set_ip(struct wifi_device *wifi_dev, u8_t *ip_addr, u8_t len)
 {
@@ -522,7 +514,9 @@ static int wifi_evt_connect(struct wifi_device *wifi_dev, char *data, int len)
 		LOG_WRN("No connect callback.");
 	}
 
-	wifi_dev->connected = true;
+	if (!event->status) {
+		wifi_dev->connected = true;
+	}
 
 	return 0;
 }
