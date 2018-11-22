@@ -150,7 +150,7 @@ static int gpio_uwp_disable_callback(struct device *dev,
 	return 0;
 }
 
-#ifdef CONFIG_AON_INTC_UWP
+#ifdef CONFIG_UWP_ICTL_2
 static void gpio_uwp_isr(void *arg)
 {
 	struct device *dev = arg;
@@ -202,20 +202,20 @@ static int gpio_uwp_p0_init(struct device *dev)
 	uwp_gpio_int_disable(base, 0xFFFF);
 	uwp_gpio_disable(base, 0xFFFF);
 
-#ifdef CONFIG_AON_INTC_UWP
+#ifdef CONFIG_UWP_ICTL_2
 	struct device *aon_int_dev;
 
 	aon_int_dev = device_get_binding(CONFIG_UWP_ICTL_2_NAME);
 	if (aon_int_dev == NULL) {
 		printk("Can not find device: %s.\n",
 				CONFIG_UWP_ICTL_2_NAME);
-		return;
+		return -1;
 	}
 
 	IRQ_CONNECT(DT_GPIO_P0_UWP_IRQ,
 				DT_GPIO_P0_UWP_IRQ_PRIO,
-				uart_uwp_isr,
-				DEVICE_GET(uart_uwp_2), 0);
+				gpio_uwp_isr,
+				DEVICE_GET(gpio_uwp_p0), 0);
 	irq_enable_next_level(aon_int_dev, AON_INT_GPIO0);
 #endif
 	return 0;
