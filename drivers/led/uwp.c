@@ -70,20 +70,23 @@ static int uwp_led_init(struct device *dev)
 		return -ENODATA;
 	}
 
-	priv->gpio = device_get_binding(CONFIG_GPIO_UWP_P0_NAME);
+	priv->gpio = device_get_binding(DT_GPIO_PO_UWP_NAME);
 	if (!priv->gpio) {
-		LOG_ERR("Unable to find %s", CONFIG_GPIO_UWP_P0_NAME);
+		LOG_ERR("Unable to find %s", DT_GPIO_PO_UWP_NAME);
 		return -ENODEV;
 	}
 
-	gpio_pin_configure(priv->gpio, CONFIG_LED_PIN1,
-			GPIO_DIR_OUT | GPIO_PUD_PULL_DOWN);
+	gpio_pin_configure(priv->gpio,
+			DT_GPIO_LEDS_LED_1_PIN,
+			DT_GPIO_LEDS_FLAGS);
 
-	gpio_pin_configure(priv->gpio, CONFIG_LED_PIN2,
-			GPIO_DIR_OUT | GPIO_PUD_PULL_DOWN);
+	gpio_pin_configure(priv->gpio,
+			DT_GPIO_LEDS_LED_2_PIN,
+			DT_GPIO_LEDS_FLAGS);
 
-	gpio_pin_configure(priv->gpio, CONFIG_LED_PIN3,
-			GPIO_DIR_OUT | GPIO_PUD_PULL_DOWN);
+	gpio_pin_configure(priv->gpio,
+			DT_GPIO_LEDS_LED_3_PIN,
+			DT_GPIO_LEDS_FLAGS);
 
 	return 0;
 }
@@ -93,6 +96,6 @@ static const struct led_driver_api uwp_led_api = {
 	.off = uwp_led_off,
 };
 
-DEVICE_AND_API_INIT(led_uwp, CONFIG_LED_DRV_NAME, uwp_led_init,
+DEVICE_AND_API_INIT(led_uwp, DT_GPIO_LEDS_NAME, uwp_led_init,
 			&uwp_led_data, NULL, POST_KERNEL,
 			CONFIG_LED_INIT_PRIORITY, &uwp_led_api);
