@@ -64,5 +64,20 @@
 			label = "image-1";
 			reg = <0x000180000 0x80000>;
 		};
+
+#if defined(CONFIG_FILE_SYSTEM_NFFS)
+		nffs_partition: partition@2C0000 {
+			label = "nffs";
+			reg = <0x0002C0000 0x00140000>;
+		};
+#endif
+
+#if defined(CONFIG_FS_FLASH_STORAGE_PARTITION)
+		storage_partition: partition@2C0000 {
+			label = "storage";
+			reg = <0x0002C0000 0x00140000>;
+		};
+#endif
+
 	};
 };
