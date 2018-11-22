@@ -132,6 +132,30 @@ static int flash_uwp_write(struct device *dev, off_t offset,
 	return ret;
 }
 
+void flash_uwp_page_layout(struct device *dev,
+			     const struct flash_pages_layout **layout,
+			     size_t *layout_size)
+{
+	struct flash_uwp_config *cfg = DEV_CFG(dev);
+	struct spi_flash *flash = &(cfg->flash);
+
+	static struct flash_pages_layout uwp_flash_layout = {
+		.pages_count = 0,
+		.pages_size = 0,
+	};
+
+	ARG_UNUSED(dev);
+
+	if (uwp_flash_layout.pages_count == 0) {
+		uwp_flash_layout.pages_count =
+			(flash->size)/(flash->sector_size);
+		uwp_flash_layout.pages_size = flash->sector_size;
+	}
+
+	*layout = &uwp_flash_layout;
+	*layout_size = 1;
+}
+
 static const struct flash_driver_api flash_uwp_api = {
 	.write_protection = flash_uwp_write_protection,
 	.erase = flash_uwp_erase,
@@ -158,7 +182,7 @@ __ramfunc static int uwp_flash_init(struct device *dev)
 
 	spiflash_select_xip(FALSE);
 
-	SFCDRV_EnableInt();
+	SFCDRV_IntCfg(FALSE);
 
 	spiflash_reset_anyway();
 
