@@ -86,6 +86,15 @@
 			interrupts = <40 0>;
 			label = "UWP_WDT";
 		};
+
+		port0: gpio@40804000 {
+			compatible = "unisoc,uwp-gpio";
+			reg = <0x40804000 0x30>;
+			interrupts = <0xB14 0>;
+			label = "UWP_GPIO_P0";
+			gpio-controller;
+			#gpio-cells = <2>;
+		};
 	};
 };
 
