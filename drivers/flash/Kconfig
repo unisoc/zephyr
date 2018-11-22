@@ -90,6 +90,8 @@ config SOC_FLASH_UWP
 	depends on FLASH && USE_UWP_HAL_SFC
 	default n
 	select FLASH_HAS_DRIVER_ENABLED
+	select FLASH_HAS_PAGE_LAYOUT
+	select FLASH_PAGE_LAYOUT
 	help
 	  Enables the Unisoc UWP flash driver.
 
