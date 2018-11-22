@@ -241,6 +241,27 @@ static int uwp_mgmt_del_station(struct device *dev,
 	return 0;
 }
 
+static int uwp_mgmt_hw_test(struct device *dev,
+		int ictx_id, char *t_buf,
+		u32_t t_len, char *r_buf,
+		u32_t *r_len)
+{
+	struct wifi_device *wifi_dev;
+
+	if (!dev) {
+		return -EINVAL;
+	}
+
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
+	}
+
+	return wifi_cmd_hw_test(wifi_dev, ictx_id,
+			t_buf, t_len, r_buf, r_len);
+}
+
 static int uwp_mgmt_scan(struct device *dev,
 		struct wifi_drv_scan_params *params,
 		scan_result_cb_t cb)
@@ -375,7 +396,7 @@ static void uwp_iface_init(struct net_if *iface)
 		return;
 	}
 
-	dev = iface->if_dev->dev;
+	dev = net_if_get_device(iface);
 	wifi_dev = get_wifi_dev_by_dev(dev);
 	if (!wifi_dev) {
 		LOG_ERR("Unable to find wifi dev by dev %p", dev);
@@ -463,7 +484,7 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 		return -EINVAL;
 	}
 
-	dev = iface->if_dev->dev;
+	dev = net_if_get_device(iface);
 	wifi_dev = get_wifi_dev_by_dev(dev);
 	if (!wifi_dev) {
 		LOG_ERR("Unable to find wifi dev by dev %p", dev);
@@ -535,6 +556,7 @@ static const struct wifi_drv_api uwp_api = {
 	.start_ap					= uwp_mgmt_start_ap,
 	.stop_ap					= uwp_mgmt_stop_ap,
 	.del_station				= uwp_mgmt_del_station,
+	.hw_test					= uwp_mgmt_hw_test,
 };
 
 static int uwp_init(struct device *dev)

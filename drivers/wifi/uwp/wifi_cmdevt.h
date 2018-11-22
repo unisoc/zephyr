@@ -198,9 +198,9 @@ int wifi_cmd_disconnect(struct wifi_device *wifi_dev);
 int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 		struct wifi_drv_start_ap_params *params);
 int wifi_cmd_stop_ap(struct wifi_device *wifi_dev);
-int wifi_cmd_npi_send(struct device *dev, int ictx_id, char *t_buf,
-		u32_t t_len, char *r_buf, u32_t *r_len);
-int wifi_cmd_npi_get_mac(struct device *dev, char *buf);
+int wifi_cmd_hw_test(struct wifi_device *wifi_dev,
+		int ictx_id, char *t_buf, u32_t t_len,
+		char *r_buf, u32_t *r_len);
 int wifi_cmd_set_ip(struct wifi_device *wifi_dev, u8_t *ip, u8_t len);
 
 int wifi_cmd_send(u8_t cmd, char *data, int len,
