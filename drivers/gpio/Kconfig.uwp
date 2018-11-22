@@ -17,10 +17,6 @@ config GPIO_UWP_P0
 	help
 	  Include support for the GPIO port A0.
 
-config GPIO_UWP_P0_NAME
-	string "Driver name"
-	depends on GPIO_UWP_P0
-	default "UWP_GPIO_P0"
 
 config GPIO_UWP_P1
 	bool "GPIO block A1"
