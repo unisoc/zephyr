@@ -274,7 +274,7 @@ int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 	cmd.mac[4] ^= 0x80;
 	memcpy(priv->wifi_dev[WIFI_DEV_AP].mac, cmd.mac, ETH_ALEN);
 
-	printk("	CP version: 0x%x\n", priv->cp_version);
+	LOG_INF("CP version: 0x%x\n", priv->cp_version);
 
 	return 0;
 }

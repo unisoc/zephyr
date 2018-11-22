@@ -375,7 +375,7 @@ static void uwp_iface_init(struct net_if *iface)
 		return;
 	}
 
-	dev = iface->if_dev->dev;
+	dev = net_if_get_device(iface);
 	wifi_dev = get_wifi_dev_by_dev(dev);
 	if (!wifi_dev) {
 		LOG_ERR("Unable to find wifi dev by dev %p", dev);
@@ -463,7 +463,7 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 		return -EINVAL;
 	}
 
-	dev = iface->if_dev->dev;
+	dev = net_if_get_device(iface);
 	wifi_dev = get_wifi_dev_by_dev(dev);
 	if (!wifi_dev) {
 		LOG_ERR("Unable to find wifi dev by dev %p", dev);
@@ -576,7 +576,6 @@ static int uwp_init(struct device *dev)
 		wifi_txrx_init(priv);
 		wifi_irq_init();
 
-		k_sleep(400); /* FIXME: workaround */
 		ret = wifi_rf_init();
 		if (ret) {
 			LOG_ERR("wifi rf init failed.");
