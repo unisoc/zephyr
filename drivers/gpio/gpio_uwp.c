@@ -184,7 +184,7 @@ static const struct gpio_driver_api gpio_uwp_api = {
 
 #ifdef CONFIG_GPIO_UWP_P0
 static const struct gpio_uwp_config gpio_uwp_p0_config = {
-	.port_base = BASE_AON_GPIOP0,
+	.port_base = DT_GPIO_P0_UWP_BASE,
 };
 static struct device DEVICE_NAME_GET(gpio_uwp_p0);
 static struct gpio_uwp_data gpio_uwp_p0_data;
@@ -212,7 +212,8 @@ static int gpio_uwp_p0_init(struct device *dev)
 		return;
 	}
 
-	IRQ_CONNECT(0x0B14, 0,
+	IRQ_CONNECT(DT_GPIO_P0_UWP_IRQ,
+				DT_GPIO_P0_UWP_IRQ_PRIO,
 				uart_uwp_isr,
 				DEVICE_GET(uart_uwp_2), 0);
 	irq_enable_next_level(aon_int_dev, AON_INT_GPIO0);
@@ -220,7 +221,7 @@ static int gpio_uwp_p0_init(struct device *dev)
 	return 0;
 }
 
-DEVICE_AND_API_INIT(gpio_uwp_p0, CONFIG_GPIO_UWP_P0_NAME,
+DEVICE_AND_API_INIT(gpio_uwp_p0, DT_GPIO_PO_UWP_NAME,
 		    &gpio_uwp_p0_init, &gpio_uwp_p0_data,
 		    &gpio_uwp_p0_config,
 		    POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEVICE,
