@@ -28,7 +28,7 @@
 #define WIFIMGR_DEV_NAME_AP	CONFIG_WIFI_AP_DRV_NAME
 
 #define WIFIMGR_MAX_SSID_LEN	32
-#define WIFIMGR_MAX_PSPHR_LEN	32
+#define WIFIMGR_MAX_PSPHR_LEN	63
 #define WIFIMGR_ETH_ALEN	6
 
 #define WIFIMGR_CMD_TIMEOUT	5
@@ -38,9 +38,9 @@
 #define E2S(x) case x: return #x;
 
 struct wifimgr_config {
-	char ssid[WIFIMGR_MAX_SSID_LEN];
+	char ssid[WIFIMGR_MAX_SSID_LEN + 1];
 	char bssid[WIFIMGR_ETH_ALEN];
-	char passphrase[WIFIMGR_MAX_PSPHR_LEN];
+	char passphrase[WIFIMGR_MAX_PSPHR_LEN + 1];
 	unsigned char band;
 	unsigned char channel;
 	bool found;
@@ -64,7 +64,7 @@ struct wifimgr_evt_scan_done {
 };
 
 struct wifimgr_evt_scan_result {
-	char ssid[WIFIMGR_MAX_SSID_LEN];
+	char ssid[WIFIMGR_MAX_SSID_LEN + 1];
 	char bssid[WIFIMGR_ETH_ALEN];
 	unsigned char band;
 	unsigned char channel;
