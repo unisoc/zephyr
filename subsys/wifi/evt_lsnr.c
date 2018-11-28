@@ -17,6 +17,46 @@ LOG_MODULE_DECLARE(wifimgr);
 
 K_THREAD_STACK_ARRAY_DEFINE(evt_stacks, 1, WIFIMGR_EVT_LISTENER_STACKSIZE);
 
+int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len)
+{
+	struct mq_des *mq;
+	struct mq_attr attr;
+	struct evt_message msg;
+	int ret;
+
+	attr.mq_maxmsg = 16;
+	attr.mq_msgsize = sizeof(struct evt_message);
+	attr.mq_flags = 0;
+	mq = mq_open(WIFIMGR_EVT_MQUEUE, O_WRONLY | O_CREAT, 0666, &attr);
+	if (!mq) {
+		wifimgr_err("failed to open event queue %s!\n",
+		       WIFIMGR_EVT_MQUEUE);
+		return -errno;
+	}
+
+	msg.evt_id = evt_id;
+	msg.buf_len = buf_len;
+	msg.buf = NULL;
+	if (buf_len) {
+		msg.buf = malloc(buf_len);
+		memcpy(msg.buf, buf, buf_len);
+	}
+
+	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
+	if (ret < 0) {
+		free(msg.buf);
+		wifimgr_err("failed to send [%s]: %d, errno %d!\n",
+		       wifimgr_evt2str(msg.evt_id), ret, errno);
+	} else {
+		wifimgr_dbg("send [%s], buf: 0x%08x\n",
+		       wifimgr_evt2str(msg.evt_id), *(int *)msg.buf);
+	}
+
+	mq_close(mq);
+
+	return ret;
+}
+
 static void _event_listener_remove_receiver(struct evt_listener *lsnr,
 					    struct evt_receiver *rcvr)
 {
@@ -172,7 +212,7 @@ static void *event_listener(void *handle)
 
 		if (match == true) {
 			/* Stop timer when receiving an event */
-			wifi_manager_sm_stop_timer(mgr, msg.evt_id);
+			wifimgr_sm_stop_timer(mgr, msg.evt_id);
 			if (msg.buf_len)
 				memcpy(rcvr->arg, msg.buf, msg.buf_len);
 
@@ -180,10 +220,10 @@ static void *event_listener(void *handle)
 			ret = rcvr->cb(rcvr->arg);
 			if (!ret)
 				/*Step to next state when successful callback */
-				wifi_manager_sm_step_evt(mgr, msg.evt_id);
+				wifimgr_sm_step_evt(mgr, msg.evt_id);
 			else
 				/*Step back to previous state when failed callback */
-				wifi_manager_sm_step_back(mgr, msg.evt_id);
+				wifimgr_sm_step_back(mgr, msg.evt_id);
 		} else {
 			wifimgr_err("unexpected [%s] under %s!\n",
 			       wifimgr_evt2str(msg.evt_id),
@@ -196,7 +236,7 @@ static void *event_listener(void *handle)
 	return NULL;
 }
 
-int wifi_manager_event_listener_init(struct evt_listener *handle)
+int wifimgr_event_listener_init(struct evt_listener *handle)
 {
 	struct evt_listener *lsnr = (struct evt_listener *)handle;
 	struct mq_attr attr;
