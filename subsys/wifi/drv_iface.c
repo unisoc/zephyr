@@ -15,47 +15,6 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
 
-static int wifi_drv_iface_notify_event(unsigned int evt_id, void *buf,
-				       int buf_len)
-{
-	struct mq_des *mq;
-	struct mq_attr attr;
-	struct evt_message msg;
-	int ret;
-
-	attr.mq_maxmsg = 16;
-	attr.mq_msgsize = sizeof(struct evt_message);
-	attr.mq_flags = 0;
-	mq = mq_open(WIFIMGR_EVT_MQUEUE, O_WRONLY | O_CREAT, 0666, &attr);
-	if (!mq) {
-		wifimgr_err("failed to open event queue %s!\n",
-		       WIFIMGR_EVT_MQUEUE);
-		return -errno;
-	}
-
-	msg.evt_id = evt_id;
-	msg.buf_len = buf_len;
-	msg.buf = NULL;
-	if (buf_len) {
-		msg.buf = malloc(buf_len);
-		memcpy(msg.buf, buf, buf_len);
-	}
-
-	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
-	if (ret < 0) {
-		free(msg.buf);
-		wifimgr_err("failed to send [%s]: %d, errno %d!\n",
-		       wifimgr_evt2str(msg.evt_id), ret, errno);
-	} else {
-		wifimgr_dbg("send [%s], buf: 0x%08x\n",
-		       wifimgr_evt2str(msg.evt_id), *(int *)msg.buf);
-	}
-
-	mq_close(mq);
-
-	return ret;
-}
-
 int wifi_drv_iface_get_mac(void *iface, char *mac)
 {
 	memcpy(mac, net_if_get_link_addr(iface)->addr, WIFIMGR_ETH_ALEN);
@@ -95,7 +54,7 @@ static void wifi_drv_iface_scan_result_cb(void *iface, int status,
 
 	if (!entry) {
 		scan_done.result = status;
-		wifi_drv_iface_notify_event(WIFIMGR_EVT_SCAN_DONE, &scan_done,
+		wifimgr_notify_event(WIFIMGR_EVT_SCAN_DONE, &scan_done,
 					    sizeof(scan_done));
 	} else {
 		strcpy(scan_res.ssid, entry->ssid);
@@ -103,7 +62,7 @@ static void wifi_drv_iface_scan_result_cb(void *iface, int status,
 		scan_res.channel = entry->channel;
 		scan_res.rssi = entry->rssi;
 
-		wifi_drv_iface_notify_event(WIFIMGR_EVT_SCAN_RESULT, &scan_res,
+		wifimgr_notify_event(WIFIMGR_EVT_SCAN_RESULT, &scan_res,
 					    sizeof(scan_res));
 	}
 }
@@ -130,7 +89,7 @@ void wifi_drv_iface_disconnect_cb(void *iface, int status)
 
 	disc.reason_code = status;
 
-	wifi_drv_iface_notify_event(WIFIMGR_EVT_DISCONNECT, &disc,
+	wifimgr_notify_event(WIFIMGR_EVT_DISCONNECT, &disc,
 				    sizeof(disc));
 }
 
@@ -152,7 +111,7 @@ void wifi_drv_iface_connect_cb(void *iface, int status)
 
 	conn.status = status;
 
-	wifi_drv_iface_notify_event(WIFIMGR_EVT_CONNECT, &conn, sizeof(conn));
+	wifimgr_notify_event(WIFIMGR_EVT_CONNECT, &conn, sizeof(conn));
 }
 
 int wifi_drv_iface_connect(void *iface, char *ssid, char *passwd)
@@ -236,11 +195,11 @@ void wifi_drv_iface_new_station(void *iface, int status, char *mac)
 	if (mac && !is_zero_ether_addr(mac))
 		memcpy(new_sta.mac, mac, WIFIMGR_ETH_ALEN);
 
-	wifi_drv_iface_notify_event(WIFIMGR_EVT_NEW_STATION, &new_sta,
+	wifimgr_notify_event(WIFIMGR_EVT_NEW_STATION, &new_sta,
 				    sizeof(new_sta));
 }
 
-int wifi_drv_iface_start_softap(void *iface, char *ssid, char *passwd,
+int wifi_drv_iface_start_ap(void *iface, char *ssid, char *passwd,
 				char channel)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
@@ -260,7 +219,7 @@ int wifi_drv_iface_start_softap(void *iface, char *ssid, char *passwd,
 	return drv_api->start_ap(dev, &params, wifi_drv_iface_new_station);
 }
 
-int wifi_drv_iface_stop_softap(void *iface)
+int wifi_drv_iface_stop_ap(void *iface)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
 	struct wifi_drv_api *drv_api =

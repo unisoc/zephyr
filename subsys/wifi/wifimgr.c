@@ -43,7 +43,7 @@ const char *wifimgr_sts2str_evt(struct wifi_manager *mgr, unsigned int evt_id)
 	return NULL;
 }
 
-int wifi_manager_sm_start_timer(struct wifi_manager *mgr, unsigned int cmd_id)
+int wifimgr_sm_start_timer(struct wifi_manager *mgr, unsigned int cmd_id)
 {
 	struct wifimgr_state_machine *sta_sm = &mgr->sta_sm;
 	struct wifimgr_state_machine *ap_sm = &mgr->ap_sm;
@@ -58,7 +58,7 @@ int wifi_manager_sm_start_timer(struct wifi_manager *mgr, unsigned int cmd_id)
 	return ret;
 }
 
-int wifi_manager_sm_stop_timer(struct wifi_manager *mgr, unsigned int evt_id)
+int wifimgr_sm_stop_timer(struct wifi_manager *mgr, unsigned int evt_id)
 {
 	struct wifimgr_state_machine *sta_sm = &mgr->sta_sm;
 	struct wifimgr_state_machine *ap_sm = &mgr->ap_sm;
@@ -73,7 +73,7 @@ int wifi_manager_sm_stop_timer(struct wifi_manager *mgr, unsigned int evt_id)
 	return ret;
 }
 
-int wifi_manager_sm_query_cmd(struct wifi_manager *mgr, unsigned int cmd_id)
+int wifimgr_sm_query_cmd(struct wifi_manager *mgr, unsigned int cmd_id)
 {
 	struct wifimgr_state_machine *sta_sm = &mgr->sta_sm;
 	int ret = 0;
@@ -89,7 +89,7 @@ int wifi_manager_sm_query_cmd(struct wifi_manager *mgr, unsigned int cmd_id)
 	return ret;
 }
 
-void wifi_manager_sm_step_cmd(struct wifi_manager *mgr, unsigned int cmd_id)
+void wifimgr_sm_step_cmd(struct wifi_manager *mgr, unsigned int cmd_id)
 {
 	struct wifimgr_state_machine *sta_sm = &mgr->sta_sm;
 	struct wifimgr_state_machine *ap_sm = &mgr->ap_sm;
@@ -101,7 +101,7 @@ void wifi_manager_sm_step_cmd(struct wifi_manager *mgr, unsigned int cmd_id)
 		sm_ap_step_cmd(ap_sm, cmd_id);
 }
 
-void wifi_manager_sm_step_evt(struct wifi_manager *mgr, unsigned int evt_id)
+void wifimgr_sm_step_evt(struct wifi_manager *mgr, unsigned int evt_id)
 {
 	struct wifimgr_state_machine *sta_sm = &mgr->sta_sm;
 
@@ -111,7 +111,7 @@ void wifi_manager_sm_step_evt(struct wifi_manager *mgr, unsigned int evt_id)
 	/*softAP does not need step evt for now */
 }
 
-void wifi_manager_sm_step_back(struct wifi_manager *mgr, unsigned int evt_id)
+void wifimgr_sm_step_back(struct wifi_manager *mgr, unsigned int evt_id)
 {
 	struct wifimgr_state_machine *sta_sm = &mgr->sta_sm;
 
@@ -121,7 +121,7 @@ void wifi_manager_sm_step_back(struct wifi_manager *mgr, unsigned int evt_id)
 	/*softAP does not need step evt for now */
 }
 
-static void *wifi_manager_drv_iface_init(struct wifi_manager *mgr, char *devname)
+static void *wifimgr_drv_iface_init(struct wifi_manager *mgr, char *devname)
 {
 	struct device *dev;
 	struct net_if *iface;
@@ -144,7 +144,7 @@ static void *wifi_manager_drv_iface_init(struct wifi_manager *mgr, char *devname
 	return (void *)iface;
 }
 
-int wifi_manager_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id)
+int wifimgr_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id)
 {
 	char *devname = NULL;
 	struct net_if *iface = NULL;
@@ -159,7 +159,7 @@ int wifi_manager_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id)
 		devname = WIFIMGR_DEV_NAME_AP;
 
 	if (devname) {
-		iface = wifi_manager_drv_iface_init(mgr, devname);
+		iface = wifimgr_drv_iface_init(mgr, devname);
 		if (!iface) {
 			wifimgr_err("failed to init %s interface!\n", devname);
 			return -ENODEV;
@@ -175,7 +175,7 @@ int wifi_manager_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id)
 	return ret;
 }
 
-static int wifi_manager_sm_init(struct wifi_manager *mgr)
+static int wifimgr_sm_init(struct wifi_manager *mgr)
 {
 	int ret;
 
@@ -184,13 +184,15 @@ static int wifi_manager_sm_init(struct wifi_manager *mgr)
 		wifimgr_err("failed to init WiFi STA state machine!\n");
 
 	ret = sm_ap_init(&mgr->ap_sm);
-	if (ret < 0)
+	if (ret < 0) {
 		wifimgr_err("failed to init WiFi AP state machine!\n");
+		sm_sta_exit(&mgr->sta_sm);
+	}
 
 	return ret;
 }
 
-static int wifi_manager_init(struct device *unused)
+static int wifimgr_init(struct device *unused)
 {
 	struct wifi_manager *mgr = &wifimgr;
 	int ret;
@@ -200,22 +202,25 @@ static int wifi_manager_init(struct device *unused)
 	/*setlogmask(~(LOG_MASK(LOG_DEBUG))); */
 	memset(mgr, 0, sizeof(struct wifi_manager));
 
-	ret = wifi_manager_event_listener_init(&mgr->lsnr);
+	ret = wifimgr_event_listener_init(&mgr->lsnr);
 	if (ret < 0)
 		wifimgr_err("failed to init WiFi event listener!\n");
 
-	ret = wifi_manager_command_processor_init(&mgr->prcs);
+	ret = wifimgr_command_processor_init(&mgr->prcs);
 	if (ret < 0)
 
 		wifimgr_err("failed to init WiFi command processor!\n");
 
-	ret = wifi_manager_sm_init(mgr);
+	ret = wifimgr_sm_init(mgr);
 	if (ret < 0)
 		wifimgr_err("failed to init WiFi state machine!\n");
+
+	wifimgr_sta_init(mgr);
+	wifimgr_ap_init(mgr);
 
 	wifimgr_info("WiFi manager started\n");
 
 	return ret;
 }
 
-SYS_INIT(wifi_manager_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
+SYS_INIT(wifimgr_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
