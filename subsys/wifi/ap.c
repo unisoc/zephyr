@@ -16,7 +16,10 @@ LOG_MODULE_DECLARE(wifimgr);
 #include "wifimgr.h"
 #include "led.h"
 
-int wifi_manager_get_ap_config(void *handle)
+static int wifimgr_ap_stop(void *handle);
+static int wifimgr_ap_close(void *handle);
+
+static int wifimgr_ap_get_config(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_config *conf = &mgr->ap_conf;
@@ -52,7 +55,7 @@ int wifi_manager_get_ap_config(void *handle)
 	return ret;
 }
 
-int wifi_manager_set_ap_config(void *handle)
+static int wifimgr_ap_set_config(void *handle)
 {
 	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
@@ -67,7 +70,7 @@ int wifi_manager_set_ap_config(void *handle)
 	return 0;
 }
 
-int wifi_manager_get_ap_status(void *handle)
+static int wifimgr_ap_get_status(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_state_machine *sm = &mgr->ap_sm;
@@ -92,7 +95,7 @@ int wifi_manager_get_ap_status(void *handle)
 	return 0;
 }
 
-static int wifi_manager_new_station_event_cb(void *arg)
+static int wifimgr_ap_new_station_event_cb(void *arg)
 {
 	struct wifimgr_evt_new_station *new_sta =
 	    (struct wifimgr_evt_new_station *)arg;
@@ -112,7 +115,7 @@ static int wifi_manager_new_station_event_cb(void *arg)
 	return 0;
 }
 
-int wifi_manager_start_softap(void *handle)
+static int wifimgr_ap_start(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_config *conf = &mgr->ap_conf;
@@ -125,14 +128,14 @@ int wifi_manager_start_softap(void *handle)
 
 	ret = event_listener_add_receiver(&mgr->lsnr,
 					  WIFIMGR_EVT_NEW_STATION, false,
-					  wifi_manager_new_station_event_cb,
+					  wifimgr_ap_new_station_event_cb,
 					  &mgr->evt_new_sta);
 	if (ret) {
 		wifimgr_err("failed to start AP!\n");
 		return ret;
 	}
 
-	ret = wifi_drv_iface_start_softap(mgr->ap_iface, conf->ssid,
+	ret = wifi_drv_iface_start_ap(mgr->ap_iface, conf->ssid,
 					  conf->passphrase, conf->channel);
 
 	if (ret) {
@@ -146,19 +149,19 @@ int wifi_manager_start_softap(void *handle)
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_START_AP);
 
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP,
-					  wifi_manager_stop_softap, mgr);
+					  wifimgr_ap_stop, mgr);
 
 	/* TODO: Start DHCP server */
 
 	return ret;
 }
 
-int wifi_manager_stop_softap(void *handle)
+static int wifimgr_ap_stop(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
 
-	ret = wifi_drv_iface_stop_softap(mgr->ap_iface);
+	ret = wifi_drv_iface_stop_ap(mgr->ap_iface);
 	if (ret) {
 		wifimgr_err("failed to stop AP!\n");
 		return ret;
@@ -170,12 +173,12 @@ int wifi_manager_stop_softap(void *handle)
 
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP);
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_START_AP,
-					  wifi_manager_start_softap, mgr);
+					  wifimgr_ap_start, mgr);
 
 	return ret;
 }
 
-int wifi_manager_open_softap(void *handle)
+static int wifimgr_ap_open(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
@@ -189,14 +192,14 @@ int wifi_manager_open_softap(void *handle)
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_AP);
 
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_AP,
-					  wifi_manager_close_softap, mgr);
+					  wifimgr_ap_close, mgr);
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_START_AP,
-					  wifi_manager_start_softap, mgr);
+					  wifimgr_ap_start, mgr);
 
 	return ret;
 }
 
-int wifi_manager_close_softap(void *handle)
+static int wifimgr_ap_close(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
@@ -214,7 +217,24 @@ int wifi_manager_close_softap(void *handle)
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_AP);
 
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_AP,
-					  wifi_manager_open_softap, mgr);
+					  wifimgr_ap_open, mgr);
 
 	return ret;
+}
+
+void wifimgr_ap_init(void *handle)
+{
+	struct wifi_manager *mgr = (struct wifi_manager *)handle;
+	struct cmd_processor *prcs = &mgr->prcs;
+
+	/* Register default AP commands */
+	command_processor_register_sender(prcs, WIFIMGR_CMD_SET_AP_CONFIG,
+					  wifimgr_ap_set_config,
+					  &mgr->ap_conf);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_AP_CONFIG,
+					  wifimgr_ap_get_config, mgr);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_AP_STATUS,
+					  wifimgr_ap_get_status, mgr);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_OPEN_AP,
+					  wifimgr_ap_open, mgr);
 }
