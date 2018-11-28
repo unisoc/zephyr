@@ -16,7 +16,9 @@ LOG_MODULE_DECLARE(wifimgr);
 #include "wifimgr.h"
 #include "led.h"
 
-int wifi_manager_get_sta_config(void *handle)
+static int wifimgr_sta_close(void *handle);
+
+static int wifimgr_sta_get_config(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_config *conf = &mgr->sta_conf;
@@ -50,7 +52,7 @@ int wifi_manager_get_sta_config(void *handle)
 	return 0;
 }
 
-int wifi_manager_set_sta_config(void *handle)
+static int wifimgr_sta_set_config(void *handle)
 {
 	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
@@ -66,7 +68,7 @@ int wifi_manager_set_sta_config(void *handle)
 	return 0;
 }
 
-int wifi_manager_get_sta_status(void *handle)
+static int wifimgr_sta_get_status(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_state_machine *sm = &mgr->sta_sm;
@@ -97,7 +99,7 @@ int wifi_manager_get_sta_status(void *handle)
 	return ret;
 }
 
-static int wifi_manager_disconnect_event(void *arg)
+static int wifimgr_sta_disconnect_event(void *arg)
 {
 	struct wifimgr_evt_disconnect *disc =
 	    (struct wifimgr_evt_disconnect *)arg;
@@ -122,13 +124,13 @@ static int wifi_manager_disconnect_event(void *arg)
 	return ret;
 }
 
-int wifi_manager_disconnect(void *handle)
+static int wifimgr_sta_disconnect(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
 
 	event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_DISCONNECT,
-				    true, wifi_manager_disconnect_event,
+				    true, wifimgr_sta_disconnect_event,
 				    &mgr->evt_disc);
 
 	ret = wifi_drv_iface_disconnect(mgr->sta_iface);
@@ -139,7 +141,7 @@ int wifi_manager_disconnect(void *handle)
 	return ret;
 }
 
-static int wifi_manager_connect_event(void *arg)
+static int wifimgr_sta_connect_event(void *arg)
 {
 	struct wifimgr_evt_connect *conn = (struct wifimgr_evt_connect *)arg;
 	struct wifi_manager *mgr =
@@ -153,12 +155,12 @@ static int wifi_manager_connect_event(void *arg)
 
 		/* Register disconnect event here due to AP deauth */
 		event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_DISCONNECT,
-					    true, wifi_manager_disconnect_event,
+					    true, wifimgr_sta_disconnect_event,
 					    &mgr->evt_disc);
 
 		command_processor_register_sender(&mgr->prcs,
 						  WIFIMGR_CMD_DISCONNECT,
-						  wifi_manager_disconnect, mgr);
+						  wifimgr_sta_disconnect, mgr);
 
 		if (iface)
 			wifimgr_dhcp_start(iface);
@@ -175,7 +177,7 @@ static int wifi_manager_connect_event(void *arg)
 	return ret;
 }
 
-int wifi_manager_connect(void *handle)
+static int wifimgr_sta_connect(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_config *conf = &mgr->sta_conf;
@@ -189,7 +191,7 @@ int wifi_manager_connect(void *handle)
 	wifimgr_info("Connecting to %s\n", conf->ssid);
 
 	ret = event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_CONNECT,
-					  true, wifi_manager_connect_event,
+					  true, wifimgr_sta_connect_event,
 					  &mgr->evt_conn);
 	if (ret)
 		return ret;
@@ -203,7 +205,7 @@ int wifi_manager_connect(void *handle)
 	return ret;
 }
 
-static int wifi_manager_scan_result(void *arg)
+static int wifimgr_sta_scan_result(void *arg)
 {
 	struct wifimgr_evt_scan_result *scan_res =
 	    (struct wifimgr_evt_scan_result *)arg;
@@ -238,7 +240,7 @@ static int wifi_manager_scan_result(void *arg)
 	return 0;
 }
 
-static int wifi_manager_scan_done(void *arg)
+static int wifimgr_sta_scan_done(void *arg)
 {
 	struct wifimgr_evt_scan_done *scan_done =
 	    (struct wifimgr_evt_scan_done *)arg;
@@ -262,20 +264,20 @@ static int wifi_manager_scan_done(void *arg)
 	return ret;
 }
 
-int wifi_manager_scan(void *handle)
+static int wifimgr_sta_scan(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_config *conf = &mgr->sta_conf;
 	int ret;
 
 	ret = event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_RESULT,
-					  false, wifi_manager_scan_result,
+					  false, wifimgr_sta_scan_result,
 					  &mgr->evt_scan_res);
 	if (ret)
 		return ret;
 
 	ret = event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_DONE,
-					  true, wifi_manager_scan_done,
+					  true, wifimgr_sta_scan_done,
 					  &mgr->evt_scan_done);
 	if (ret) {
 		event_listener_remove_receiver(&mgr->lsnr,
@@ -294,7 +296,7 @@ int wifi_manager_scan(void *handle)
 	return ret;
 }
 
-int wifi_manager_open_station(void *handle)
+static int wifimgr_sta_open(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
@@ -308,16 +310,16 @@ int wifi_manager_open_station(void *handle)
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_STA);
 
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_STA,
-					  wifi_manager_close_station, mgr);
+					  wifimgr_sta_close, mgr);
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_SCAN,
-					  wifi_manager_scan, mgr);
+					  wifimgr_sta_scan, mgr);
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_CONNECT,
-					  wifi_manager_connect, mgr);
+					  wifimgr_sta_connect, mgr);
 
 	return ret;
 }
 
-int wifi_manager_close_station(void *handle)
+static int wifimgr_sta_close(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
@@ -334,7 +336,24 @@ int wifi_manager_close_station(void *handle)
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_SCAN);
 
 	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_STA,
-					  wifi_manager_open_station, mgr);
+					  wifimgr_sta_open, mgr);
 
 	return ret;
+}
+
+void wifimgr_sta_init(void *handle)
+{
+	struct wifi_manager *mgr = (struct wifi_manager *)handle;
+	struct cmd_processor *prcs = &mgr->prcs;
+
+	/* Register default STA commands */
+	command_processor_register_sender(prcs, WIFIMGR_CMD_SET_STA_CONFIG,
+					  wifimgr_sta_set_config,
+					  &mgr->sta_conf);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_STA_CONFIG,
+					  wifimgr_sta_get_config, mgr);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_STA_STATUS,
+					  wifimgr_sta_get_status, mgr);
+	command_processor_register_sender(prcs, WIFIMGR_CMD_OPEN_STA,
+					  wifimgr_sta_open, mgr);
 }
