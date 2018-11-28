@@ -574,7 +574,6 @@ static int uwp_init(struct device *dev)
 
 		wifi_cmdevt_init();
 		wifi_txrx_init(priv);
-		wifi_irq_init();
 
 		k_sleep(400); /* FIXME: workaround */
 		ret = wifi_rf_init();
