@@ -105,7 +105,7 @@ static void *command_processor(void *handle)
 		       wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
 
 		/* Ask state machine whether the command could be executed */
-		ret = wifi_manager_sm_query_cmd(mgr, msg.cmd_id);
+		ret = wifimgr_sm_query_cmd(mgr, msg.cmd_id);
 		if (ret) {
 			command_processor_post_process(prcs, &msg, ret);
 
@@ -115,7 +115,7 @@ static void *command_processor(void *handle)
 		}
 
 		/* Initialize driver interface for the first time running */
-		ret = wifi_manager_low_level_init(mgr, msg.cmd_id);
+		ret = wifimgr_low_level_init(mgr, msg.cmd_id);
 		if (ret == -ENODEV) {
 			command_processor_post_process(prcs, &msg, ret);
 			wifimgr_err("No such device!\n");
@@ -133,9 +133,9 @@ static void *command_processor(void *handle)
 			ret = sndr->fn(sndr->arg);
 			if (!ret) {
 				/*Step to next state when successful sending */
-				wifi_manager_sm_step_cmd(mgr, msg.cmd_id);
+				wifimgr_sm_step_cmd(mgr, msg.cmd_id);
 				/*Start timer then */
-				wifi_manager_sm_start_timer(mgr, msg.cmd_id);
+				wifimgr_sm_start_timer(mgr, msg.cmd_id);
 			} else {
 				/*Remain current state when failed sending */
 				wifimgr_err(
@@ -157,7 +157,7 @@ static void *command_processor(void *handle)
 	return NULL;
 }
 
-int wifi_manager_command_processor_init(struct cmd_processor *handle)
+int wifimgr_command_processor_init(struct cmd_processor *handle)
 {
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
 	struct mq_attr attr;

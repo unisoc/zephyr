@@ -77,6 +77,6 @@ int command_processor_register_sender(struct cmd_processor *handle,
 				      void *arg);
 int command_processor_unregister_sender(struct cmd_processor *handle,
 					unsigned int cmd_id);
-int wifi_manager_command_processor_init(struct cmd_processor *handle);
+int wifimgr_command_processor_init(struct cmd_processor *handle);
 
 #endif

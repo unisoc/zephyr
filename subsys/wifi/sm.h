@@ -53,6 +53,7 @@ void sm_sta_step_cmd(struct wifimgr_state_machine *sta_sm, unsigned int cmd_id);
 void sm_sta_step_evt(struct wifimgr_state_machine *sta_sm, unsigned int evt_id);
 void sm_sta_step_back(struct wifimgr_state_machine *sta_sm);
 int sm_sta_init(struct wifimgr_state_machine *sta_sm);
+int sm_sta_exit(struct wifimgr_state_machine *sta_sm);
 
 const char *ap_sts2str(int state);
 bool is_ap_cmd(unsigned int cmd_id);
