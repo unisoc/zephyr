@@ -54,6 +54,11 @@
 typedef sys_snode_t wifimgr_snode_t;
 typedef sys_slist_t wifimgr_slist_t;
 
+typedef struct k_work wifimgr_work;
+
+#define wifimgr_init_work(...)	k_work_init(__VA_ARGS__)
+#define wifimgr_queue_work(...)	k_work_submit(__VA_ARGS__)
+
 /**
  * is_zero_ether_addr - Determine if give Ethernet address is all zeros.
  * @addr: Pointer to a six-byte array containing the Ethernet address
