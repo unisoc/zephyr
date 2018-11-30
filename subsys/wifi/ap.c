@@ -19,6 +19,28 @@ LOG_MODULE_DECLARE(wifimgr);
 static int wifimgr_ap_stop(void *handle);
 static int wifimgr_ap_close(void *handle);
 
+void wifimgr_ap_event_timeout(wifimgr_work *work)
+{
+	struct wifimgr_state_machine *ap_sm =
+	    container_of(work, struct wifimgr_state_machine, work);
+	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
+	unsigned int expected_evt;
+
+	/* Notify the external caller */
+	switch (ap_sm->cur_cmd) {
+	case WIFIMGR_CMD_DEL_STATION:
+		expected_evt = WIFIMGR_EVT_NEW_STATION;
+		wifimgr_err("[%s] timeout!\n",
+		       wifimgr_evt2str(expected_evt));
+
+		if (cbs && cbs->notify_del_station_timeout)
+			cbs->notify_del_station_timeout();
+		break;
+	default:
+		break;
+	}
+}
+
 static int wifimgr_ap_get_config(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
