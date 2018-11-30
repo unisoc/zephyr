@@ -81,6 +81,9 @@ struct wifi_drv_api{
 			new_station_t cb);
 	int (*stop_ap)(struct device *dev);
 	int (*del_station)(struct device *dev, u8_t *mac);
+	int (*hw_test)(struct device *dev, int ictx_id,
+		       char *t_buf, u32_t t_len, char *r_buf,
+		       u32_t *r_len)
 };
 
 #endif
