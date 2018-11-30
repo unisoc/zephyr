@@ -28,10 +28,11 @@ enum wifimgr_sm_ap_state {
 };
 
 struct wifimgr_state_machine {
-	sem_t exclsem;		/* exclusive access to the struct */
+	wifimgr_work work;
 	unsigned int state;
 	unsigned int old_state;
 	unsigned int cur_cmd;	/* record the command under processing */
+	sem_t exclsem;		/* exclusive access to the struct */
 	timer_t timerid;	/* timer for event */
 };
 
@@ -61,4 +62,5 @@ bool is_ap_evt(unsigned int evt_id);
 int sm_ap_query(struct wifimgr_state_machine *ap_sm);
 void sm_ap_step_cmd(struct wifimgr_state_machine *ap_sm, unsigned int cmd_id);
 int sm_ap_init(struct wifimgr_state_machine *ap_sm);
+
 #endif

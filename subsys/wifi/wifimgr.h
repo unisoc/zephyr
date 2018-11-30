@@ -113,7 +113,9 @@ void wifimgr_sm_step_evt(struct wifi_manager *mgr, unsigned int evt_id);
 void wifimgr_sm_step_back(struct wifi_manager *mgr, unsigned int evt_id);
 int wifimgr_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id);
 
+void wifimgr_sta_event_timeout(wifimgr_work *work);
 void wifimgr_sta_init(void *handle);
+void wifimgr_ap_event_timeout(wifimgr_work *work);
 void wifimgr_ap_init(void *handle);
 
 #endif

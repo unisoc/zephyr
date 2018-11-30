@@ -78,49 +78,8 @@ static void sm_sta_timeout(void *sival_ptr)
 {
 	struct wifimgr_state_machine *sta_sm =
 	    (struct wifimgr_state_machine *)sival_ptr;
-	struct wifi_manager *mgr =
-	    container_of(sta_sm, struct wifi_manager, sta_sm);
-	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
-	unsigned int expected_evt;
 
-	/* Remove event receiver, notify the external caller */
-	switch (sta_sm->cur_cmd) {
-	case WIFIMGR_CMD_SCAN:
-		expected_evt = WIFIMGR_EVT_SCAN_DONE;
-		event_listener_remove_receiver(&mgr->lsnr,
-					       WIFIMGR_EVT_SCAN_RESULT);
-		event_listener_remove_receiver(&mgr->lsnr, expected_evt);
-
-		if (cbs && cbs->notify_scan_timeout)
-			cbs->notify_scan_timeout();
-
-		wifimgr_err("[%s] timeout!\n",
-		       wifimgr_evt2str(expected_evt));
-		break;
-	case WIFIMGR_CMD_CONNECT:
-		expected_evt = WIFIMGR_EVT_CONNECT;
-		event_listener_remove_receiver(&mgr->lsnr, expected_evt);
-
-		if (cbs && cbs->notify_connect_timeout)
-			cbs->notify_connect_timeout();
-
-		wifimgr_err("[%s] timeout!\n",
-		       wifimgr_evt2str(expected_evt));
-		break;
-	case WIFIMGR_CMD_DISCONNECT:
-		expected_evt = WIFIMGR_EVT_DISCONNECT;
-
-		if (cbs && cbs->notify_disconnect_timeout)
-			cbs->notify_disconnect_timeout();
-
-		wifimgr_err("[%s] timeout!\n",
-		       wifimgr_evt2str(expected_evt));
-		break;
-	default:
-		break;
-	}
-
-	sm_sta_step_back(sta_sm);
+	wifimgr_queue_work(&sta_sm->work);
 }
 
 int sm_sta_timer_start(struct wifimgr_state_machine *sta_sm,
@@ -177,23 +136,8 @@ static void sm_ap_timeout(void *sival_ptr)
 {
 	struct wifimgr_state_machine *ap_sm =
 	    (struct wifimgr_state_machine *)sival_ptr;
-	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
-	unsigned int expected_evt;
 
-	/* Notify the external caller */
-	switch (ap_sm->cur_cmd) {
-	case WIFIMGR_CMD_DEL_STATION:
-		expected_evt = WIFIMGR_EVT_NEW_STATION;
-
-		if (cbs && cbs->notify_del_station_timeout)
-			cbs->notify_del_station_timeout();
-
-		wifimgr_err("[%s] timeout!\n",
-		       wifimgr_evt2str(expected_evt));
-		break;
-	default:
-		break;
-	}
+	wifimgr_queue_work(&ap_sm->work);
 }
 
 int sm_ap_timer_start(struct wifimgr_state_machine *ap_sm, unsigned int cmd_id)
@@ -432,6 +376,8 @@ int sm_sta_init(struct wifimgr_state_machine *sta_sm)
 	sta_sm->state = sta_sm->old_state = WIFIMGR_SM_STA_NODEV;
 	sem_init(&sta_sm->exclsem, 0, 1);
 
+	wifimgr_init_work(&sta_sm->work, wifimgr_sta_event_timeout);
+
 	ret = sm_sta_timer_init(sta_sm);
 	if (ret < 0)
 		wifimgr_err("failed to init WiFi STA timer!\n");
@@ -532,6 +478,8 @@ int sm_ap_init(struct wifimgr_state_machine *ap_sm)
 
 	ap_sm->state = ap_sm->old_state = WIFIMGR_SM_AP_NODEV;
 	sem_init(&ap_sm->exclsem, 0, 1);
+
+	wifimgr_init_work(&ap_sm->work, wifimgr_ap_event_timeout);
 
 	ret = sm_ap_timer_init(ap_sm);
 	if (ret < 0)
