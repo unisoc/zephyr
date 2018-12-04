@@ -13,5 +13,6 @@ zephyr_sources_ifdef(
   api.c
   )
 zephyr_sources_ifdef(CONFIG_WIFIMGR_CLI cli.c)
+zephyr_sources_ifdef(CONFIG_WIFIMGR_CONFIG config.c)
 zephyr_sources_ifdef(CONFIG_WIFIMGR_DHCPC dhcpc.c)
 zephyr_sources_ifdef(CONFIG_WIFIMGR_LED led.c)
