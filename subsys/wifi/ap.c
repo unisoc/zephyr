@@ -43,10 +43,13 @@ void wifimgr_ap_event_timeout(wifimgr_work *work)
 
 static int wifimgr_ap_get_config(void *handle)
 {
-	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifimgr_config *conf = &mgr->ap_conf;
+	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
+	struct wifi_manager *mgr =
+	    container_of(conf, struct wifi_manager, ap_conf);
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	int ret = 0;
+
+	wifimgr_load_config(conf, WIFIMGR_SETTING_AP_PATH);
 
 	wifimgr_info("AP Config\n");
 	if (strlen(conf->ssid))
@@ -54,9 +57,10 @@ static int wifimgr_ap_get_config(void *handle)
 
 	if (is_zero_ether_addr(conf->bssid))
 		ret = wifi_drv_iface_get_mac(mgr->ap_iface, conf->bssid);
-	wifimgr_info("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-	       conf->bssid[0], conf->bssid[1], conf->bssid[2],
-	       conf->bssid[3], conf->bssid[4], conf->bssid[5]);
+	if (!is_zero_ether_addr(conf->bssid))
+		wifimgr_info("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+		       conf->bssid[0], conf->bssid[1], conf->bssid[2],
+		       conf->bssid[3], conf->bssid[4], conf->bssid[5]);
 
 	if (conf->channel)
 		wifimgr_info("Channel:\t%d\n", conf->channel);
@@ -81,13 +85,15 @@ static int wifimgr_ap_set_config(void *handle)
 {
 	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
-	wifimgr_info("Setting AP ...\n");
+	wifimgr_info("Setting AP Config ...\n");
 	wifimgr_info("SSID:\t\t%s\n", conf->ssid);
 	wifimgr_info("Channel:\t%d\n", conf->channel);
 
 	if (strlen(conf->passphrase))
 		wifimgr_info("Passphrase:\t%s\n", conf->passphrase);
 	fflush(stdout);
+
+	wifimgr_save_config(conf, WIFIMGR_SETTING_AP_PATH);
 
 	return 0;
 }
@@ -254,7 +260,8 @@ void wifimgr_ap_init(void *handle)
 					  wifimgr_ap_set_config,
 					  &mgr->ap_conf);
 	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_AP_CONFIG,
-					  wifimgr_ap_get_config, mgr);
+					  wifimgr_ap_get_config,
+					  &mgr->ap_conf);
 	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_AP_STATUS,
 					  wifimgr_ap_get_status, mgr);
 	command_processor_register_sender(prcs, WIFIMGR_CMD_OPEN_AP,
