@@ -27,6 +27,14 @@ config WIFIMGR_CLI
 	  A client that can interact with WiFi manger,
 	  which can be ran from shell.
 
+config WIFIMGR_CONFIG
+	bool "Enable Saving Config"
+	select FCB
+	select SETTINGS
+	default y
+	help
+	  Enable Saving & Cleaning WiFi Configuration.
+
 config WIFIMGR_DHCPC
 	bool "Enable DHCP client"
 	select NETWORKING

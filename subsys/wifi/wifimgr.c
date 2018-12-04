@@ -217,7 +217,7 @@ static int wifimgr_init(struct device *unused)
 
 	wifimgr_sta_init(mgr);
 	wifimgr_ap_init(mgr);
-
+	wifimgr_config_init(mgr);
 	wifimgr_info("WiFi manager started\n");
 
 	return ret;
