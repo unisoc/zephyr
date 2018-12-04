@@ -30,28 +30,19 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc, char *
 	iface_name = argv[1];
 
 	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
-		if (argc < 3 || argc > 4)
-			return -EINVAL;
+		if ((argc >= 3) && argv[2])
+			ssid = argv[2];
 
-		if (!argv[2])
-			return -EINVAL;
-		ssid = argv[2];
-
-		if (argv[3])
+		if ((argc == 4) && argv[3])
 			passphrase = argv[3];
 	} else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP)) {
-		if (argc < 4 || argc > 5)
-			return -EINVAL;
+		if ((argc >= 3) && argv[2])
+			ssid = argv[2];
 
-		if (!argv[2])
-			return -EINVAL;
-		ssid = argv[2];
+		if ((argc >= 4) && argv[3])
+			channel = atoi(argv[3]);
 
-		if (!argv[3])
-			return -EINVAL;
-		channel = atoi(argv[3]);
-
-		if (argv[4])
+		if ((argc == 5) && argv[4])
 			passphrase = argv[4];
 	}
 
@@ -142,7 +133,9 @@ static int wifimgr_cmd_del_station(const struct shell *shell, size_t argc, char 
 SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
 	SHELL_CMD(set_config, NULL,
 	 "<sta> <SSID> <PSK (optional: valid only for secured SSIDs)>"
-	 "\n\t\t\t     <ap> <SSID> <channel> <PSK (optional: valid only for secured SSIDs)>",
+	 "\n<sta> (clear STA config)"
+	 "\n<ap> <SSID> <channel> <PSK (optional: valid only for secured SSIDs)>"
+	 "\n<ap> (clear AP config)",
 	 wifimgr_cmd_set_config),
 	SHELL_CMD(get_config, NULL,
 	 "<iface, sta or ap>",

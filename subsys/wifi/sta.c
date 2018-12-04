@@ -66,9 +66,10 @@ void wifimgr_sta_event_timeout(wifimgr_work *work)
 
 static int wifimgr_sta_get_config(void *handle)
 {
-	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifimgr_config *conf = &mgr->sta_conf;
+	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
+
+	wifimgr_load_config(conf, WIFIMGR_SETTING_STA_PATH);
 
 	wifimgr_info("STA Config\n");
 	if (strlen(conf->ssid))
@@ -102,14 +103,14 @@ static int wifimgr_sta_set_config(void *handle)
 {
 	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
-	wifimgr_info("Setting STA ...\n");
+	wifimgr_info("Setting STA Config ...\n");
 	wifimgr_info("SSID:\t\t%s\n", conf->ssid);
 
 	if (strlen(conf->passphrase))
 		wifimgr_info("Passphrase:\t%s\n", conf->passphrase);
 	fflush(stdout);
 
-	conf->found = false;
+	wifimgr_save_config(conf, WIFIMGR_SETTING_STA_PATH);
 
 	return 0;
 }
@@ -272,7 +273,7 @@ static int wifimgr_sta_scan_result(void *arg)
 		if (!strncmp
 		    (scan_res->bssid, mgr->sta_conf.bssid, WIFIMGR_ETH_ALEN)
 		    || is_zero_ether_addr(mgr->sta_conf.bssid))
-			mgr->sta_conf.found = true;
+			mgr->evt_scan_done.found = true;
 
 	/* Notify the external caller */
 	if (cbs && cbs->notify_scan_res)
@@ -305,7 +306,7 @@ static int wifimgr_sta_scan_done(void *arg)
 
 	/* Notify the external caller */
 	if (cbs && cbs->notify_scan_done)
-		cbs->notify_scan_done(mgr->sta_conf.found);
+		cbs->notify_scan_done(scan_done->found);
 
 	return ret;
 }
@@ -330,6 +331,8 @@ static int wifimgr_sta_scan(void *handle)
 					       WIFIMGR_EVT_SCAN_RESULT);
 		return ret;
 	}
+
+	mgr->evt_scan_done.found = false;
 
 	ret = wifi_drv_iface_scan(mgr->sta_iface, conf->band, conf->channel);
 	if (ret) {
@@ -397,7 +400,8 @@ void wifimgr_sta_init(void *handle)
 					  wifimgr_sta_set_config,
 					  &mgr->sta_conf);
 	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_STA_CONFIG,
-					  wifimgr_sta_get_config, mgr);
+					  wifimgr_sta_get_config,
+					  &mgr->sta_conf);
 	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_STA_STATUS,
 					  wifimgr_sta_get_status, mgr);
 	command_processor_register_sender(prcs, WIFIMGR_CMD_OPEN_STA,

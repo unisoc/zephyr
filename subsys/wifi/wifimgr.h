@@ -16,11 +16,12 @@
 #include <net/wifimgr_api.h>
 
 #include "os_adapter.h"
+#include "api.h"
+#include "config.h"
 #include "cmd_prcs.h"
 #include "evt_lsnr.h"
 #include "sm.h"
 #include "drv_iface.h"
-#include "api.h"
 #include "dhcpc.h"
 #include "led.h"
 
@@ -43,7 +44,6 @@ struct wifimgr_config {
 	char passphrase[WIFIMGR_MAX_PSPHR_LEN + 1];
 	unsigned char band;
 	unsigned char channel;
-	bool found;
 };
 
 struct wifimgr_status {
@@ -61,6 +61,7 @@ struct wifimgr_evt_disconnect {
 
 struct wifimgr_evt_scan_done {
 	char result;
+	bool found;
 };
 
 struct wifimgr_evt_scan_result {
