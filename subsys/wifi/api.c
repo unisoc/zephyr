@@ -94,18 +94,16 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 
 	if (!iface_name)
 		return -EINVAL;
-	if (!ssid && !bssid)
-		return -EINVAL;
 	if ((strlen(ssid) > sizeof(conf.ssid))
 	    || (strlen(passphrase) > sizeof(conf.passphrase)))
 		return -EINVAL;
 
 	memset(&conf, 0, sizeof(conf));
-	if (ssid)
+	if (ssid && strlen(ssid))
 		strcpy(conf.ssid, ssid);
 	if (bssid && !is_zero_ether_addr(bssid))
 		memcpy(conf.bssid, bssid, WIFIMGR_ETH_ALEN);
-	if (passphrase)
+	if (passphrase && strlen(passphrase))
 		strcpy(conf.passphrase, passphrase);
 	if (band)
 		conf.band = band;
