@@ -41,6 +41,8 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 #define SEC1 (1)
 #define SEC2 (2)
 
+#define L2_HEADER_LEN (sizeof(struct net_eth_hdr))
+
 #define DEV_DATA(dev) \
 	((struct wifi_priv *)(dev)->driver_data)
 
@@ -529,14 +531,17 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 		SPRD_AP_TO_CP_ADDR(addr);
 
 		max_len = MTU + sizeof(struct tx_msdu_dscr)
-			+ 14 /* link layer header length */;
+			+ L2_HEADER_LEN;
 		if (data_len > max_len) {
 			LOG_ERR("Exceed max length %d data_len %d",
 					max_len, data_len);
 			return -EINVAL;
 		}
 
-		wifi_tx_data((void *)addr, data_len);
+		if (wifi_tx_data((void *)addr, data_len)) {
+			LOG_WRN("Send data failed.");
+			net_pkt_unref(pkt);
+		}
 	}
 
 	return 0;
