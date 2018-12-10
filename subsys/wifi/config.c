@@ -175,7 +175,7 @@ int wifimgr_save_config(void *handle, char *path)
 	else
 		ret = settings_save_one(name, "");
 	if (ret)
-		wifimgr_err("failed to save %s!\n", name);
+		wifimgr_err("failed to save %s, ret: %d!\n", name, ret);
 
 	/* Save BSSID */
 	snprintf(name, sizeof(name), "%s/%s", path, WIFIMGR_SETTING_NAME_BSSID);
@@ -184,7 +184,7 @@ int wifimgr_save_config(void *handle, char *path)
 	else
 		ret = settings_save_one(name, "");
 	if (ret)
-		wifimgr_err("failed to save %s!\n", name);
+		wifimgr_err("failed to save %s, ret: %d!\n", name, ret);
 
 	/* Save passphrase */
 	snprintf(name, sizeof(name), "%s/%s", path, WIFIMGR_SETTING_NAME_PSK);
@@ -193,21 +193,21 @@ int wifimgr_save_config(void *handle, char *path)
 	else
 		ret = settings_save_one(name, "");
 	if (ret)
-		wifimgr_err("failed to save %s!\n", name);
+		wifimgr_err("failed to save %s, ret: %d!\n", name, ret);
 
 	/* Save band */
 	snprintf(name, sizeof(name), "%s/%s", path, WIFIMGR_SETTING_NAME_BAND);
 	settings_str_from_value(SETTINGS_INT8, &conf->band, val, sizeof(val));
 	ret = settings_save_one(name, val);
 	if (ret)
-		wifimgr_err("failed to save %s!\n", name);
+		wifimgr_err("failed to save %s, ret: %d!\n", name, ret);
 
 	/* Save channel */
 	snprintf(name, sizeof(name), "%s/%s", path, WIFIMGR_SETTING_NAME_CHANNEL);
 	settings_str_from_value(SETTINGS_INT8, &conf->channel, val, sizeof(val));
 	ret = settings_save_one(name, val);
 	if (ret)
-		wifimgr_err("failed to save %s!\n", name);
+		wifimgr_err("failed to save %s, ret: %d!\n", name, ret);
 
 	return ret;
 }
