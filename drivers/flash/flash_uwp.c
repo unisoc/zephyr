@@ -182,7 +182,7 @@ __ramfunc static int uwp_flash_init(struct device *dev)
 
 	spiflash_select_xip(FALSE);
 
-	SFCDRV_IntCfg(FALSE);
+	sfcdrv_intcfg(FALSE);
 
 	spiflash_reset_anyway();
 
