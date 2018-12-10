@@ -535,12 +535,14 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 		if (data_len > max_len) {
 			LOG_ERR("Exceed max length %d data_len %d",
 					max_len, data_len);
+			net_buf_unref(frag);
 			return -EINVAL;
 		}
 
 		if (wifi_tx_data((void *)addr, data_len)) {
 			LOG_WRN("Send data failed.");
-			net_pkt_unref(pkt);
+			net_buf_unref(frag);
+			return -EIO;
 		}
 	}
 
