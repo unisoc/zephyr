@@ -52,15 +52,18 @@ static inline int gpio_uwp_config(struct device *port,
 
 	if (flags & GPIO_INT) {
 		if (flags & GPIO_INT_EDGE) {
-			int_type = GPIO_TRIGGER_BOTH_EDGE;
+			if (flags & GPIO_INT_DOUBLE_EDGE)
+				int_type = GPIO_TRIGGER_BOTH_EDGE;
+			else if (flags & GPIO_INT_ACTIVE_HIGH)
+				int_type = GPIO_TRIGGER_HIGH_EDGE;
+			else
+				int_type = GPIO_TRIGGER_LOW_EDGE;
 		} else { /* GPIO_INT_LEVEL */
 			if (flags & GPIO_INT_ACTIVE_HIGH) {
 				int_type = GPIO_TRIGGER_LEVEL_HIGH;
 			} else {
 				int_type = GPIO_TRIGGER_LEVEL_LOW;
-			}
 		}
-
 		uwp_gpio_int_set_type(base, BIT(pin), int_type);
 		uwp_gpio_int_clear(base, BIT(pin));
 		uwp_gpio_int_enable(base, BIT(pin));
