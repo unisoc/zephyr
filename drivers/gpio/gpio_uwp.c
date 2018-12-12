@@ -63,6 +63,7 @@ static inline int gpio_uwp_config(struct device *port,
 				int_type = GPIO_TRIGGER_LEVEL_HIGH;
 			} else {
 				int_type = GPIO_TRIGGER_LEVEL_LOW;
+			}
 		}
 		uwp_gpio_int_set_type(base, BIT(pin), int_type);
 		uwp_gpio_int_clear(base, BIT(pin));
