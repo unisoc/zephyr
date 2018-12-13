@@ -121,22 +121,12 @@ int wifimgr_config_init(void *handle)
 	return ret;
 }
 
-static char *wifimgr_strtok(char *str, const char *delim)
-{
-	char *ptr;
-
-	ptr = strstr(str, delim);
-	if (!ptr)
-		return NULL;
-
-	return (ptr + 1);
-}
-
 int wifimgr_load_config(void *handle, char *path)
 {
 	int ret;
 
-	settings_category = wifimgr_strtok(path, "/");
+	settings_category = strstr(path, "/");
+	settings_category++;
 
 	if (!strcmp(path, WIFIMGR_SETTING_STA_PATH)) {
 		settings = wifimgr_sta_settings_map;
