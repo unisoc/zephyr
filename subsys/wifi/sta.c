@@ -133,15 +133,25 @@ static int wifimgr_sta_get_status(void *handle)
 	       sts->own_mac[3], sts->own_mac[4], sts->own_mac[5]);
 
 	if (sm_sta_connected(sm) == true) {
-		ret = wifi_drv_iface_get_station(mgr->sta_iface, &sts->rssi);
-		wifimgr_info("Signal:\t\t%d\n", sts->rssi);
+		wifimgr_info("----------------\n");
+		wifimgr_info("Host SSID:\t%s\n", sts->u.sta.host_ssid);
+		if (!is_zero_ether_addr(sts->u.sta.host_bssid))
+			wifimgr_info("Host BSSID:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+			       sts->u.sta.host_bssid[0],
+			       sts->u.sta.host_bssid[1],
+			       sts->u.sta.host_bssid[2],
+			       sts->u.sta.host_bssid[3],
+			       sts->u.sta.host_bssid[4],
+			       sts->u.sta.host_bssid[5]);
+		ret = wifi_drv_iface_get_station(mgr->sta_iface, &sts->u.sta.host_rssi);
+		wifimgr_info("Host Signal:\t%d\n", sts->u.sta.host_rssi);
 	}
 	fflush(stdout);
 
 	/* Notify the external caller */
-	if (cbs && cbs->get_status_cb)
-		cbs->get_status_cb(WIFIMGR_IFACE_NAME_STA, sm_sta_query(sm),
-				   sts->own_mac, sts->rssi);
+	if (cbs && cbs->get_sta_status_cb)
+		cbs->get_sta_status_cb(sm_sta_query(sm),
+				   sts->own_mac, sts->u.sta.host_rssi, sts->u.sta.host_ssid, sts->u.sta.host_bssid);
 
 	return ret;
 }
@@ -152,6 +162,7 @@ static int wifimgr_sta_disconnect_event(void *arg)
 	    (struct wifimgr_evt_disconnect *)arg;
 	struct wifi_manager *mgr =
 	    container_of(disc, struct wifi_manager, evt_disc);
+	struct wifimgr_status *sts = &mgr->sta_sts;
 	struct net_if *iface = (struct net_if *)mgr->sta_iface;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	int ret = 0;
@@ -160,6 +171,9 @@ static int wifimgr_sta_disconnect_event(void *arg)
 	fflush(stdout);
 
 	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
+	sts->u.sta.host_rssi = 0;
+	memset(sts->u.sta.host_ssid, 0x0, WIFIMGR_MAX_SSID_LEN + 1);
+	memset(sts->u.sta.host_bssid, 0x0, WIFIMGR_ETH_ALEN);
 
 	if (iface)
 		wifimgr_dhcp_stop(iface);
@@ -193,6 +207,8 @@ static int wifimgr_sta_connect_event(void *arg)
 	struct wifimgr_evt_connect *conn = (struct wifimgr_evt_connect *)arg;
 	struct wifi_manager *mgr =
 	    container_of(conn, struct wifi_manager, evt_conn);
+	struct wifimgr_status *sts = &mgr->sta_sts;
+	struct wifimgr_config *conf = &mgr->sta_conf;
 	struct net_if *iface = (struct net_if *)mgr->sta_iface;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	int ret = conn->status;
@@ -208,6 +224,10 @@ static int wifimgr_sta_connect_event(void *arg)
 		command_processor_register_sender(&mgr->prcs,
 						  WIFIMGR_CMD_DISCONNECT,
 						  wifimgr_sta_disconnect, mgr);
+		if (conf->ssid && strlen(conf->ssid))
+			strcpy(sts->u.sta.host_ssid, conf->ssid);
+		if (conf->bssid && !is_zero_ether_addr(conf->bssid))
+			memcpy(sts->u.sta.host_bssid, conf->bssid, WIFIMGR_ETH_ALEN);
 
 		if (iface)
 			wifimgr_dhcp_start(iface);
@@ -258,6 +278,7 @@ static int wifimgr_sta_scan_result(void *arg)
 	    (struct wifimgr_evt_scan_result *)arg;
 	struct wifi_manager *mgr =
 	    container_of(scan_res, struct wifi_manager, evt_scan_res);
+	struct wifimgr_config *conf = &mgr->sta_conf;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 
 
@@ -269,11 +290,15 @@ static int wifimgr_sta_scan_result(void *arg)
 	fflush(stdout);
 
 	/* Found specified AP */
-	if (!strcmp(scan_res->ssid, mgr->sta_conf.ssid))
-		if (!strncmp
-		    (scan_res->bssid, mgr->sta_conf.bssid, WIFIMGR_ETH_ALEN)
-		    || is_zero_ether_addr(mgr->sta_conf.bssid))
+	if (!strcmp(scan_res->ssid, conf->ssid)) {
+		if (!strncmp (scan_res->bssid, conf->bssid, WIFIMGR_ETH_ALEN)) {
 			mgr->evt_scan_done.found = true;
+		/* Choose the first match when BSSID is not specified */
+		} else if (is_zero_ether_addr(conf->bssid)) {
+			mgr->evt_scan_done.found = true;
+			memcpy(conf->bssid, scan_res->bssid, WIFIMGR_ETH_ALEN);
+		}
+	}
 
 	/* Notify the external caller */
 	if (cbs && cbs->notify_scan_res)
