@@ -114,20 +114,59 @@ static int wifimgr_ap_get_status(void *handle)
 	       sts->own_mac[0], sts->own_mac[1], sts->own_mac[2],
 	       sts->own_mac[3], sts->own_mac[4], sts->own_mac[5]);
 
+	if (sts->u.ap.client_nr) {
+		int i;
+
+		wifimgr_info("----------------\n");
+		wifimgr_info("Client Number:\t%d\n", sts->u.ap.client_nr);
+		wifimgr_info("Client List:\n");
+		for (i = 0; i < sts->u.ap.client_nr; i++)
+			wifimgr_info("\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+			       sts->u.ap.client_mac[i][0],
+			       sts->u.ap.client_mac[i][1],
+			       sts->u.ap.client_mac[i][2],
+			       sts->u.ap.client_mac[i][3],
+			       sts->u.ap.client_mac[i][4],
+			       sts->u.ap.client_mac[i][5]);
+	}
+
 	/* Notify the external caller */
-	if (cbs && cbs->get_status_cb)
-		cbs->get_status_cb(WIFIMGR_IFACE_NAME_AP, sm_ap_query(sm),
-				   sts->own_mac, 0);
+	if (cbs && cbs->get_ap_status_cb)
+		cbs->get_ap_status_cb(sm_ap_query(sm),
+				   sts->own_mac, sts->u.ap.client_nr,
+				   sts->u.ap.client_mac);
 	fflush(stdout);
 
 	return 0;
+}
+
+static int wifimgr_ap_del_station(void *handle)
+{
+	struct wifimgr_del_station *del_sta =
+	    (struct wifimgr_del_station *)handle;;
+	struct wifi_manager *mgr =
+	    container_of(del_sta, struct wifi_manager, del_sta);
+	int ret;
+
+	wifimgr_info(
+	       "Deleting station (%02x:%02x:%02x:%02x:%02x:%02x)\n",
+	       del_sta->mac[0], del_sta->mac[1], del_sta->mac[2],
+	       del_sta->mac[3], del_sta->mac[4], del_sta->mac[5]);
+
+	ret = wifi_drv_iface_del_station(mgr->ap_iface, del_sta->mac);
+
+	return ret;
 }
 
 static int wifimgr_ap_new_station_event_cb(void *arg)
 {
 	struct wifimgr_evt_new_station *new_sta =
 	    (struct wifimgr_evt_new_station *)arg;
+	struct wifi_manager *mgr =
+	    container_of(new_sta, struct wifi_manager, evt_new_sta);
+	struct wifimgr_status *sts = &mgr->ap_sts;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
+	bool need_notify = false;
 
 	wifimgr_info(
 	       "station (%02x:%02x:%02x:%02x:%02x:%02x) %s!\n",
@@ -136,8 +175,29 @@ static int wifimgr_ap_new_station_event_cb(void *arg)
 	       new_sta->is_connect ? "connected" : "disconnected");
 	fflush(stdout);
 
+	if (new_sta->is_connect) {
+		if (!sts->u.ap.client_nr)
+			command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_DEL_STATION,
+							  wifimgr_ap_del_station, &mgr->del_sta);
+
+		if (sts->u.ap.client_nr < WIFIMGR_MAX_STA_NR) {
+			sts->u.ap.client_nr++;
+			memcpy(sts->u.ap.client_mac + (sts->u.ap.client_nr - 1), new_sta->mac, WIFIMGR_ETH_ALEN);
+			need_notify = true;
+		}
+	} else {
+		if (sts->u.ap.client_nr) {
+			memset(sts->u.ap.client_mac + (sts->u.ap.client_nr - 1), 0x0, WIFIMGR_ETH_ALEN);
+			sts->u.ap.client_nr--;
+			need_notify = true;
+		}
+
+		if (!sts->u.ap.client_nr)
+			command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_DEL_STATION);
+	}
+
 	/* Notify the external caller */
-	if (cbs && cbs->notify_new_station)
+	if (cbs && cbs->notify_new_station && (need_notify == true))
 		cbs->notify_new_station(new_sta->is_connect, new_sta->mac);
 
 	return 0;
@@ -147,12 +207,16 @@ static int wifimgr_ap_start(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_config *conf = &mgr->ap_conf;
+	struct wifimgr_status *sts = &mgr->ap_sts;
 	int ret;
 
 	if (!strlen(conf->ssid)) {
 		wifimgr_err("no AP config!\n");
 		return -EINVAL;
 	}
+
+	memset(sts->u.ap.client_mac, 0x0, WIFIMGR_MAX_STA_NR * WIFIMGR_ETH_ALEN);
+	sts->u.ap.client_nr = 0;
 
 	ret = event_listener_add_receiver(&mgr->lsnr,
 					  WIFIMGR_EVT_NEW_STATION, false,

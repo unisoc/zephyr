@@ -30,6 +30,7 @@
 
 #define WIFIMGR_MAX_SSID_LEN	32
 #define WIFIMGR_MAX_PSPHR_LEN	63
+#define WIFIMGR_MAX_STA_NR	16
 #define WIFIMGR_ETH_ALEN	6
 
 #define WIFIMGR_CMD_TIMEOUT	5
@@ -48,7 +49,21 @@ struct wifimgr_config {
 
 struct wifimgr_status {
 	char own_mac[WIFIMGR_ETH_ALEN];
-	char rssi;
+	union {
+		struct {
+			char host_rssi;
+			char host_ssid[WIFIMGR_MAX_SSID_LEN + 1];
+			char host_bssid[WIFIMGR_ETH_ALEN];
+		} sta;
+                struct {
+			unsigned char client_nr;
+			char client_mac[WIFIMGR_MAX_STA_NR][WIFIMGR_ETH_ALEN];
+		} ap;
+	} u;
+};
+
+struct wifimgr_del_station {
+	char mac[WIFIMGR_ETH_ALEN];
 };
 
 struct wifimgr_evt_connect {
@@ -69,7 +84,7 @@ struct wifimgr_evt_scan_result {
 	char bssid[WIFIMGR_ETH_ALEN];
 	unsigned char band;
 	unsigned char channel;
-	int8_t rssi;
+	char rssi;
 };
 
 struct wifimgr_evt_new_station {
@@ -78,8 +93,6 @@ struct wifimgr_evt_new_station {
 };
 
 struct wifi_manager {
-	bool fw_loaded;
-
 	struct wifimgr_config sta_conf;
 	struct wifimgr_status sta_sts;
 	struct wifimgr_state_machine sta_sm;
@@ -87,6 +100,7 @@ struct wifi_manager {
 	struct wifimgr_config ap_conf;
 	struct wifimgr_status ap_sts;
 	struct wifimgr_state_machine ap_sm;
+	struct wifimgr_del_station del_sta;
 
 	struct cmd_processor prcs;
 	struct evt_listener lsnr;

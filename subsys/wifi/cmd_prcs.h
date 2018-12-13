@@ -18,7 +18,7 @@
 
 #define WIFIMGR_CMD_MQUEUE	"wifimgr_cmd_mq"
 #define WIFIMGR_CMD_MQUEUE_NR	(WIFIMGR_CMD_MAX - 1)
-#define WIFIMGR_CMD_SENDER_NR	WIFIMGR_CMD_MQUEUE_NR
+#define WIFIMGR_CMD_SENDER_NR	WIFIMGR_CMD_MAX
 
 enum wifimgr_cmd {
 	/*Common command */

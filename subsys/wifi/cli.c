@@ -121,11 +121,31 @@ static int wifimgr_cmd_stop_ap(const struct shell *shell, size_t argc, char *arg
 
 static int wifimgr_cmd_del_station(const struct shell *shell, size_t argc, char *argv[])
 {
-	char *mac = NULL;
+	char mac_addr[WIFIMGR_ETH_ALEN];
+	char *mac;
 
-	if (argc != 2 || !argv[1])
+	if (argc == 1) {
+		mac = NULL;
+	} else if (argc == 2 && argv[1] && (strlen(argv[1]) == 17)) {
+		char *mac_string = argv[1];
+		int i;
+
+		mac = strtok(mac_string, ":");
+
+		for (i = 0; i < WIFIMGR_ETH_ALEN; i++) {
+			char *tail;
+
+			mac_addr[i] = strtol(mac, &tail, 16);
+			mac = strtok (NULL, ":");
+			wifimgr_info("i %d", i);
+		}
+
+		if (i != WIFIMGR_ETH_ALEN)
+			return -EINVAL;
+		mac = mac_addr;
+	} else {
 		return -EINVAL;
-	mac = argv[1];
+	}
 
 	return wifimgr_ctrl_iface_del_station(mac);
 }
@@ -165,28 +185,9 @@ SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
 	 NULL,
 	 wifimgr_cmd_stop_ap),
 	SHELL_CMD(del_station, NULL,
-	 "<MAC address>",
+	 "<MAC address (empty for all stations)>",
 	 wifimgr_cmd_del_station),
 	SHELL_SUBCMD_SET_END
 };
 
-static int cmd_wifimgr(const struct shell *shell, size_t argc, char **argv)
-{
-	int err;
-
-	if (argc == 1) {
-		shell_help_print(shell, NULL, 0);
-		/* shell_cmd_precheck returns 1 when help is printed */
-		return 1;
-	}
-
-	err = shell_cmd_precheck(shell, (argc == 2), NULL, 0);
-	if (err) {
-		return err;
-	}
-
-	wifimgr_err("%s: unknown parameter: %s\n", argv[0] , argv[1]);
-	return -EINVAL;
-}
-
-SHELL_CMD_REGISTER(wifimgr, &wifimgr_commands, "WiFi Manager commands", cmd_wifimgr);
+SHELL_CMD_REGISTER(wifimgr, &wifimgr_commands, "WiFi Manager commands", NULL);
