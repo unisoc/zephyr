@@ -35,10 +35,13 @@ struct wifimgr_ctrl_cbs {
 	void (*get_conf_cb) (char *iface_name, char *ssid, char *bssid,
 			     char *passphrase, unsigned char band,
 			     unsigned char channel);
-	void (*get_status_cb) (char *iface_name, unsigned char status,
-			       char *own_mac, signed char signal);
+	void (*get_sta_status_cb) (unsigned char status, char *own_mac,
+				   char host_rssi, char *host_ssid,
+				   char *host_bssid);
+	void (*get_ap_status_cb) (unsigned char status, char *own_mac,
+				  char client_nr, char client_mac[][6]);
 	void (*notify_scan_res) (char *ssid, char *bssid, unsigned char band,
-				 unsigned char channel, signed char signal);
+				 unsigned char channel, char signal);
 	void (*notify_scan_done) (unsigned char result);
 	void (*notify_connect) (unsigned char result);
 	void (*notify_disconnect) (unsigned char reason);
