@@ -27,10 +27,8 @@ int command_processor_register_sender(struct cmd_processor *handle,
 	if (!prcs || !fn)
 		return -EINVAL;
 
-	/*sem_wait(&prcs->exclsem); */
 	sndr->fn = fn;
 	sndr->arg = arg;
-	/*sem_post(&prcs->exclsem); */
 
 	return 0;
 }
@@ -44,10 +42,8 @@ int command_processor_unregister_sender(struct cmd_processor *handle,
 	if (!prcs)
 		return -EINVAL;
 
-	/*sem_wait(&prcs->exclsem); */
 	sndr->fn = NULL;
 	sndr->arg = NULL;
-	/*sem_post(&prcs->exclsem); */
 
 	return 0;
 }
@@ -62,12 +58,11 @@ static void command_processor_post_process(void *handle,
 	ret =
 	    mq_send(prcs->mq, (const char *)msg, sizeof(struct cmd_message), 0);
 	if (ret < 0) {
-		wifimgr_err(
-		       "failed to send [%s] reply: %d, errno %d!\n",
-		       wifimgr_cmd2str(msg->cmd_id), ret, errno);
+		wifimgr_err("failed to send [%s] reply: %d, errno %d!\n",
+			    wifimgr_cmd2str(msg->cmd_id), ret, errno);
 	} else {
 		wifimgr_dbg("send [%s] reply: %d\n",
-		       wifimgr_cmd2str(msg->cmd_id), msg->reply);
+			    wifimgr_cmd2str(msg->cmd_id), msg->reply);
 	}
 }
 
@@ -90,19 +85,18 @@ static void *command_processor(void *handle)
 		/* Wait for commands */
 		ret = mq_receive(prcs->mq, (char *)&msg, sizeof(msg), &prio);
 		if (ret != sizeof(struct cmd_message)) {
-			wifimgr_err(
-			       "failed to get command: %d, errno %d!\n", ret,
-			       errno);
+			wifimgr_err("failed to get command: %d, errno %d!\n",
+				    ret, errno);
 			continue;
 		} else if (msg.reply) {
 			/* Drop command reply when receiving it */
 			wifimgr_err("recv [%s] reply: %d? drop it\n",
-			       wifimgr_cmd2str(msg.cmd_id), msg.reply);
+				    wifimgr_cmd2str(msg.cmd_id), msg.reply);
 			continue;
 		}
 
 		wifimgr_dbg("recv [%s], buf: 0x%08x\n",
-		       wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
+			    wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
 
 		/* Ask state machine whether the command could be executed */
 		ret = wifimgr_sm_query_cmd(mgr, msg.cmd_id);
@@ -138,15 +132,15 @@ static void *command_processor(void *handle)
 				wifimgr_sm_start_timer(mgr, msg.cmd_id);
 			} else {
 				/*Remain current state when failed sending */
-				wifimgr_err(
-				       "failed to exec [%s]! remains %s\n",
-				       wifimgr_cmd2str(msg.cmd_id),
-				       wifimgr_sts2str_cmd(mgr, msg.cmd_id));
+				wifimgr_err("failed to exec [%s]! remains %s\n",
+					    wifimgr_cmd2str(msg.cmd_id),
+					    wifimgr_sts2str_cmd(mgr,
+								msg.cmd_id));
 			}
 		} else {
 			wifimgr_err("[%s] not allowed under %s!\n",
-			       wifimgr_cmd2str(msg.cmd_id),
-			       wifimgr_sts2str_cmd(mgr, msg.cmd_id));
+				    wifimgr_cmd2str(msg.cmd_id),
+				    wifimgr_sts2str_cmd(mgr, msg.cmd_id));
 			ret = -EPERM;
 		}
 
@@ -177,7 +171,7 @@ int wifimgr_command_processor_init(struct cmd_processor *handle)
 	prcs->mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
 	if (!prcs->mq) {
 		wifimgr_err("failed to open command queue %s!\n",
-		       WIFIMGR_CMD_MQUEUE);
+			    WIFIMGR_CMD_MQUEUE);
 		return -errno;
 	}
 
@@ -200,8 +194,7 @@ int wifimgr_command_processor_init(struct cmd_processor *handle)
 		mq_close(prcs->mq);
 		return ret;
 	}
-	wifimgr_dbg("started %s, pid=%p\n", WIFIMGR_CMD_PROCESSOR,
-	       prcs->pid);
+	wifimgr_dbg("started %s, pid=%p\n", WIFIMGR_CMD_PROCESSOR, prcs->pid);
 
 	return 0;
 }
