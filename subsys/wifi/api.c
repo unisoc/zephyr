@@ -33,7 +33,7 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 	mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
 	if (!mq) {
 		wifimgr_err("failed to open command queue %s!\n",
-		       WIFIMGR_CMD_MQUEUE);
+			    WIFIMGR_CMD_MQUEUE);
 		return -errno;
 	}
 
@@ -49,11 +49,11 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
 	if (ret < 0) {
 		wifimgr_err("failed to send [%s]: %d, errno %d!\n",
-		       wifimgr_cmd2str(msg.cmd_id), ret, errno);
+			    wifimgr_cmd2str(msg.cmd_id), ret, errno);
 		ret = -errno;
 	} else {
 		wifimgr_dbg("send [%s], buf: 0x%08x\n",
-		       wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
+			    wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
 
 		ret = clock_gettime(CLOCK_MONOTONIC, &ts);
 		if (ret)
@@ -62,20 +62,20 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 		ret =
 		    mq_timedreceive(mq, (char *)&msg, sizeof(msg), &prio, &ts);
 		if (ret != sizeof(struct cmd_message)) {
-			wifimgr_err(
-			       "failed to get command reply: %d, errno %d!\n",
-			       ret, errno);
+			wifimgr_err
+			    ("failed to get command reply: %d, errno %d!\n",
+			     ret, errno);
 			if (errno == ETIME)
 				wifimgr_err("[%s] timeout!\n",
-				       wifimgr_cmd2str(msg.cmd_id));
+					    wifimgr_cmd2str(msg.cmd_id));
 			ret = -errno;
 		} else {
 			wifimgr_dbg("recv [%s] reply: %d\n",
-			       wifimgr_cmd2str(msg.cmd_id), msg.reply);
+				    wifimgr_cmd2str(msg.cmd_id), msg.reply);
 			ret = msg.reply;
 			if (ret)
 				wifimgr_err("failed to exec [%s]: %d!\n",
-				       wifimgr_cmd2str(msg.cmd_id), ret);
+					    wifimgr_cmd2str(msg.cmd_id), ret);
 		}
 	}
 
