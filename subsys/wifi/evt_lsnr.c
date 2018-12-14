@@ -30,7 +30,7 @@ int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len)
 	mq = mq_open(WIFIMGR_EVT_MQUEUE, O_WRONLY | O_CREAT, 0666, &attr);
 	if (!mq) {
 		wifimgr_err("failed to open event queue %s!\n",
-		       WIFIMGR_EVT_MQUEUE);
+			    WIFIMGR_EVT_MQUEUE);
 		return -errno;
 	}
 
@@ -46,10 +46,10 @@ int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len)
 	if (ret < 0) {
 		free(msg.buf);
 		wifimgr_err("failed to send [%s]: %d, errno %d!\n",
-		       wifimgr_evt2str(msg.evt_id), ret, errno);
+			    wifimgr_evt2str(msg.evt_id), ret, errno);
 	} else {
 		wifimgr_dbg("send [%s], buf: 0x%08x\n",
-		       wifimgr_evt2str(msg.evt_id), *(int *)msg.buf);
+			    wifimgr_evt2str(msg.evt_id), *(int *)msg.buf);
 	}
 
 	mq_close(mq);
@@ -86,7 +86,7 @@ int event_listener_add_receiver(struct evt_listener *handle,
 		/* Check if callback matches */
 		if (rcvr->expected_evt == evt_id) {
 			wifimgr_info("[%s] receiver already exist!\n",
-			       wifimgr_evt2str(evt_id));
+				     wifimgr_evt2str(evt_id));
 			sem_post(&lsnr->exclsem);
 			return 0;
 		}
@@ -178,14 +178,13 @@ static void *event_listener(void *handle)
 		/* Wait for events */
 		ret = mq_receive(lsnr->mq, (char *)&msg, sizeof(msg), &prio);
 		if (ret != sizeof(struct evt_message)) {
-			wifimgr_err(
-			       "failed to receive event: %d, errno %d!\n", ret,
-			       errno);
+			wifimgr_err("failed to receive event: %d, errno %d!\n",
+				    ret, errno);
 			continue;
 		}
 
 		wifimgr_dbg("recv [%s], buf: 0x%08x\n",
-		       wifimgr_evt2str(msg.evt_id), *(int *)msg.buf);
+			    wifimgr_evt2str(msg.evt_id), *(int *)msg.buf);
 
 		sem_wait(&lsnr->exclsem);
 
@@ -200,8 +199,7 @@ static void *event_listener(void *handle)
 									rcvr);
 
 				match = true;
-				wifimgr_dbg("receiver 0x%p matches\n",
-				       rcvr);
+				wifimgr_dbg("receiver 0x%p matches\n", rcvr);
 				break;
 			}
 			rcvr = (struct evt_receiver *)
@@ -226,8 +224,8 @@ static void *event_listener(void *handle)
 				wifimgr_sm_step_back(mgr, msg.evt_id);
 		} else {
 			wifimgr_err("unexpected [%s] under %s!\n",
-			       wifimgr_evt2str(msg.evt_id),
-			       wifimgr_sts2str_evt(mgr, msg.evt_id));
+				    wifimgr_evt2str(msg.evt_id),
+				    wifimgr_sts2str_evt(mgr, msg.evt_id));
 		}
 
 		free(msg.buf);
@@ -257,7 +255,7 @@ int wifimgr_event_listener_init(struct evt_listener *handle)
 	lsnr->mq = mq_open(WIFIMGR_EVT_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
 	if (!lsnr->mq) {
 		wifimgr_err("failed to open event queue %s!\n",
-		       WIFIMGR_EVT_MQUEUE);
+			    WIFIMGR_EVT_MQUEUE);
 		return -errno;
 	}
 
@@ -288,7 +286,7 @@ int wifimgr_event_listener_init(struct evt_listener *handle)
 		return ret;
 	}
 	wifimgr_dbg("started %s, pid=%p\n", WIFIMGR_EVT_LISTENER,
-	       lsnr->evt_pid);
+		    lsnr->evt_pid);
 
 	return 0;
 }
