@@ -55,7 +55,7 @@ struct wifimgr_status {
 			char host_ssid[WIFIMGR_MAX_SSID_LEN + 1];
 			char host_bssid[WIFIMGR_ETH_ALEN];
 		} sta;
-                struct {
+		struct {
 			unsigned char client_nr;
 			char client_mac[WIFIMGR_MAX_STA_NR][WIFIMGR_ETH_ALEN];
 		} ap;

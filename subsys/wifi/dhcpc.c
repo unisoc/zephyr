@@ -41,13 +41,13 @@ static void wifimgr_dhcp_handler(struct net_mgmt_event_callback *cb,
 		wifi_drv_iface_notify_ip(iface, ipaddr, sizeof(struct in_addr));
 
 		wifimgr_info("IP address: %s\n",
-		       net_addr_ntop(AF_INET, ipaddr, buf, sizeof(buf)));
+			     net_addr_ntop(AF_INET, ipaddr, buf, sizeof(buf)));
 		wifimgr_info("Lease time: %us\n",
-		       iface->config.dhcpv4.lease_time);
+			     iface->config.dhcpv4.lease_time);
 		wifimgr_info("Subnet: %s\n",
-		       net_addr_ntop(AF_INET, netmask, buf, sizeof(buf)));
+			     net_addr_ntop(AF_INET, netmask, buf, sizeof(buf)));
 		wifimgr_info("Router: %s\n",
-		       net_addr_ntop(AF_INET, gateway, buf, sizeof(buf)));
+			     net_addr_ntop(AF_INET, gateway, buf, sizeof(buf)));
 
 		wifimgr_sta_led_on();
 	}

@@ -25,8 +25,7 @@ int wifi_drv_iface_get_mac(void *iface, char *mac)
 int wifi_drv_iface_open_station(void *iface)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
 
 	if (!drv_api->open)
 		return -EIO;
@@ -37,8 +36,7 @@ int wifi_drv_iface_open_station(void *iface)
 int wifi_drv_iface_close_station(void *iface)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
 
 	if (!drv_api->close)
 		return -EIO;
@@ -55,7 +53,7 @@ static void wifi_drv_iface_scan_result_cb(void *iface, int status,
 	if (!entry) {
 		scan_done.result = status;
 		wifimgr_notify_event(WIFIMGR_EVT_SCAN_DONE, &scan_done,
-					    sizeof(scan_done));
+				     sizeof(scan_done));
 	} else {
 		strcpy(scan_res.ssid, entry->ssid);
 		strncpy(scan_res.bssid, entry->bssid, WIFIMGR_ETH_ALEN);
@@ -63,15 +61,14 @@ static void wifi_drv_iface_scan_result_cb(void *iface, int status,
 		scan_res.rssi = entry->rssi;
 
 		wifimgr_notify_event(WIFIMGR_EVT_SCAN_RESULT, &scan_res,
-					    sizeof(scan_res));
+				     sizeof(scan_res));
 	}
 }
 
 int wifi_drv_iface_scan(void *iface, unsigned char band, unsigned char channel)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
 	struct wifi_drv_scan_params params;
 
 	if (!drv_api->scan)
@@ -89,15 +86,13 @@ void wifi_drv_iface_disconnect_cb(void *iface, int status)
 
 	disc.reason_code = status;
 
-	wifimgr_notify_event(WIFIMGR_EVT_DISCONNECT, &disc,
-				    sizeof(disc));
+	wifimgr_notify_event(WIFIMGR_EVT_DISCONNECT, &disc, sizeof(disc));
 }
 
 int wifi_drv_iface_disconnect(void *iface)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
 
 	if (!drv_api->disconnect)
 		return -EIO;
@@ -117,8 +112,7 @@ void wifi_drv_iface_connect_cb(void *iface, int status)
 int wifi_drv_iface_connect(void *iface, char *ssid, char *passwd)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
 	struct wifi_drv_connect_params params;
 
 	if (!drv_api->connect)
@@ -136,8 +130,7 @@ int wifi_drv_iface_connect(void *iface, char *ssid, char *passwd)
 int wifi_drv_iface_get_station(void *iface, char *signal)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
 
 	if (!signal)
 		return -EINVAL;
@@ -151,8 +144,7 @@ int wifi_drv_iface_get_station(void *iface, char *signal)
 int wifi_drv_iface_notify_ip(void *iface, char *ipaddr, char len)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
 
 	if (!ipaddr)
 		return -EINVAL;
@@ -166,8 +158,7 @@ int wifi_drv_iface_notify_ip(void *iface, char *ipaddr, char len)
 int wifi_drv_iface_open_softap(void *iface)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
 
 	if (!drv_api->open)
 		return -EIO;
@@ -178,8 +169,7 @@ int wifi_drv_iface_open_softap(void *iface)
 int wifi_drv_iface_close_softap(void *iface)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
 
 	if (!drv_api->close)
 		return -EIO;
@@ -196,15 +186,13 @@ void wifi_drv_iface_new_station(void *iface, int status, char *mac)
 		memcpy(new_sta.mac, mac, WIFIMGR_ETH_ALEN);
 
 	wifimgr_notify_event(WIFIMGR_EVT_NEW_STATION, &new_sta,
-				    sizeof(new_sta));
+			     sizeof(new_sta));
 }
 
-int wifi_drv_iface_start_ap(void *iface, char *ssid, char *passwd,
-				char channel)
+int wifi_drv_iface_start_ap(void *iface, char *ssid, char *passwd, char channel)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
 	struct wifi_drv_start_ap_params params;
 
 	if (!drv_api->start_ap)
@@ -222,8 +210,7 @@ int wifi_drv_iface_start_ap(void *iface, char *ssid, char *passwd,
 int wifi_drv_iface_stop_ap(void *iface)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
 
 	if (!drv_api->stop_ap)
 		return -EIO;
@@ -234,8 +221,7 @@ int wifi_drv_iface_stop_ap(void *iface)
 int wifi_drv_iface_del_station(void *iface, char *mac)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
-	struct wifi_drv_api *drv_api =
-	    (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
 
 	if (!mac)
 		return -EINVAL;
