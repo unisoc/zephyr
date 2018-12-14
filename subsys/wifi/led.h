@@ -9,7 +9,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #ifndef _WIFIMGR_LED_H_
 #define _WIFIMGR_LED_H_
 
