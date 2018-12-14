@@ -18,7 +18,8 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
 
-static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc, char *argv[])
+static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
+				  char *argv[])
 {
 	char *iface_name = NULL;
 	char *ssid = NULL;
@@ -50,7 +51,8 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc, char *
 					   0, channel);
 }
 
-static int wifimgr_cmd_get_config(const struct shell *shell, size_t argc, char *argv[])
+static int wifimgr_cmd_get_config(const struct shell *shell, size_t argc,
+				  char *argv[])
 {
 	char *iface_name;
 
@@ -61,7 +63,8 @@ static int wifimgr_cmd_get_config(const struct shell *shell, size_t argc, char *
 	return wifimgr_ctrl_iface_get_conf(iface_name);
 }
 
-static int wifimgr_cmd_status(const struct shell *shell, size_t argc, char *argv[])
+static int wifimgr_cmd_status(const struct shell *shell, size_t argc,
+			      char *argv[])
 {
 	char *iface_name;
 
@@ -72,7 +75,8 @@ static int wifimgr_cmd_status(const struct shell *shell, size_t argc, char *argv
 	return wifimgr_ctrl_iface_get_status(iface_name);
 }
 
-static int wifimgr_cmd_open(const struct shell *shell, size_t argc, char *argv[])
+static int wifimgr_cmd_open(const struct shell *shell, size_t argc,
+			    char *argv[])
 {
 	char *iface_name;
 
@@ -83,7 +87,8 @@ static int wifimgr_cmd_open(const struct shell *shell, size_t argc, char *argv[]
 	return wifimgr_ctrl_iface_open(iface_name);
 }
 
-static int wifimgr_cmd_close(const struct shell *shell, size_t argc, char *argv[])
+static int wifimgr_cmd_close(const struct shell *shell, size_t argc,
+			     char *argv[])
 {
 	char *iface_name;
 
@@ -94,32 +99,38 @@ static int wifimgr_cmd_close(const struct shell *shell, size_t argc, char *argv[
 	return wifimgr_ctrl_iface_close(iface_name);
 }
 
-static int wifimgr_cmd_scan(const struct shell *shell, size_t argc, char *argv[])
+static int wifimgr_cmd_scan(const struct shell *shell, size_t argc,
+			    char *argv[])
 {
 	return wifimgr_ctrl_iface_scan();
 }
 
-static int wifimgr_cmd_connect(const struct shell *shell, size_t argc, char *argv[])
+static int wifimgr_cmd_connect(const struct shell *shell, size_t argc,
+			       char *argv[])
 {
 	return wifimgr_ctrl_iface_connect();
 }
 
-static int wifimgr_cmd_disconnect(const struct shell *shell, size_t argc, char *argv[])
+static int wifimgr_cmd_disconnect(const struct shell *shell, size_t argc,
+				  char *argv[])
 {
 	return wifimgr_ctrl_iface_disconnect();
 }
 
-static int wifimgr_cmd_start_ap(const struct shell *shell, size_t argc, char *argv[])
+static int wifimgr_cmd_start_ap(const struct shell *shell, size_t argc,
+				char *argv[])
 {
 	return wifimgr_ctrl_iface_start_ap();
 }
 
-static int wifimgr_cmd_stop_ap(const struct shell *shell, size_t argc, char *argv[])
+static int wifimgr_cmd_stop_ap(const struct shell *shell, size_t argc,
+			       char *argv[])
 {
 	return wifimgr_ctrl_iface_stop_ap();
 }
 
-static int wifimgr_cmd_del_station(const struct shell *shell, size_t argc, char *argv[])
+static int wifimgr_cmd_del_station(const struct shell *shell, size_t argc,
+				   char *argv[])
 {
 	char mac_addr[WIFIMGR_ETH_ALEN];
 	char *mac;
@@ -136,7 +147,7 @@ static int wifimgr_cmd_del_station(const struct shell *shell, size_t argc, char 
 			char *tail;
 
 			mac_addr[i] = strtol(mac, &tail, 16);
-			mac = strtok (NULL, ":");
+			mac = strtok(NULL, ":");
 			wifimgr_info("i %d", i);
 		}
 

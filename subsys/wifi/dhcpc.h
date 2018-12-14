@@ -9,7 +9,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #if defined(CONFIG_WIFIMGR_DHCPC)
 void wifimgr_dhcp_start(void *handle);
 void wifimgr_dhcp_stop(void *handle);

@@ -23,7 +23,7 @@ static int sm_timer_start(timer_t timerid, unsigned int sec)
 	int ret;
 
 	/* Start, restart, or stop the timer */
-	todelay.it_interval.tv_sec = 0; /* Nonrepeating */
+	todelay.it_interval.tv_sec = 0;	/* Nonrepeating */
 	todelay.it_interval.tv_nsec = 0;
 	todelay.it_value.tv_sec = sec;
 	todelay.it_value.tv_nsec = 0;
@@ -293,13 +293,13 @@ static void sm_sta_step(struct wifimgr_state_machine *sta_sm,
 	sta_sm->old_state = sta_sm->state;
 	sta_sm->state = next_state;
 	wifimgr_info("(%s) -> (%s)\n", sta_sts2str(sta_sm->old_state),
-	       sta_sts2str(sta_sm->state));
+		     sta_sts2str(sta_sm->state));
 }
 
 void sm_sta_step_back(struct wifimgr_state_machine *sta_sm)
 {
 	wifimgr_info("(%s) -> (%s)\n", sta_sts2str(sta_sm->state),
-	       sta_sts2str(sta_sm->old_state));
+		     sta_sts2str(sta_sm->old_state));
 
 	sem_wait(&sta_sm->exclsem);
 	if (sta_sm->state != sta_sm->old_state)
@@ -419,7 +419,8 @@ const char *ap_sts2str(int state)
 
 bool is_ap_cmd(unsigned int cmd_id)
 {
-	return ((cmd_id >= WIFIMGR_CMD_GET_AP_STATUS) && (cmd_id < WIFIMGR_CMD_MAX));
+	return ((cmd_id >= WIFIMGR_CMD_GET_AP_STATUS)
+		&& (cmd_id < WIFIMGR_CMD_MAX));
 }
 
 int sm_ap_query(struct wifimgr_state_machine *ap_sm)
@@ -439,7 +440,7 @@ static void sm_ap_step(struct wifimgr_state_machine *ap_sm,
 	ap_sm->old_state = ap_sm->state;
 	ap_sm->state = next_state;
 	wifimgr_info("(%s) -> (%s)\n", ap_sts2str(ap_sm->old_state),
-	       ap_sts2str(ap_sm->state));
+		     ap_sts2str(ap_sm->state));
 }
 
 void sm_ap_step_cmd(struct wifimgr_state_machine *ap_sm, unsigned int cmd_id)

@@ -30,20 +30,27 @@ static char *settings_category;
 
 static int wifimgr_settings_set(int argc, char **argv, char *val)
 {
-	int i, cnt;
+	int cnt = ARRAY_SIZE(wifimgr_setting_keynames);
+	int i;
 
 	if (argc >= 1) {
-		for (i = 0, cnt = ARRAY_SIZE(wifimgr_setting_keynames); i < cnt; i++) {
-			wifimgr_dbg("argv[%d]:%s, argv[%d]:%s, settings[%d].name:%s\n", argc - 2, argv[argc - 2], argc - 1, argv[argc - 1], i, settings[i].name);
+		for (i = 0; i < cnt; i++) {
+			wifimgr_dbg
+			    ("argv[%d]:%s, argv[%d]:%s, settings[%d].name:%s\n",
+			     argc - 2, argv[argc - 2], argc - 1, argv[argc - 1],
+			     i, settings[i].name);
 
-			if(!strcmp(argv[argc - 2], settings_category) && !strcmp(argv[argc - 1], settings[i].name)) {
+			if (!strcmp(argv[argc - 2], settings_category)
+			    && !strcmp(argv[argc - 1], settings[i].name)) {
 				if (settings[i].type == SETTINGS_STRING)
 					strcpy(settings[i].valptr, val);
 				else if (settings[i].type == SETTINGS_INT8)
-					SETTINGS_VALUE_SET(val, SETTINGS_INT8, *settings[i].valptr);
-			wifimgr_dbg("val:%s, settings[%d].val:%p\n", val, i, settings[i].valptr);
-					break;
-				}
+					SETTINGS_VALUE_SET(val, SETTINGS_INT8,
+							   *settings[i].valptr);
+
+				wifimgr_dbg("val: %s\n", val);
+				break;
+			}
 		}
 	}
 
@@ -57,7 +64,8 @@ static struct settings_handler wifimgr_settings_handler[] = {
 	}
 };
 
-static void wifimgr_settings_map_init(struct wifimgr_settings_map *settings_map, struct wifimgr_config *conf)
+static void wifimgr_settings_map_init(struct wifimgr_settings_map *settings_map,
+				      struct wifimgr_config *conf)
 {
 	/* Initialize SSID setting map */
 	strcpy(settings_map[0].name, WIFIMGR_SETTING_NAME_SSID);
@@ -84,7 +92,8 @@ static void wifimgr_settings_map_init(struct wifimgr_settings_map *settings_map,
 int wifimgr_config_init(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	int settings_size = sizeof(struct wifimgr_settings_map) * ARRAY_SIZE(wifimgr_setting_keynames);
+	int settings_size = sizeof(struct wifimgr_settings_map) *
+			    ARRAY_SIZE(wifimgr_setting_keynames);
 	int ret;
 
 	ret = settings_subsys_init();
@@ -97,7 +106,7 @@ int wifimgr_config_init(void *handle)
 		return -ENOMEM;
 
 	/* Initialize STA settings */
-	memset(wifimgr_sta_settings_map, 0 , settings_size);
+	memset(wifimgr_sta_settings_map, 0, settings_size);
 	wifimgr_settings_map_init(wifimgr_sta_settings_map, &mgr->sta_conf);
 
 	/* Allocate memory space for AP settings */
@@ -108,7 +117,7 @@ int wifimgr_config_init(void *handle)
 	}
 
 	/* Initialize AP settings */
-	memset(wifimgr_ap_settings_map, 0 , settings_size);
+	memset(wifimgr_ap_settings_map, 0, settings_size);
 	wifimgr_settings_map_init(wifimgr_ap_settings_map, &mgr->ap_conf);
 
 	ret = settings_register(&(wifimgr_settings_handler[0]));
@@ -153,7 +162,8 @@ int wifimgr_save_config(void *handle, char *path)
 	char val[WIFIMGR_SETTING_VAL_LEN + 1];
 	int ret = 0;
 
-	if (strcmp(path, WIFIMGR_SETTING_STA_PATH) && strcmp(path, WIFIMGR_SETTING_AP_PATH)) {
+	if (strcmp(path, WIFIMGR_SETTING_STA_PATH)
+	    && strcmp(path, WIFIMGR_SETTING_AP_PATH)) {
 		wifimgr_err("wrong path: %s!\n", path);
 		return -ENOENT;
 	}
@@ -193,8 +203,10 @@ int wifimgr_save_config(void *handle, char *path)
 		wifimgr_err("failed to save %s, ret: %d!\n", name, ret);
 
 	/* Save channel */
-	snprintf(name, sizeof(name), "%s/%s", path, WIFIMGR_SETTING_NAME_CHANNEL);
-	settings_str_from_value(SETTINGS_INT8, &conf->channel, val, sizeof(val));
+	snprintf(name, sizeof(name), "%s/%s", path,
+		 WIFIMGR_SETTING_NAME_CHANNEL);
+	settings_str_from_value(SETTINGS_INT8, &conf->channel, val,
+				sizeof(val));
 	ret = settings_save_one(name, val);
 	if (ret)
 		wifimgr_err("failed to save %s, ret: %d!\n", name, ret);
