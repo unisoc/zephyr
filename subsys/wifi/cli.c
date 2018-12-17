@@ -137,7 +137,7 @@ static int wifimgr_cmd_del_station(const struct shell *shell, size_t argc,
 
 	if (argc == 1) {
 		mac = NULL;
-	} else if (argc == 2 && argv[1] && (strlen(argv[1]) == 17)) {
+	} else if (argc == 2 && argv[1]) {
 		char *mac_string = argv[1];
 		int i;
 
@@ -148,10 +148,12 @@ static int wifimgr_cmd_del_station(const struct shell *shell, size_t argc,
 
 			mac_addr[i] = strtol(mac, &tail, 16);
 			mac = strtok(NULL, ":");
-			wifimgr_info("i %d", i);
+
+			if (!mac)
+				break;
 		}
 
-		if (i != WIFIMGR_ETH_ALEN)
+		if (i != (WIFIMGR_ETH_ALEN - 1))
 			return -EINVAL;
 		mac = mac_addr;
 	} else {
