@@ -100,12 +100,13 @@ struct cmd_start_ap {
 	u8_t vht_chan_center_freq_seg1_idx;
 } __packed;
 
-struct cmd_del_station {
+struct cmd_del_sta {
+	struct trans_hdr trans_header;
 	/**
 	 * If mac set to FF:FF:FF:FF:FF:FF,
 	 * all station will be disconnected.
 	 */
-	u8_t mac[6];
+	u8_t mac[ETH_ALEN];
 	u16_t reason_code;
 } __packed;
 
@@ -149,6 +150,10 @@ struct cmd_set_ip {
 	 * it might be greater than 4 bytes.
 	 */
 	u8_t ip[IPV4_LEN];
+} __packed;
+
+struct cmd_get_sta {
+	struct trans_hdr trans_header;
 } __packed;
 
 struct cmd_npi {
@@ -195,8 +200,12 @@ int wifi_cmd_scan(struct wifi_device *wifi_dev,
 int wifi_cmd_connect(struct wifi_device *wifi_dev,
 			    struct wifi_drv_connect_params *params);
 int wifi_cmd_disconnect(struct wifi_device *wifi_dev);
+int wifi_cmd_get_sta(struct wifi_device *wifi_dev,
+		u8_t *signal);
 int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 		struct wifi_drv_start_ap_params *params);
+int wifi_cmd_del_sta(struct wifi_device *wifi_dev,
+		u8_t *mac, u16_t reason_code);
 int wifi_cmd_stop_ap(struct wifi_device *wifi_dev);
 int wifi_cmd_hw_test(struct wifi_device *wifi_dev,
 		int ictx_id, char *t_buf, u32_t t_len,
