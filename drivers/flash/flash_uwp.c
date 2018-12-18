@@ -11,6 +11,7 @@
 #include <init.h>
 #include <soc.h>
 #include <logging/sys_log.h>
+#include <errno.h>
 
 #include "hal_sfc.h"
 #include "hal_sfc_phy.h"
@@ -26,7 +27,7 @@
 struct flash_uwp_config {
 	struct spi_flash flash;
 	struct spi_flash_params *params;
-	struct k_mutex lock;
+	struct k_sem write_lock;
 };
 
 /* Device run time data */
@@ -41,31 +42,27 @@ static struct flash_uwp_data uwp_data;
  * similarly for flash_uwp_unlock) to avoid confusion with locking
  * actual flash pages.
  */
-static inline void flash_uwp_lock(struct device *dev)
+static inline int flash_uwp_lock(struct device *dev)
 {
-	k_mutex_lock(&DEV_CFG(dev)->lock, K_FOREVER);
+	int ret = 0;
+
+	ret = k_sem_take(&DEV_CFG(dev)->write_lock, K_NO_WAIT);
+
+	return ret;
 }
 
 static inline void flash_uwp_unlock(struct device *dev)
 {
-	k_mutex_unlock(&DEV_CFG(dev)->lock);
+	k_sem_give(&DEV_CFG(dev)->write_lock);
 }
 
 static int flash_uwp_write_protection(struct device *dev, bool enable)
 {
-	struct flash_uwp_config *cfg = DEV_CFG(dev);
-	struct spi_flash *flash = &(cfg->flash);
-
 	int ret = 0;
-
-	flash_uwp_lock(dev);
-
 	if(enable)
-		ret = flash->lock(flash, 0, flash->size);
+		ret = k_sem_take(&DEV_CFG(dev)->write_lock, K_FOREVER);
 	else
-		ret = flash->unlock(flash, 0, flash->size);
-
-	flash_uwp_unlock(dev);
+		k_sem_give(&DEV_CFG(dev)->write_lock);
 
 	return ret;
 }
@@ -81,12 +78,8 @@ static int flash_uwp_read(struct device *dev, off_t offset, void *data,
 		return 0;
 	}
 
-	flash_uwp_lock(dev);
-
 	ret = flash->read(flash, ((u32_t)CONFIG_FLASH_BASE_ADDRESS + offset),
 		(u32_t *)data, len, READ_SPI_FAST);
-
-	flash_uwp_unlock(dev);
 
 	return ret;
 }
@@ -94,6 +87,7 @@ static int flash_uwp_read(struct device *dev, off_t offset, void *data,
 static int flash_uwp_erase(struct device *dev, off_t offset, size_t len)
 {
 	int ret;
+	unsigned int key;
 	struct flash_uwp_config *cfg = DEV_CFG(dev);
 	struct spi_flash *flash = &(cfg->flash);
 
@@ -101,10 +95,14 @@ static int flash_uwp_erase(struct device *dev, off_t offset, size_t len)
 		return 0;
 	}
 
-	flash_uwp_lock(dev);
+	if (flash_uwp_lock(dev)) {
+		return -EACCES;
+	}
 
+	key = irq_lock_primask();
 	ret = flash->erase(flash, ((u32_t)CONFIG_FLASH_BASE_ADDRESS + offset),
 			len);
+	irq_unlock_primask(key);
 
 	flash_uwp_unlock(dev);
 
@@ -115,6 +113,7 @@ static int flash_uwp_write(struct device *dev, off_t offset,
 			     const void *data, size_t len)
 {
 	int ret;
+	unsigned int key;
 	struct flash_uwp_config *cfg = DEV_CFG(dev);
 	struct spi_flash *flash = &(cfg->flash);
 
@@ -122,10 +121,14 @@ static int flash_uwp_write(struct device *dev, off_t offset,
 		return 0;
 	}
 
-	flash_uwp_lock(dev);
+	if (flash_uwp_lock(dev)) {
+		return -EACCES;
+	}
 
+	key = irq_lock_primask();
 	ret = flash->write(flash, ((u32_t)CONFIG_FLASH_BASE_ADDRESS + offset),
 			len, data);
+	irq_unlock_primask(key);
 
 	flash_uwp_unlock(dev);
 
@@ -194,7 +197,7 @@ __ramfunc static int uwp_flash_init(struct device *dev)
 		return ret;
 	}
 
-	k_mutex_init(&cfg->lock);
+	k_sem_init(&cfg->write_lock, 0, 1);
 
 	return ret;
 }
