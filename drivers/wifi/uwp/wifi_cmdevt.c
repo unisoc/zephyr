@@ -18,6 +18,7 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 #include "wifi_txrx.h"
 
 #define RECV_BUF_SIZE (128)
+#define GET_STA_BUF_SIZE (12)
 #define ALL_2_4_GHZ_CHANNELS (0X3FFF)
 #define CHANNEL_2_4_GHZ_BIT(n) (1 << (n - 1))
 
@@ -98,7 +99,7 @@ int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 	memcpy(cmd->data + len, &crc, sizeof(crc));
 
 	ret = wifi_cmd_send(WIFI_CMD_DOWNLOAD_INI, (char *)cmd,
-			    cmd_len, NULL, 0);
+			    cmd_len, NULL, NULL);
 	if (ret) {
 		LOG_ERR("Load ini send cmd fail");
 		k_free(cmd);
@@ -326,6 +327,46 @@ int wifi_cmd_close(struct wifi_device *wifi_dev)
 	return 0;
 }
 
+int wifi_cmd_get_sta(struct wifi_device *wifi_dev,
+		u8_t *signal)
+{
+	ARG_UNUSED(wifi_dev);
+
+	struct cmd_get_sta cmd;
+	int ret;
+	char *rbuf;
+	int rlen;
+	int expected_len;
+
+	expected_len = sizeof(cmd) + GET_STA_BUF_SIZE;
+	rbuf = k_malloc(expected_len);
+	if (!rbuf) {
+		LOG_ERR("rbuf is null");
+		return -ENOMEM;
+	}
+
+	memset(&cmd, 0, sizeof(cmd));
+
+	ret = wifi_cmd_send(WIFI_CMD_GET_STATION, (char *)&cmd,
+			sizeof(cmd), rbuf, &rlen);
+	if (ret) {
+		LOG_ERR("Get sta send cmd fail %d", ret);
+		k_free(rbuf);
+		return ret;
+	}
+
+	if (rlen == expected_len) {
+		*signal = rbuf[sizeof(cmd) + 5];
+		LOG_DBG("Get station signal=%d", *signal);
+	} else {
+		LOG_ERR("Invalid response len %d", rlen);
+	}
+
+	k_free(rbuf);
+
+	return 0;
+}
+
 int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 		struct wifi_drv_start_ap_params *params)
 {
@@ -356,6 +397,30 @@ int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 		return ret;
 	}
 	LOG_DBG("Start ap ok.");
+
+	return 0;
+}
+
+int wifi_cmd_del_sta(struct wifi_device *wifi_dev,
+		u8_t *mac, u16_t reason_code)
+{
+	ARG_UNUSED(wifi_dev);
+
+	struct cmd_del_sta cmd;
+	int ret;
+
+	memset(&cmd, 0, sizeof(cmd));
+	memcpy(cmd.mac, mac, ETH_ALEN);
+	cmd.reason_code = reason_code;
+
+	ret = wifi_cmd_send(WIFI_CMD_DEL_STATION, (char *)&cmd,
+			    sizeof(cmd), NULL, NULL);
+	if (ret) {
+		LOG_ERR("Delete station send cmd fail %d", ret);
+		return ret;
+	}
+
+	LOG_DBG("Delete station done.");
 
 	return 0;
 }

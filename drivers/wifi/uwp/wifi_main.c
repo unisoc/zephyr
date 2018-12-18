@@ -240,7 +240,27 @@ static int uwp_mgmt_stop_ap(struct device *dev)
 static int uwp_mgmt_del_station(struct device *dev,
 				u8_t *mac)
 {
-	return 0;
+	struct wifi_device *wifi_dev;
+
+	if (!dev) {
+		return -EINVAL;
+	}
+
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
+	}
+
+	if (wifi_dev->mode != WIFI_MODE_AP) {
+		LOG_WRN("Improper mode %d to del sta.",
+				wifi_dev->mode);
+		return -EINVAL;
+	}
+
+	/* Reason code not used by wifimgr. */
+	return wifi_cmd_del_sta(wifi_dev, mac,
+			0/* reason_code */);
 }
 
 static int uwp_mgmt_hw_test(struct device *dev,
@@ -297,10 +317,27 @@ static int uwp_mgmt_scan(struct device *dev,
 }
 
 static int uwp_mgmt_get_station(struct device *dev,
-		/* struct wifi_get_sta_req_params *params */
 		u8_t *signal)
 {
-	return 0;
+	struct wifi_device *wifi_dev;
+
+	if (!dev) {
+		return -EINVAL;
+	}
+
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
+	}
+
+	if (wifi_dev->mode != WIFI_MODE_STA) {
+		LOG_WRN("Improper mode %d to get sta.",
+				wifi_dev->mode);
+		return -EINVAL;
+	}
+
+	return wifi_cmd_get_sta(wifi_dev, signal);
 }
 
 static int uwp_mgmt_connect(struct device *dev,
