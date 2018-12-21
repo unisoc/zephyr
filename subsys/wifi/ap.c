@@ -231,7 +231,8 @@ static int wifimgr_ap_start(void *handle)
 	}
 
 	ret = wifi_drv_iface_start_ap(mgr->ap_iface, conf->ssid,
-				      conf->passphrase, conf->channel);
+				      conf->passphrase, conf->channel,
+				      conf->channel_width);
 
 	if (ret) {
 		event_listener_remove_receiver(&mgr->lsnr,
