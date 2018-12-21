@@ -48,7 +48,7 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 	}
 
 	return wifimgr_ctrl_iface_set_conf(iface_name, ssid, NULL, passphrase,
-					   0, channel);
+					   0, channel, 0);
 }
 
 static int wifimgr_cmd_get_config(const struct shell *shell, size_t argc,
