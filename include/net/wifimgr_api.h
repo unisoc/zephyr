@@ -18,7 +18,7 @@
 struct wifimgr_ctrl_ops {
 	int (*set_conf) (char *iface_name, char *ssid, char *bssid,
 			 char *passphrase, unsigned char band,
-			 unsigned char channel);
+			 unsigned char channel, unsigned char channel_width);
 	int (*get_conf) (char *iface_name);
 	int (*get_status) (char *iface_name);
 	int (*open) (char *iface_name);
@@ -36,8 +36,8 @@ struct wifimgr_ctrl_cbs {
 			     char *passphrase, unsigned char band,
 			     unsigned char channel);
 	void (*get_sta_status_cb) (unsigned char status, char *own_mac,
-				   char host_rssi, char *host_ssid,
-				   char *host_bssid);
+				   char *host_ssid, char *host_bssid,
+				   char host_channel, char host_rssi);
 	void (*get_ap_status_cb) (unsigned char status, char *own_mac,
 				  char client_nr, char client_mac[][6]);
 	void (*notify_scan_res) (char *ssid, char *bssid, unsigned char band,
