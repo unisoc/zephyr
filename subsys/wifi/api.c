@@ -87,7 +87,8 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 
 int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 				char *passphrase, unsigned char band,
-				unsigned char channel)
+				unsigned char channel,
+				unsigned char channel_width)
 {
 	struct wifimgr_config conf;
 	unsigned int cmd_id = 0;
@@ -109,6 +110,8 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 		conf.band = band;
 	if (channel)
 		conf.channel = channel;
+	if (channel_width)
+		conf.channel_width = channel_width;
 
 	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
 		cmd_id = WIFIMGR_CMD_SET_STA_CONFIG;

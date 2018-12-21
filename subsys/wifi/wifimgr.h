@@ -45,15 +45,17 @@ struct wifimgr_config {
 	char passphrase[WIFIMGR_MAX_PSPHR_LEN + 1];
 	unsigned char band;
 	unsigned char channel;
+	unsigned char channel_width;
 };
 
 struct wifimgr_status {
 	char own_mac[WIFIMGR_ETH_ALEN];
 	union {
 		struct {
-			char host_rssi;
 			char host_ssid[WIFIMGR_MAX_SSID_LEN + 1];
 			char host_bssid[WIFIMGR_ETH_ALEN];
+			unsigned char host_channel;
+			char host_rssi;
 		} sta;
 		struct {
 			unsigned char client_nr;
@@ -68,6 +70,8 @@ struct wifimgr_del_station {
 
 struct wifimgr_evt_connect {
 	char status;
+	char bssid[WIFIMGR_ETH_ALEN];
+	char channel;
 };
 
 struct wifimgr_evt_disconnect {
