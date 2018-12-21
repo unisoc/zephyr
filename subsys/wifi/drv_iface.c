@@ -109,7 +109,7 @@ void wifi_drv_iface_connect_cb(void *iface, int status)
 	wifimgr_notify_event(WIFIMGR_EVT_CONNECT, &conn, sizeof(conn));
 }
 
-int wifi_drv_iface_connect(void *iface, char *ssid, char *passwd)
+int wifi_drv_iface_connect(void *iface, char *ssid, char *bssid, char *passwd)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
 	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
@@ -120,6 +120,7 @@ int wifi_drv_iface_connect(void *iface, char *ssid, char *passwd)
 
 	params.ssid = ssid;
 	params.ssid_length = strlen(ssid);
+	params.bssid = bssid;
 	params.psk = passwd;
 	params.psk_length = strlen(passwd);
 
@@ -189,7 +190,8 @@ void wifi_drv_iface_new_station(void *iface, int status, char *mac)
 			     sizeof(new_sta));
 }
 
-int wifi_drv_iface_start_ap(void *iface, char *ssid, char *passwd, char channel)
+int wifi_drv_iface_start_ap(void *iface, char *ssid, char *passwd,
+			    unsigned char channel, unsigned char channel_width)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
 	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
@@ -203,6 +205,7 @@ int wifi_drv_iface_start_ap(void *iface, char *ssid, char *passwd, char channel)
 	params.psk = passwd;
 	params.psk_length = strlen(passwd);
 	params.channel = channel;
+	params.channel_width = channel_width;
 
 	return drv_api->start_ap(dev, &params, wifi_drv_iface_new_station);
 }
