@@ -223,6 +223,10 @@ int wifi_cmd_connect(struct wifi_device *wifi_dev,
 		return -EINVAL;
 	}
 
+	if (params->bssid) {
+		memcpy(cmd.bssid, params->bssid, ETH_ALEN);
+	}
+
 	cmd.channel = params->channel;
 	cmd.ssid_len = params->ssid_length;
 	cmd.passphrase_len = params->psk_length;
