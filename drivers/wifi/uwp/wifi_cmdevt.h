@@ -53,6 +53,16 @@ enum event_type {
 	WIFI_EVENT_MAX,
 };
 
+enum vht_chan_bw {
+	VHT_CHAN_BW_20M = 0x00,
+	VHT_CHAN_BW_40M,
+	VHT_CHAN_BW_80M,
+	VHT_CHAN_BW_160M,
+	VHT_CHAN_BW_80_80M,
+
+	VHT_CHAN_BW_DEF = 0xFF,
+};
+
 /* These structures are shared by command and event. */
 struct trans_hdr {
 	u8_t type;      /* Which command or event will be transferred. */

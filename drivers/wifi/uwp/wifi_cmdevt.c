@@ -367,6 +367,34 @@ int wifi_cmd_get_sta(struct wifi_device *wifi_dev,
 	return 0;
 }
 
+static inline u8_t wifi_chan_bw_map(u8_t chan_bw)
+{
+	u8_t vht_chwidth;
+
+	switch (chan_bw) {
+	case 0:
+		vht_chwidth = VHT_CHAN_BW_DEF;
+		break;
+	case 20:
+		vht_chwidth = VHT_CHAN_BW_20M;
+		break;
+	case 40:
+		vht_chwidth = VHT_CHAN_BW_40M;
+		break;
+	case 80:
+		vht_chwidth = VHT_CHAN_BW_80M;
+		break;
+	case 160:
+		vht_chwidth = VHT_CHAN_BW_160M;
+		break;
+	default:
+		vht_chwidth = VHT_CHAN_BW_DEF;
+		break;
+	}
+
+	return vht_chwidth;
+}
+
 int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 		struct wifi_drv_start_ap_params *params)
 {
@@ -381,21 +409,24 @@ int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 	if (params->ssid_length > 0) {
 		memcpy(cmd.ssid, params->ssid, params->ssid_length);
 		cmd.ssid_len = params->ssid_length;
-		LOG_DBG("Ssid: %s(%d).", cmd.ssid, cmd.ssid_len);
+		LOG_DBG("SSID: %s(%d).", cmd.ssid, cmd.ssid_len);
 	}
 	if (params->psk_length > 0) {
 		memcpy(cmd.password, params->psk, params->psk_length);
 		cmd.password_len = params->psk_length;
-		LOG_DBG("Psk: %s(%d).", cmd.password, cmd.password_len);
+		LOG_DBG("PSK: %s(%d).", cmd.password, cmd.password_len);
 	}
 
 	cmd.channel = params->channel;
+	cmd.vht_chwidth = wifi_chan_bw_map(params->channel_width);
+
 	ret = wifi_cmd_send(WIFI_CMD_START_AP, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
-		LOG_ERR("Ap start send cmd fail %d", ret);
+		LOG_ERR("AP start send cmd fail %d", ret);
 		return ret;
 	}
+
 	LOG_DBG("Start ap ok.");
 
 	return 0;
