@@ -25,6 +25,8 @@
 
 #include <net/net_if.h>
 
+#define WIFIMGR_ETH_ALEN	NET_LINK_ADDR_MAX_LENGTH
+
 #define wifimgr_err(...)	LOG_ERR(__VA_ARGS__)
 #define wifimgr_warn(...)	LOG_WRN(__VA_ARGS__)
 #define wifimgr_info(...)	printk(__VA_ARGS__)
@@ -68,6 +70,22 @@ typedef struct k_work wifimgr_work;
 static inline bool is_zero_ether_addr(const char *addr)
 {
 	return (addr[0] | addr[1] | addr[2] | addr[3] | addr[4] | addr[5]) == 0;
+}
+
+/**
+ *
+ * @brief Check whether the memory area is zero
+ *
+ * @return 0 if <m> == 0, else non-zero
+ */
+static inline int memiszero(const void *m, size_t n)
+{
+	const char *c = m;
+
+	while (n-- && !(*c))
+		c++;
+
+	return *c;
 }
 
 #endif

@@ -22,6 +22,7 @@ if WIFIMGR
 config WIFIMGR_CLI
 	bool "WiFi Manager Client"
 	select SHELL
+	select NEWLIB_LIBC
 	default y
 	help
 	  A client that can interact with WiFi manger,

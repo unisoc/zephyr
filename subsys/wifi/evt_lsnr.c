@@ -25,7 +25,7 @@ int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len)
 	int ret;
 
 	attr.mq_maxmsg = 16;
-	attr.mq_msgsize = sizeof(struct evt_message);
+	attr.mq_msgsize = sizeof(msg);
 	attr.mq_flags = 0;
 	mq = mq_open(WIFIMGR_EVT_MQUEUE, O_WRONLY | O_CREAT, 0666, &attr);
 	if (!mq) {
