@@ -28,7 +28,7 @@ static int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf,
 	int ret;
 
 	attr.mq_maxmsg = WIFIMGR_CMD_MQUEUE_NR;
-	attr.mq_msgsize = sizeof(struct cmd_message);
+	attr.mq_msgsize = sizeof(msg);
 	attr.mq_flags = 0;
 	mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
 	if (!mq) {
