@@ -34,7 +34,8 @@ struct wifimgr_ctrl_ops {
 struct wifimgr_ctrl_cbs {
 	void (*get_conf_cb) (char *iface_name, char *ssid, char *bssid,
 			     char *passphrase, unsigned char band,
-			     unsigned char channel);
+			     unsigned char channel,
+			     unsigned char channel_width);
 	void (*get_sta_status_cb) (unsigned char status, char *own_mac,
 				   char *host_ssid, char *host_bssid,
 				   char host_channel, char host_rssi);
