@@ -16,7 +16,8 @@ int wifi_drv_iface_get_mac(void *iface, char *mac);
 int wifi_drv_iface_open_station(void *iface);
 int wifi_drv_iface_close_station(void *iface);
 int wifi_drv_iface_scan(void *iface, unsigned char band, unsigned char channel);
-int wifi_drv_iface_connect(void *iface, char *ssid, char *bssid, char *passwd);
+int wifi_drv_iface_connect(void *iface, char *ssid, char *bssid, char *passwd,
+			   unsigned char channel);
 int wifi_drv_iface_disconnect(void *iface);
 int wifi_drv_iface_get_station(void *iface, char *signal);
 int wifi_drv_iface_notify_ip(void *iface, char *ipaddr, char len);

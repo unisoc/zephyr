@@ -31,7 +31,6 @@
 #define WIFIMGR_MAX_SSID_LEN	32
 #define WIFIMGR_MAX_PSPHR_LEN	63
 #define WIFIMGR_MAX_STA_NR	16
-#define WIFIMGR_ETH_ALEN	6
 
 #define WIFIMGR_CMD_TIMEOUT	5
 #define WIFIMGR_SCAN_TIMEOUT	10
@@ -71,7 +70,7 @@ struct wifimgr_del_station {
 struct wifimgr_evt_connect {
 	char status;
 	char bssid[WIFIMGR_ETH_ALEN];
-	char channel;
+	unsigned char channel;
 };
 
 struct wifimgr_evt_disconnect {
