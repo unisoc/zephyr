@@ -17,11 +17,12 @@
 #define WIFIMGR_SETTING_NAME_LEN	63
 #define WIFIMGR_SETTING_VAL_LEN		63
 
-#define WIFIMGR_SETTING_NAME_SSID	"ssid"
-#define WIFIMGR_SETTING_NAME_BSSID	"bssid"
-#define WIFIMGR_SETTING_NAME_PSK	"psk"
-#define WIFIMGR_SETTING_NAME_BAND	"band"
-#define WIFIMGR_SETTING_NAME_CHANNEL	"channel"
+#define WIFIMGR_SETTING_NAME_SSID		"ssid"
+#define WIFIMGR_SETTING_NAME_BSSID		"bssid"
+#define WIFIMGR_SETTING_NAME_PSK		"psk"
+#define WIFIMGR_SETTING_NAME_BAND		"band"
+#define WIFIMGR_SETTING_NAME_CHANNEL		"channel"
+#define WIFIMGR_SETTING_NAME_CHANNEL_WIDTH	"channel_width"
 
 #define WIFIMGR_SETTING_PATH		"wifimgr"
 #define WIFIMGR_SETTING_STA_PATH	"wifimgr/sta"
@@ -30,6 +31,7 @@
 struct wifimgr_settings_map {
 	char name[WIFIMGR_SETTING_NAME_LEN + 1];
 	char *valptr;
+	char vallen;
 	enum settings_type type;
 };
 
