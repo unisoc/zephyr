@@ -9,10 +9,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
-#include <logging/log.h>
-LOG_MODULE_DECLARE(wifimgr);
-
 #include "wifimgr.h"
 
 int wifi_drv_iface_get_mac(void *iface, char *mac)
@@ -100,16 +96,21 @@ int wifi_drv_iface_disconnect(void *iface)
 	return drv_api->disconnect(dev, wifi_drv_iface_disconnect_cb);
 }
 
-void wifi_drv_iface_connect_cb(void *iface, int status)
+void wifi_drv_iface_connect_cb(void *iface, int status, char *bssid,
+			       unsigned char channel)
 {
 	struct wifimgr_evt_connect conn;
 
 	conn.status = status;
+	if (bssid && !is_zero_ether_addr(bssid))
+		memcpy(conn.bssid, bssid, WIFIMGR_ETH_ALEN);
+	conn.channel = channel;
 
 	wifimgr_notify_event(WIFIMGR_EVT_CONNECT, &conn, sizeof(conn));
 }
 
-int wifi_drv_iface_connect(void *iface, char *ssid, char *bssid, char *passwd)
+int wifi_drv_iface_connect(void *iface, char *ssid, char *bssid, char *passwd,
+			   unsigned char channel)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
 	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;

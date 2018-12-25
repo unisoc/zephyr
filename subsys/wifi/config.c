@@ -21,6 +21,7 @@ static const char *wifimgr_setting_keynames[] = {
 	WIFIMGR_SETTING_NAME_PSK,
 	WIFIMGR_SETTING_NAME_BAND,
 	WIFIMGR_SETTING_NAME_CHANNEL,
+	WIFIMGR_SETTING_NAME_CHANNEL_WIDTH,
 };
 
 static struct wifimgr_settings_map *wifimgr_sta_settings_map;
@@ -42,11 +43,16 @@ static int wifimgr_settings_set(int argc, char **argv, char *val)
 
 			if (!strcmp(argv[argc - 2], settings_category)
 			    && !strcmp(argv[argc - 1], settings[i].name)) {
-				if (settings[i].type == SETTINGS_STRING)
+				if (settings[i].type == SETTINGS_STRING) {
+					if (settings[i].vallen)
+						memset(settings[i].valptr, 0,
+						       settings[i].vallen);
+
 					strcpy(settings[i].valptr, val);
-				else if (settings[i].type == SETTINGS_INT8)
+				} else if (settings[i].type == SETTINGS_INT8) {
 					SETTINGS_VALUE_SET(val, SETTINGS_INT8,
 							   *settings[i].valptr);
+				}
 
 				wifimgr_dbg("val: %s\n", val);
 				break;
@@ -70,14 +76,17 @@ static void wifimgr_settings_map_init(struct wifimgr_settings_map *settings_map,
 	/* Initialize SSID setting map */
 	strcpy(settings_map[0].name, WIFIMGR_SETTING_NAME_SSID);
 	settings_map[0].valptr = conf->ssid;
+	settings_map[0].vallen = sizeof(conf->ssid);
 	settings_map[0].type = SETTINGS_STRING;
 	/* Initialize BSSID setting map */
 	strcpy(settings_map[1].name, WIFIMGR_SETTING_NAME_BSSID);
 	settings_map[1].valptr = conf->bssid;
+	settings_map[1].vallen = sizeof(conf->bssid);
 	settings_map[1].type = SETTINGS_STRING;
 	/* Initialize PSK setting map */
 	strcpy(settings_map[2].name, WIFIMGR_SETTING_NAME_PSK);
 	settings_map[2].valptr = conf->passphrase;
+	settings_map[2].vallen = sizeof(conf->passphrase);
 	settings_map[2].type = SETTINGS_STRING;
 	/* Initialize Band setting map */
 	strcpy(settings_map[3].name, WIFIMGR_SETTING_NAME_BAND);
@@ -87,6 +96,10 @@ static void wifimgr_settings_map_init(struct wifimgr_settings_map *settings_map,
 	strcpy(settings_map[4].name, WIFIMGR_SETTING_NAME_CHANNEL);
 	settings_map[4].valptr = &conf->channel;
 	settings_map[4].type = SETTINGS_INT8;
+	/* Initialize Channel width setting map */
+	strcpy(settings_map[5].name, WIFIMGR_SETTING_NAME_CHANNEL_WIDTH);
+	settings_map[5].valptr = &conf->channel_width;
+	settings_map[5].type = SETTINGS_INT8;
 }
 
 int wifimgr_config_init(void *handle)
@@ -206,6 +219,15 @@ int wifimgr_save_config(void *handle, char *path)
 	snprintf(name, sizeof(name), "%s/%s", path,
 		 WIFIMGR_SETTING_NAME_CHANNEL);
 	settings_str_from_value(SETTINGS_INT8, &conf->channel, val,
+				sizeof(val));
+	ret = settings_save_one(name, val);
+	if (ret)
+		wifimgr_err("failed to save %s, ret: %d!\n", name, ret);
+
+	/* Save channel width */
+	snprintf(name, sizeof(name), "%s/%s", path,
+		 WIFIMGR_SETTING_NAME_CHANNEL_WIDTH);
+	settings_str_from_value(SETTINGS_INT8, &conf->channel_width, val,
 				sizeof(val));
 	ret = settings_save_one(name, val);
 	if (ret)

@@ -69,27 +69,34 @@ static int wifimgr_sta_get_config(void *handle)
 	char *bssid = NULL;
 	char *passphrase = NULL;
 
+	/* Load config form non-volatile memory */
+	/*memset(conf, 0, sizeof(struct wifimgr_config));*/
 	wifimgr_load_config(conf, WIFIMGR_SETTING_STA_PATH);
 
-	wifimgr_info("STA Config\n");
-	if (strlen(conf->ssid)) {
-		ssid = conf->ssid;
-		wifimgr_info("SSID:\t\t%s\n", ssid);
-	}
+	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
+		wifimgr_info("No STA Config found!\n");
+		return 0;
+	} else {
+		wifimgr_info("STA Config\n");
+		if (strlen(conf->ssid)) {
+			ssid = conf->ssid;
+			wifimgr_info("SSID:\t\t%s\n", ssid);
+		}
 
-	if (!is_zero_ether_addr(conf->bssid)) {
-		bssid = conf->bssid;
-		wifimgr_info("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-			     bssid[0], bssid[1], bssid[2],
-			     bssid[3], bssid[4], bssid[5]);
-	}
+		if (!is_zero_ether_addr(conf->bssid)) {
+			bssid = conf->bssid;
+			wifimgr_info("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+				     bssid[0], bssid[1], bssid[2],
+				     bssid[3], bssid[4], bssid[5]);
+		}
 
-	if (conf->channel)
-		wifimgr_info("Channel:\t%d\n", conf->channel);
+		if (strlen(conf->passphrase)) {
+			passphrase = conf->passphrase;
+			wifimgr_info("Passphrase:\t%s\n", passphrase);
+		}
 
-	if (strlen(conf->passphrase)) {
-		passphrase = conf->passphrase;
-		wifimgr_info("Passphrase:\t%s\n", passphrase);
+		if (conf->channel)
+			wifimgr_info("Channel:\t%d\n", conf->channel);
 	}
 
 	fflush(stdout);
@@ -97,7 +104,8 @@ static int wifimgr_sta_get_config(void *handle)
 	/* Notify the external caller */
 	if (cbs && cbs->get_conf_cb)
 		cbs->get_conf_cb(WIFIMGR_IFACE_NAME_STA, ssid, bssid,
-				 passphrase, conf->band, conf->channel);
+				 passphrase, conf->band, conf->channel,
+				 conf->channel_width);
 
 	return 0;
 }
@@ -106,8 +114,18 @@ static int wifimgr_sta_set_config(void *handle)
 {
 	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
+	/* Save config to non-volatile memory */
+	wifimgr_save_config(conf, WIFIMGR_SETTING_STA_PATH);
+
+	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
+		wifimgr_info("Clearing STA Config ...\n");
+		return 0;
+	}
+
 	wifimgr_info("Setting STA Config ...\n");
-	wifimgr_info("SSID:\t\t%s\n", conf->ssid);
+
+	if (strlen(conf->ssid))
+		wifimgr_info("SSID:\t\t%s\n", conf->ssid);
 
 	if (!is_zero_ether_addr(conf->bssid))
 		wifimgr_info("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -117,11 +135,10 @@ static int wifimgr_sta_set_config(void *handle)
 	if (strlen(conf->passphrase))
 		wifimgr_info("Passphrase:\t%s\n", conf->passphrase);
 
-	if (strlen(conf->passphrase))
-		wifimgr_info("Passphrase:\t%s\n", conf->passphrase);
-	fflush(stdout);
+	if (conf->channel)
+		wifimgr_info("Channel:\t%d\n", conf->channel);
 
-	wifimgr_save_config(conf, WIFIMGR_SETTING_STA_PATH);
+	fflush(stdout);
 
 	return 0;
 }
@@ -292,7 +309,7 @@ static int wifimgr_sta_connect(void *handle)
 		return ret;
 
 	ret = wifi_drv_iface_connect(mgr->sta_iface, conf->ssid, conf->bssid,
-				     conf->passphrase);
+				     conf->passphrase, conf->channel);
 
 	if (ret)
 		event_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_CONNECT);
