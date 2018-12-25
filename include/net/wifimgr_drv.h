@@ -55,7 +55,8 @@ struct wifi_drv_scan_result {
 
 typedef void (*scan_result_cb_t)(void *iface, int status,
 				 struct wifi_drv_scan_result *entry);
-typedef void (*connect_cb_t)(void *iface, int status);
+typedef void (*connect_cb_t)(void *iface, int status, char *bssid,
+			     unsigned char channel);
 typedef void (*disconnect_cb_t)(void *iface, int status);
 typedef void (*new_station_t)(void *iface, int status, char *mac);
 
