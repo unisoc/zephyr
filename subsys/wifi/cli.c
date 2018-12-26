@@ -71,6 +71,7 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 				char mac_addr[NET_LINK_ADDR_MAX_LENGTH];
 				char *mac;
 				int ret = strtomac(optarg, mac_addr);
+
 				if (!ret) {
 					mac = mac_addr;
 				} else {
@@ -199,6 +200,7 @@ static int wifimgr_cmd_del_station(const struct shell *shell, size_t argc,
 	} else if (argc == 2 && argv[1]) {
 		char mac_addr[NET_LINK_ADDR_MAX_LENGTH];
 		int ret = strtomac(argv[1], mac_addr);
+
 		if (!ret) {
 			mac = mac_addr;
 		} else {

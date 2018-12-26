@@ -202,11 +202,11 @@ static int wifimgr_init(struct device *unused)
 	/*setlogmask(~(LOG_MASK(LOG_DEBUG))); */
 	memset(mgr, 0, sizeof(struct wifi_manager));
 
-	ret = wifimgr_event_listener_init(&mgr->lsnr);
+	ret = wifimgr_evt_listener_init(&mgr->lsnr);
 	if (ret < 0)
 		wifimgr_err("failed to init WiFi event listener!\n");
 
-	ret = wifimgr_command_processor_init(&mgr->prcs);
+	ret = wifimgr_cmd_processor_init(&mgr->prcs);
 	if (ret < 0)
 
 		wifimgr_err("failed to init WiFi command processor!\n");

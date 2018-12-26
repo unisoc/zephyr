@@ -17,9 +17,75 @@ LOG_MODULE_DECLARE(wifimgr);
 
 K_THREAD_STACK_ARRAY_DEFINE(cmd_stacks, 1, WIFIMGR_CMD_PROCESSOR_STACKSIZE);
 
-int command_processor_register_sender(struct cmd_processor *handle,
-				      unsigned int cmd_id, cmd_func_t fn,
-				      void *arg)
+int wifimgr_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
+{
+	struct mq_des *mq;
+	struct mq_attr attr;
+	struct cmd_message msg;
+	struct timespec ts;
+	int prio;
+	int ret;
+
+	attr.mq_maxmsg = WIFIMGR_CMD_MQUEUE_NR;
+	attr.mq_msgsize = sizeof(msg);
+	attr.mq_flags = 0;
+	mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
+	if (!mq) {
+		wifimgr_err("failed to open command queue %s!\n",
+			    WIFIMGR_CMD_MQUEUE);
+		return -errno;
+	}
+
+	msg.cmd_id = cmd_id;
+	msg.reply = 0;
+	msg.buf_len = buf_len;
+	msg.buf = NULL;
+	if (buf_len) {
+		msg.buf = malloc(buf_len);
+		memcpy(msg.buf, buf, buf_len);
+	}
+
+	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
+	if (ret < 0) {
+		wifimgr_err("failed to send [%s]: %d, errno %d!\n",
+			    wifimgr_cmd2str(msg.cmd_id), ret, errno);
+		ret = -errno;
+	} else {
+		wifimgr_dbg("send [%s], buf: 0x%08x\n",
+			    wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
+
+		ret = clock_gettime(CLOCK_MONOTONIC, &ts);
+		if (ret)
+			wifimgr_err("failed to get clock time: %d!\n", ret);
+		ts.tv_sec += WIFIMGR_CMD_TIMEOUT;
+		ret =
+		    mq_timedreceive(mq, (char *)&msg, sizeof(msg), &prio, &ts);
+		if (ret != sizeof(struct cmd_message)) {
+			wifimgr_err
+			    ("failed to get command reply: %d, errno %d!\n",
+			     ret, errno);
+			if (errno == ETIME)
+				wifimgr_err("[%s] timeout!\n",
+					    wifimgr_cmd2str(msg.cmd_id));
+			ret = -errno;
+		} else {
+			wifimgr_dbg("recv [%s] reply: %d\n",
+				    wifimgr_cmd2str(msg.cmd_id), msg.reply);
+			ret = msg.reply;
+			if (ret)
+				wifimgr_err("failed to exec [%s]: %d!\n",
+					    wifimgr_cmd2str(msg.cmd_id), ret);
+		}
+	}
+
+	free(msg.buf);
+	mq_close(mq);
+
+	return ret;
+}
+
+int cmd_processor_add_sender(struct cmd_processor *handle, unsigned int cmd_id,
+			     cmd_func_t fn, void *arg)
 {
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
 	struct cmd_sender *sndr = &prcs->cmd_pool[cmd_id];
@@ -33,8 +99,8 @@ int command_processor_register_sender(struct cmd_processor *handle,
 	return 0;
 }
 
-int command_processor_unregister_sender(struct cmd_processor *handle,
-					unsigned int cmd_id)
+int cmd_processor_remove_sender(struct cmd_processor *handle,
+				unsigned int cmd_id)
 {
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
 	struct cmd_sender *sndr = &prcs->cmd_pool[cmd_id];
@@ -48,8 +114,8 @@ int command_processor_unregister_sender(struct cmd_processor *handle,
 	return 0;
 }
 
-static void command_processor_post_process(void *handle,
-					   struct cmd_message *msg, int reply)
+static void cmd_processor_post_process(void *handle,
+				       struct cmd_message *msg, int reply)
 {
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
 	int ret;
@@ -66,7 +132,7 @@ static void command_processor_post_process(void *handle,
 	}
 }
 
-static void *command_processor(void *handle)
+static void *cmd_processor(void *handle)
 {
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
 	struct cmd_sender *sndr;
@@ -101,7 +167,7 @@ static void *command_processor(void *handle)
 		/* Ask state machine whether the command could be executed */
 		ret = wifimgr_sm_query_cmd(mgr, msg.cmd_id);
 		if (ret) {
-			command_processor_post_process(prcs, &msg, ret);
+			cmd_processor_post_process(prcs, &msg, ret);
 
 			if (ret == -EBUSY)
 				wifimgr_err("Busy! try again later\n");
@@ -111,7 +177,7 @@ static void *command_processor(void *handle)
 		/* Initialize driver interface for the first time running */
 		ret = wifimgr_low_level_init(mgr, msg.cmd_id);
 		if (ret == -ENODEV) {
-			command_processor_post_process(prcs, &msg, ret);
+			cmd_processor_post_process(prcs, &msg, ret);
 			wifimgr_err("No such device!\n");
 			continue;
 		}
@@ -145,13 +211,13 @@ static void *command_processor(void *handle)
 		}
 
 		sem_post(&prcs->exclsem);
-		command_processor_post_process(prcs, &msg, ret);
+		cmd_processor_post_process(prcs, &msg, ret);
 	}
 
 	return NULL;
 }
 
-int wifimgr_command_processor_init(struct cmd_processor *handle)
+int wifimgr_cmd_processor_init(struct cmd_processor *handle)
 {
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
 	struct mq_attr attr;
@@ -187,7 +253,7 @@ int wifimgr_command_processor_init(struct cmd_processor *handle)
 			      WIFIMGR_CMD_PROCESSOR_STACKSIZE);
 	pthread_attr_setschedpolicy(&tattr, SCHED_FIFO);
 
-	ret = pthread_create(&prcs->pid, &tattr, command_processor, prcs);
+	ret = pthread_create(&prcs->pid, &tattr, cmd_processor, prcs);
 	if (ret) {
 		wifimgr_err("failed to start %s!\n", WIFIMGR_CMD_PROCESSOR);
 		prcs->is_setup = false;
