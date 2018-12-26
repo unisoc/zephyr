@@ -72,11 +72,12 @@ struct cmd_message {
 	void *buf;		/* Command message pointer */
 };
 
-int command_processor_register_sender(struct cmd_processor *handle,
-				      unsigned int cmd_id, cmd_func_t fn,
-				      void *arg);
-int command_processor_unregister_sender(struct cmd_processor *handle,
-					unsigned int cmd_id);
-int wifimgr_command_processor_init(struct cmd_processor *handle);
+int wifimgr_send_cmd(unsigned int cmd_id, void *buf, int buf_len);
+
+int cmd_processor_add_sender(struct cmd_processor *handle, unsigned int cmd_id,
+			     cmd_func_t fn, void *arg);
+int cmd_processor_remove_sender(struct cmd_processor *handle,
+				unsigned int cmd_id);
+int wifimgr_cmd_processor_init(struct cmd_processor *handle);
 
 #endif
