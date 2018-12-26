@@ -609,7 +609,8 @@ static int wifi_evt_connect(struct wifi_device *wifi_dev, char *data, int len)
 	}
 
 	if (wifi_dev->connect_cb) {
-		wifi_dev->connect_cb(wifi_dev->iface, event->status);
+		wifi_dev->connect_cb(wifi_dev->iface, event->status,
+				event->bssid, event->primary_chan_num);
 	} else {
 		LOG_WRN("No connect callback.");
 	}
