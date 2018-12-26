@@ -57,8 +57,8 @@ int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len)
 	return ret;
 }
 
-static void _event_listener_remove_receiver(struct evt_listener *lsnr,
-					    struct evt_receiver *rcvr)
+static void _evt_listener_remove_receiver(struct evt_listener *lsnr,
+					  struct evt_receiver *rcvr)
 {
 	/* Unlink the receiver from the list */
 	wifimgr_slist_remove(&lsnr->evt_list, &rcvr->evt_node);
@@ -67,9 +67,8 @@ static void _event_listener_remove_receiver(struct evt_listener *lsnr,
 	wifimgr_slist_append(&lsnr->free_evt_list, &rcvr->evt_node);
 }
 
-int event_listener_add_receiver(struct evt_listener *handle,
-				unsigned int evt_id, bool oneshot,
-				evt_cb_t cb, void *arg)
+int evt_listener_add_receiver(struct evt_listener *handle, unsigned int evt_id,
+			      bool oneshot, evt_cb_t cb, void *arg)
 {
 	struct evt_listener *lsnr = (struct evt_listener *)handle;
 	struct evt_receiver *rcvr;
@@ -110,15 +109,15 @@ int event_listener_add_receiver(struct evt_listener *handle,
 	rcvr->cb = cb;
 	rcvr->arg = arg;
 
-	/* Link the event_listener into the list */
+	/* Link the evt_listener into the list */
 	wifimgr_slist_append(&lsnr->evt_list, &rcvr->evt_node);
 	sem_post(&lsnr->exclsem);
 
 	return 0;
 }
 
-int event_listener_remove_receiver(struct evt_listener *handle,
-				   unsigned int evt_id)
+int evt_listener_remove_receiver(struct evt_listener *handle,
+				 unsigned int evt_id)
 {
 	struct evt_listener *lsnr = (struct evt_listener *)handle;
 	struct evt_receiver *rcvr;
@@ -137,7 +136,7 @@ int event_listener_remove_receiver(struct evt_listener *handle,
 	while (rcvr != NULL) {
 		/* Check if callback matches */
 		if (rcvr->expected_evt == evt_id) {
-			_event_listener_remove_receiver(lsnr, rcvr);
+			_evt_listener_remove_receiver(lsnr, rcvr);
 
 			rcvr->expected_evt = 0;
 			rcvr->oneshot = 0;
@@ -157,7 +156,7 @@ int event_listener_remove_receiver(struct evt_listener *handle,
 	return -1;
 }
 
-static void *event_listener(void *handle)
+static void *evt_listener(void *handle)
 {
 	struct evt_listener *lsnr = (struct evt_listener *)handle;
 	struct evt_receiver *rcvr;
@@ -195,8 +194,8 @@ static void *event_listener(void *handle)
 		while (rcvr) {
 			if (rcvr->expected_evt == msg.evt_id) {
 				if (rcvr->oneshot)
-					_event_listener_remove_receiver(lsnr,
-									rcvr);
+					_evt_listener_remove_receiver(lsnr,
+								      rcvr);
 
 				match = true;
 				wifimgr_dbg("receiver 0x%p matches\n", rcvr);
@@ -217,10 +216,10 @@ static void *event_listener(void *handle)
 			/* Call event callback */
 			ret = rcvr->cb(rcvr->arg);
 			if (!ret)
-				/*Step to next state when successful callback */
+				/*Step to next state on success */
 				wifimgr_sm_step_evt(mgr, msg.evt_id);
 			else
-				/*Step back to previous state when failed callback */
+				/*Roll back to previous state on failure */
 				wifimgr_sm_step_back(mgr, msg.evt_id);
 		} else {
 			wifimgr_err("unexpected [%s] under %s!\n",
@@ -234,7 +233,7 @@ static void *event_listener(void *handle)
 	return NULL;
 }
 
-int wifimgr_event_listener_init(struct evt_listener *handle)
+int wifimgr_evt_listener_init(struct evt_listener *handle)
 {
 	struct evt_listener *lsnr = (struct evt_listener *)handle;
 	struct mq_attr attr;
@@ -278,7 +277,7 @@ int wifimgr_event_listener_init(struct evt_listener *handle)
 			      WIFIMGR_EVT_LISTENER_STACKSIZE);
 	pthread_attr_setschedpolicy(&tattr, SCHED_FIFO);
 
-	ret = pthread_create(&lsnr->evt_pid, &tattr, event_listener, lsnr);
+	ret = pthread_create(&lsnr->evt_pid, &tattr, evt_listener, lsnr);
 	if (ret) {
 		wifimgr_err("failed to start %s!\n", WIFIMGR_EVT_LISTENER);
 		lsnr->is_setup = false;

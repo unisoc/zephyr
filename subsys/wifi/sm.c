@@ -50,9 +50,8 @@ static int sm_timer_init(struct wifimgr_state_machine *sm, void *sighand)
 
 	ret = timer_create(CLOCK_MONOTONIC, &toevent, &sm->timerid);
 	if (ret < 0) {
-		int errorcode = errno;
-		wifimgr_err("failed to create a timer: %d\n", errorcode);
-		return -errorcode;
+		wifimgr_err("failed to create a timer: %d\n", -errno);
+		return -errno;
 	}
 
 	return ret;
@@ -66,9 +65,8 @@ static int sm_timer_release(timer_t timerid)
 	/* Delete the POSIX timer */
 	result = timer_delete(timerid);
 	if (result < 0) {
-		int errorcode = errno;
-		wifimgr_err("failed to delete the timer: %d\n", errorcode);
-		ret = -errorcode;
+		wifimgr_err("failed to create a timer: %d\n", -errno);
+		return -errno;
 	}
 
 	return ret;
@@ -423,15 +421,20 @@ bool is_ap_cmd(unsigned int cmd_id)
 		&& (cmd_id < WIFIMGR_CMD_MAX));
 }
 
+bool is_ap_evt(unsigned int evt_id)
+{
+	return ((evt_id >= WIFIMGR_EVT_NEW_STATION)
+		&& (evt_id <= WIFIMGR_EVT_MAX));
+}
+
 int sm_ap_query(struct wifimgr_state_machine *ap_sm)
 {
 	return ap_sm->state;
 }
 
-bool is_ap_evt(unsigned int evt_id)
+bool sm_ap_started(struct wifimgr_state_machine *ap_sm)
 {
-	return ((evt_id >= WIFIMGR_EVT_NEW_STATION)
-		&& (evt_id <= WIFIMGR_EVT_MAX));
+	return sm_ap_query(ap_sm) == WIFIMGR_SM_AP_STARTED;
 }
 
 static void sm_ap_step(struct wifimgr_state_machine *ap_sm,

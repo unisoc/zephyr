@@ -60,6 +60,7 @@ const char *ap_sts2str(int state);
 bool is_ap_cmd(unsigned int cmd_id);
 bool is_ap_evt(unsigned int evt_id);
 int sm_ap_query(struct wifimgr_state_machine *ap_sm);
+bool sm_ap_started(struct wifimgr_state_machine *ap_sm);
 void sm_ap_step_cmd(struct wifimgr_state_machine *ap_sm, unsigned int cmd_id);
 int sm_ap_init(struct wifimgr_state_machine *ap_sm);
 

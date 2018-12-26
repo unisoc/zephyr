@@ -15,7 +15,7 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
 
-static const char *wifimgr_setting_keynames[] = {
+static const char *const wifimgr_setting_keynames[] = {
 	WIFIMGR_SETTING_NAME_SSID,
 	WIFIMGR_SETTING_NAME_BSSID,
 	WIFIMGR_SETTING_NAME_PSK,
