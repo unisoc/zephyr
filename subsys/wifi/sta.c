@@ -32,9 +32,9 @@ void wifimgr_sta_event_timeout(wifimgr_work *work)
 	case WIFIMGR_CMD_SCAN:
 		expected_evt = WIFIMGR_EVT_SCAN_DONE;
 		wifimgr_err("[%s] timeout!\n", wifimgr_evt2str(expected_evt));
-		event_listener_remove_receiver(&mgr->lsnr,
-					       WIFIMGR_EVT_SCAN_RESULT);
-		event_listener_remove_receiver(&mgr->lsnr, expected_evt);
+		evt_listener_remove_receiver(&mgr->lsnr,
+					     WIFIMGR_EVT_SCAN_RESULT);
+		evt_listener_remove_receiver(&mgr->lsnr, expected_evt);
 
 		if (cbs && cbs->notify_scan_timeout)
 			cbs->notify_scan_timeout();
@@ -42,7 +42,7 @@ void wifimgr_sta_event_timeout(wifimgr_work *work)
 	case WIFIMGR_CMD_CONNECT:
 		expected_evt = WIFIMGR_EVT_CONNECT;
 		wifimgr_err("[%s] timeout!\n", wifimgr_evt2str(expected_evt));
-		event_listener_remove_receiver(&mgr->lsnr, expected_evt);
+		evt_listener_remove_receiver(&mgr->lsnr, expected_evt);
 
 		if (cbs && cbs->notify_connect_timeout)
 			cbs->notify_connect_timeout();
@@ -70,12 +70,10 @@ static int wifimgr_sta_get_config(void *handle)
 	char *passphrase = NULL;
 
 	/* Load config form non-volatile memory */
-	/*memset(conf, 0, sizeof(struct wifimgr_config));*/
 	wifimgr_load_config(conf, WIFIMGR_SETTING_STA_PATH);
 
 	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
 		wifimgr_info("No STA Config found!\n");
-		return 0;
 	} else {
 		wifimgr_info("STA Config\n");
 		if (strlen(conf->ssid)) {
@@ -85,9 +83,10 @@ static int wifimgr_sta_get_config(void *handle)
 
 		if (!is_zero_ether_addr(conf->bssid)) {
 			bssid = conf->bssid;
-			wifimgr_info("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-				     bssid[0], bssid[1], bssid[2],
-				     bssid[3], bssid[4], bssid[5]);
+			wifimgr_info
+			    ("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+			     bssid[0], bssid[1], bssid[2], bssid[3], bssid[4],
+			     bssid[5]);
 		}
 
 		if (strlen(conf->passphrase)) {
@@ -211,7 +210,7 @@ static int wifimgr_sta_disconnect_event(void *arg)
 	wifimgr_info("disconnect, reason_code %d!\n", disc->reason_code);
 	fflush(stdout);
 
-	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
+	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
 	memset(sts->u.sta.host_ssid, 0x0, WIFIMGR_MAX_SSID_LEN + 1);
 	memset(sts->u.sta.host_bssid, 0x0, WIFIMGR_ETH_ALEN);
 	sts->u.sta.host_channel = 0;
@@ -232,14 +231,14 @@ static int wifimgr_sta_disconnect(void *handle)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
 
-	event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_DISCONNECT,
-				    true, wifimgr_sta_disconnect_event,
-				    &mgr->evt_disc);
+	evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_DISCONNECT,
+				  true, wifimgr_sta_disconnect_event,
+				  &mgr->evt_disc);
 
 	ret = wifi_drv_iface_disconnect(mgr->sta_iface);
 	if (ret)
-		event_listener_remove_receiver(&mgr->lsnr,
-					       WIFIMGR_EVT_DISCONNECT);
+		evt_listener_remove_receiver(&mgr->lsnr,
+					     WIFIMGR_EVT_DISCONNECT);
 
 	return ret;
 }
@@ -259,13 +258,13 @@ static int wifimgr_sta_connect_event(void *arg)
 		wifimgr_info("connect successfully!\n");
 
 		/* Register disconnect event here due to AP deauth */
-		event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_DISCONNECT,
-					    true, wifimgr_sta_disconnect_event,
-					    &mgr->evt_disc);
+		evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_DISCONNECT,
+					  true, wifimgr_sta_disconnect_event,
+					  &mgr->evt_disc);
 
-		command_processor_register_sender(&mgr->prcs,
-						  WIFIMGR_CMD_DISCONNECT,
-						  wifimgr_sta_disconnect, mgr);
+		cmd_processor_add_sender(&mgr->prcs,
+					 WIFIMGR_CMD_DISCONNECT,
+					 wifimgr_sta_disconnect, mgr);
 		if (strlen(conf->ssid))
 			strcpy(sts->u.sta.host_ssid, conf->ssid);
 		if (!is_zero_ether_addr(conn->bssid))
@@ -302,9 +301,9 @@ static int wifimgr_sta_connect(void *handle)
 
 	wifimgr_info("Connecting to %s\n", conf->ssid);
 
-	ret = event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_CONNECT,
-					  true, wifimgr_sta_connect_event,
-					  &mgr->evt_conn);
+	ret = evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_CONNECT,
+					true, wifimgr_sta_connect_event,
+					&mgr->evt_conn);
 	if (ret)
 		return ret;
 
@@ -312,7 +311,7 @@ static int wifimgr_sta_connect(void *handle)
 				     conf->passphrase, conf->channel);
 
 	if (ret)
-		event_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_CONNECT);
+		evt_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_CONNECT);
 
 	return ret;
 }
@@ -328,16 +327,19 @@ static int wifimgr_sta_scan_result(void *arg)
 	char *ssid = NULL;
 	char *bssid = NULL;
 
-	if (strlen(scan_res->ssid))
+	if (strlen(scan_res->ssid)) {
 		ssid = scan_res->ssid;
-	wifimgr_info("\t%-32s", scan_res->ssid);
+		wifimgr_info("\t%-32s", ssid);
+	}
 
-	if (!is_zero_ether_addr(scan_res->bssid))
+	if (!is_zero_ether_addr(scan_res->bssid)) {
 		bssid = scan_res->bssid;
-	wifimgr_info("\t%02x:%02x:%02x:%02x:%02x:%02x\t%u\t%d\n",
-		     bssid[0], bssid[1], bssid[2],
-		     bssid[3], bssid[4], bssid[5],
-		     scan_res->channel, scan_res->rssi);
+		wifimgr_info("\t%02x:%02x:%02x:%02x:%02x:%02x\t%u\t%d\n",
+			     bssid[0], bssid[1], bssid[2],
+			     bssid[3], bssid[4], bssid[5],
+			     scan_res->channel, scan_res->rssi);
+	}
+
 	fflush(stdout);
 
 	/* Found specified AP */
@@ -366,7 +368,7 @@ static int wifimgr_sta_scan_done(void *arg)
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	int ret = scan_done->result;
 
-	event_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_RESULT);
+	evt_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_RESULT);
 
 	if (!ret)
 		wifimgr_info("scan done!\n");
@@ -387,18 +389,18 @@ static int wifimgr_sta_scan(void *handle)
 	struct wifimgr_config *conf = &mgr->sta_conf;
 	int ret;
 
-	ret = event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_RESULT,
-					  false, wifimgr_sta_scan_result,
-					  &mgr->evt_scan_res);
+	ret = evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_RESULT,
+					false, wifimgr_sta_scan_result,
+					&mgr->evt_scan_res);
 	if (ret)
 		return ret;
 
-	ret = event_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_DONE,
-					  true, wifimgr_sta_scan_done,
-					  &mgr->evt_scan_done);
+	ret = evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_DONE,
+					true, wifimgr_sta_scan_done,
+					&mgr->evt_scan_done);
 	if (ret) {
-		event_listener_remove_receiver(&mgr->lsnr,
-					       WIFIMGR_EVT_SCAN_RESULT);
+		evt_listener_remove_receiver(&mgr->lsnr,
+					     WIFIMGR_EVT_SCAN_RESULT);
 		return ret;
 	}
 
@@ -406,10 +408,9 @@ static int wifimgr_sta_scan(void *handle)
 
 	ret = wifi_drv_iface_scan(mgr->sta_iface, conf->band, conf->channel);
 	if (ret) {
-		event_listener_remove_receiver(&mgr->lsnr,
-					       WIFIMGR_EVT_SCAN_RESULT);
-		event_listener_remove_receiver(&mgr->lsnr,
-					       WIFIMGR_EVT_SCAN_DONE);
+		evt_listener_remove_receiver(&mgr->lsnr,
+					     WIFIMGR_EVT_SCAN_RESULT);
+		evt_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_DONE);
 	}
 
 	return ret;
@@ -426,14 +427,14 @@ static int wifimgr_sta_open(void *handle)
 		return ret;
 	}
 
-	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_STA);
+	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_STA);
 
-	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_STA,
-					  wifimgr_sta_close, mgr);
-	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_SCAN,
-					  wifimgr_sta_scan, mgr);
-	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_CONNECT,
-					  wifimgr_sta_connect, mgr);
+	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_STA,
+				 wifimgr_sta_close, mgr);
+	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_SCAN,
+				 wifimgr_sta_scan, mgr);
+	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_CONNECT,
+				 wifimgr_sta_connect, mgr);
 
 	return ret;
 }
@@ -449,13 +450,13 @@ static int wifimgr_sta_close(void *handle)
 		return ret;
 	}
 
-	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_STA);
-	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
-	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_CONNECT);
-	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_SCAN);
+	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_STA);
+	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
+	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_CONNECT);
+	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_SCAN);
 
-	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_STA,
-					  wifimgr_sta_open, mgr);
+	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_STA,
+				 wifimgr_sta_open, mgr);
 
 	return ret;
 }
@@ -466,14 +467,12 @@ void wifimgr_sta_init(void *handle)
 	struct cmd_processor *prcs = &mgr->prcs;
 
 	/* Register default STA commands */
-	command_processor_register_sender(prcs, WIFIMGR_CMD_SET_STA_CONFIG,
-					  wifimgr_sta_set_config,
-					  &mgr->sta_conf);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_STA_CONFIG,
-					  wifimgr_sta_get_config,
-					  &mgr->sta_conf);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_STA_STATUS,
-					  wifimgr_sta_get_status, mgr);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_OPEN_STA,
-					  wifimgr_sta_open, mgr);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_SET_STA_CONFIG,
+				 wifimgr_sta_set_config, &mgr->sta_conf);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_STA_CONFIG,
+				 wifimgr_sta_get_config, &mgr->sta_conf);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_STA_STATUS,
+				 wifimgr_sta_get_status, mgr);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_OPEN_STA,
+				 wifimgr_sta_open, mgr);
 }

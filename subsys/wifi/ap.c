@@ -55,7 +55,6 @@ static int wifimgr_ap_get_config(void *handle)
 
 	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
 		wifimgr_info("No AP Config found!\n");
-		return 0;
 	} else {
 		wifimgr_info("AP Config\n");
 		if (strlen(conf->ssid)) {
@@ -67,9 +66,10 @@ static int wifimgr_ap_get_config(void *handle)
 			wifi_drv_iface_get_mac(mgr->ap_iface, conf->bssid);
 		if (!is_zero_ether_addr(conf->bssid)) {
 			bssid = conf->bssid;
-			wifimgr_info("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-				     bssid[0], bssid[1], bssid[2],
-				     bssid[3], bssid[4], bssid[5]);
+			wifimgr_info
+			    ("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+			     bssid[0], bssid[1], bssid[2], bssid[3], bssid[4],
+			     bssid[5]);
 		}
 
 		if (strlen(conf->passphrase)) {
@@ -81,7 +81,8 @@ static int wifimgr_ap_get_config(void *handle)
 			wifimgr_info("Channel:\t%d\n", conf->channel);
 
 		if (conf->channel_width)
-			wifimgr_info("Channel Width:\t%d\n", conf->channel_width);
+			wifimgr_info("Channel Width:\t%d\n",
+				     conf->channel_width);
 	}
 
 	fflush(stdout);
@@ -142,20 +143,23 @@ static int wifimgr_ap_get_status(void *handle)
 		     sts->own_mac[0], sts->own_mac[1], sts->own_mac[2],
 		     sts->own_mac[3], sts->own_mac[4], sts->own_mac[5]);
 
-	if (sts->u.ap.client_nr) {
+	if (sm_ap_started(sm) == true) {
 		int i;
 
 		wifimgr_info("----------------\n");
 		wifimgr_info("Client Number:\t%d\n", sts->u.ap.client_nr);
-		wifimgr_info("Client List:\n");
-		for (i = 0; i < sts->u.ap.client_nr; i++)
-			wifimgr_info("\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-				     sts->u.ap.client_mac[i][0],
-				     sts->u.ap.client_mac[i][1],
-				     sts->u.ap.client_mac[i][2],
-				     sts->u.ap.client_mac[i][3],
-				     sts->u.ap.client_mac[i][4],
-				     sts->u.ap.client_mac[i][5]);
+
+		if (sts->u.ap.client_nr) {
+			wifimgr_info("Client List:\n");
+			for (i = 0; i < sts->u.ap.client_nr; i++)
+				wifimgr_info("\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+					     sts->u.ap.client_mac[i][0],
+					     sts->u.ap.client_mac[i][1],
+					     sts->u.ap.client_mac[i][2],
+					     sts->u.ap.client_mac[i][3],
+					     sts->u.ap.client_mac[i][4],
+					     sts->u.ap.client_mac[i][5]);
+		}
 	}
 
 	/* Notify the external caller */
@@ -171,7 +175,7 @@ static int wifimgr_ap_get_status(void *handle)
 static int wifimgr_ap_del_station(void *handle)
 {
 	struct wifimgr_del_station *del_sta =
-	    (struct wifimgr_del_station *)handle;;
+	    (struct wifimgr_del_station *)handle;
 	struct wifi_manager *mgr =
 	    container_of(del_sta, struct wifi_manager, del_sta);
 	int ret;
@@ -203,10 +207,10 @@ static int wifimgr_ap_new_station_event_cb(void *arg)
 
 	if (new_sta->is_connect) {
 		if (!sts->u.ap.client_nr)
-			command_processor_register_sender(&mgr->prcs,
-							  WIFIMGR_CMD_DEL_STATION,
-							  wifimgr_ap_del_station,
-							  &mgr->del_sta);
+			cmd_processor_add_sender(&mgr->prcs,
+						 WIFIMGR_CMD_DEL_STATION,
+						 wifimgr_ap_del_station,
+						 &mgr->del_sta);
 
 		if (sts->u.ap.client_nr < WIFIMGR_MAX_STA_NR) {
 			sts->u.ap.client_nr++;
@@ -223,8 +227,8 @@ static int wifimgr_ap_new_station_event_cb(void *arg)
 		}
 
 		if (!sts->u.ap.client_nr)
-			command_processor_unregister_sender(&mgr->prcs,
-							    WIFIMGR_CMD_DEL_STATION);
+			cmd_processor_remove_sender(&mgr->prcs,
+						    WIFIMGR_CMD_DEL_STATION);
 	}
 
 	/* Notify the external caller */
@@ -250,10 +254,10 @@ static int wifimgr_ap_start(void *handle)
 	       WIFIMGR_MAX_STA_NR * WIFIMGR_ETH_ALEN);
 	sts->u.ap.client_nr = 0;
 
-	ret = event_listener_add_receiver(&mgr->lsnr,
-					  WIFIMGR_EVT_NEW_STATION, false,
-					  wifimgr_ap_new_station_event_cb,
-					  &mgr->evt_new_sta);
+	ret = evt_listener_add_receiver(&mgr->lsnr,
+					WIFIMGR_EVT_NEW_STATION, false,
+					wifimgr_ap_new_station_event_cb,
+					&mgr->evt_new_sta);
 	if (ret) {
 		wifimgr_err("failed to start AP!\n");
 		return ret;
@@ -264,17 +268,17 @@ static int wifimgr_ap_start(void *handle)
 				      conf->channel_width);
 
 	if (ret) {
-		event_listener_remove_receiver(&mgr->lsnr,
-					       WIFIMGR_EVT_NEW_STATION);
+		evt_listener_remove_receiver(&mgr->lsnr,
+					     WIFIMGR_EVT_NEW_STATION);
 		return ret;
 	}
 
 	wifimgr_ap_led_on();
 
-	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_START_AP);
+	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_START_AP);
 
-	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP,
-					  wifimgr_ap_stop, mgr);
+	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP,
+				 wifimgr_ap_stop, mgr);
 
 	/* TODO: Start DHCP server */
 
@@ -294,11 +298,11 @@ static int wifimgr_ap_stop(void *handle)
 
 	wifimgr_ap_led_off();
 
-	event_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_NEW_STATION);
+	evt_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_NEW_STATION);
 
-	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP);
-	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_START_AP,
-					  wifimgr_ap_start, mgr);
+	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP);
+	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_START_AP,
+				 wifimgr_ap_start, mgr);
 
 	return ret;
 }
@@ -314,12 +318,12 @@ static int wifimgr_ap_open(void *handle)
 		return ret;
 	}
 
-	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_AP);
+	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_AP);
 
-	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_AP,
-					  wifimgr_ap_close, mgr);
-	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_START_AP,
-					  wifimgr_ap_start, mgr);
+	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_AP,
+				 wifimgr_ap_close, mgr);
+	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_START_AP,
+				 wifimgr_ap_start, mgr);
 
 	return ret;
 }
@@ -335,14 +339,14 @@ static int wifimgr_ap_close(void *handle)
 		return ret;
 	}
 
-	event_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_NEW_STATION);
+	evt_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_NEW_STATION);
 
-	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP);
-	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_START_AP);
-	command_processor_unregister_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_AP);
+	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP);
+	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_START_AP);
+	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_AP);
 
-	command_processor_register_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_AP,
-					  wifimgr_ap_open, mgr);
+	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_AP,
+				 wifimgr_ap_open, mgr);
 
 	return ret;
 }
@@ -353,12 +357,12 @@ void wifimgr_ap_init(void *handle)
 	struct cmd_processor *prcs = &mgr->prcs;
 
 	/* Register default AP commands */
-	command_processor_register_sender(prcs, WIFIMGR_CMD_SET_AP_CONFIG,
-					  wifimgr_ap_set_config, &mgr->ap_conf);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_AP_CONFIG,
-					  wifimgr_ap_get_config, &mgr->ap_conf);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_GET_AP_STATUS,
-					  wifimgr_ap_get_status, mgr);
-	command_processor_register_sender(prcs, WIFIMGR_CMD_OPEN_AP,
-					  wifimgr_ap_open, mgr);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_SET_AP_CONFIG,
+				 wifimgr_ap_set_config, &mgr->ap_conf);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_AP_CONFIG,
+				 wifimgr_ap_get_config, &mgr->ap_conf);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_AP_STATUS,
+				 wifimgr_ap_get_status, mgr);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_OPEN_AP,
+				 wifimgr_ap_open, mgr);
 }
