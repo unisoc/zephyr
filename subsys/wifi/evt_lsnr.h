@@ -78,11 +78,11 @@ struct evt_message {
 };
 
 int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len);
-int event_listener_add_receiver(struct evt_listener *handle,
-				unsigned int evt_id,
-				bool oneshot, evt_cb_t cb, void *arg);
-int event_listener_remove_receiver(struct evt_listener *handle,
+
+int evt_listener_add_receiver(struct evt_listener *handle, unsigned int evt_id,
+			      bool oneshot, evt_cb_t cb, void *arg);
+int evt_listener_remove_receiver(struct evt_listener *handle,
 				   unsigned int evt_id);
-int wifimgr_event_listener_init(struct evt_listener *handle);
+int wifimgr_evt_listener_init(struct evt_listener *handle);
 
 #endif
