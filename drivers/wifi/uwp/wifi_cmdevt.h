@@ -187,6 +187,8 @@ struct event_scan_done {
 
 struct event_connect {
 	u8_t status;
+	u8_t bssid[ETH_ALEN];
+	u8_t primary_chan_num;
 } __packed;
 
 struct event_disconnect {
