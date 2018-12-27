@@ -14,8 +14,8 @@
 
 int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 				char *passphrase, unsigned char band,
-				unsigned char channel,
-				unsigned char channel_width);
+				unsigned char channel, unsigned char ch_width,
+				char autorun);
 int wifimgr_ctrl_iface_get_conf(char *iface_name);
 int wifimgr_ctrl_iface_get_status(char *iface_name);
 int wifimgr_ctrl_iface_open(char *iface_name);
