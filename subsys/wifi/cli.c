@@ -20,13 +20,13 @@
 
 #include "api.h"
 
-static int strtomac(char *mac_string, char *mac_addr)
+static int strtomac(char *mac_str, char *mac_addr)
 {
 	char *mac;
 	int ret = 0;
 	int i;
 
-	mac = strtok(mac_string, ":");
+	mac = strtok(mac_str, ":");
 
 	for (i = 0; i < NET_LINK_ADDR_MAX_LENGTH; i++) {
 		char *tail;
@@ -51,20 +51,28 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 	char *bssid = NULL;
 	char *ssid = NULL;
 	char *passphrase = NULL;
+	char autorun = 0;
 	unsigned char band = 0;
 	unsigned char channel = 0;
-	unsigned char channel_width = 0;
+	unsigned char ch_width = 0;
 	int choice;
+	int ret;
 
 	if (!argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
 	optind = 0;
-	while ((choice = getopt(argc, argv, "b:c:m:n:p:w:")) != -1) {
+	while ((choice = getopt(argc, argv, "a:b:c:m:n:p:w:")) != -1) {
 		switch (choice) {
-		case 'n':
-			ssid = optarg;
+		case 'a':
+			autorun = atoi(optarg);
+			break;
+		case 'b':
+			band = atoi(optarg);
+			break;
+		case 'c':
+			channel = atoi(optarg);
 			break;
 		case 'm':
 			if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
@@ -75,7 +83,7 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 				if (!ret) {
 					mac = mac_addr;
 				} else {
-					printf("wrong host BSSID!\n");
+					printf("invalid host BSSID!\n");
 					return ret;
 				}
 				bssid = mac_addr;
@@ -85,18 +93,15 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 				return -EINVAL;
 			}
 			break;
+		case 'n':
+			ssid = optarg;
+			break;
 		case 'p':
 			passphrase = optarg;
 			break;
-		case 'b':
-			band = atoi(optarg);
-			break;
-		case 'c':
-			channel = atoi(optarg);
-			break;
 		case 'w':
 			if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP)) {
-				channel_width = atoi(optarg);
+				ch_width = atoi(optarg);
 			} else {
 				printf("invalid option '-%c' for '%s'\n",
 				       choice, iface_name);
@@ -108,8 +113,12 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 		}
 	}
 
-	return wifimgr_ctrl_iface_set_conf(iface_name, ssid, bssid, passphrase,
-					   band, channel, channel_width);
+	ret = wifimgr_ctrl_iface_set_conf(iface_name, ssid, bssid, passphrase,
+					  band, channel, ch_width, autorun);
+	if (ret)
+		printf("invalid arguments!");
+
+	return ret;
 }
 
 static int wifimgr_cmd_get_config(const struct shell *shell, size_t argc,
@@ -216,10 +225,10 @@ static int wifimgr_cmd_del_station(const struct shell *shell, size_t argc,
 
 SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
 	SHELL_CMD(set_config, NULL,
-	 "<sta> -n <SSID> -m <BSSID> -c <channel> <PSK (WPA/WPA2)>"
-	 "\n<sta> (clear STA config)"
-	 "\n<ap> -n <SSID> -c <channel> -w <channel_width> <PSK (WPA/WPA2)>"
-	 "\n<ap> (clear AP config)",
+	 "<sta> -n <SSID> -m <BSSID> -c <channel> -p <PSK (WPA/WPA2)>\n-a <0: disable, 1: enable>"
+	 "\n<sta> (clear all STA configs)"
+	 "\n<ap> -n <SSID> -c <channel> -w <ch_width> -p <PSK (WPA/WPA2)>\n-a <0: disable, 1: enable>"
+	 "\n<ap> (clear all AP configs)",
 	 wifimgr_cmd_set_config),
 	SHELL_CMD(get_config, NULL,
 	 "<iface, sta or ap>",
