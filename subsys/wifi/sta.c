@@ -70,12 +70,15 @@ static int wifimgr_sta_get_config(void *handle)
 	char *passphrase = NULL;
 
 	/* Load config form non-volatile memory */
-	wifimgr_load_config(conf, WIFIMGR_SETTING_STA_PATH);
+	wifimgr_config_load(conf, WIFIMGR_SETTING_STA_PATH);
 
 	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
 		wifimgr_info("No STA Config found!\n");
 	} else {
 		wifimgr_info("STA Config\n");
+		if (conf->autorun)
+			wifimgr_info("Autorun:\t%d\n", conf->autorun);
+
 		if (strlen(conf->ssid)) {
 			ssid = conf->ssid;
 			wifimgr_info("SSID:\t\t%s\n", ssid);
@@ -101,10 +104,9 @@ static int wifimgr_sta_get_config(void *handle)
 	fflush(stdout);
 
 	/* Notify the external caller */
-	if (cbs && cbs->get_conf_cb)
-		cbs->get_conf_cb(WIFIMGR_IFACE_NAME_STA, ssid, bssid,
-				 passphrase, conf->band, conf->channel,
-				 conf->channel_width);
+	if (cbs && cbs->get_sta_conf_cb)
+		cbs->get_sta_conf_cb(ssid, bssid, passphrase, conf->band,
+				     conf->channel, conf->autorun);
 
 	return 0;
 }
@@ -113,15 +115,16 @@ static int wifimgr_sta_set_config(void *handle)
 {
 	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
-	/* Save config to non-volatile memory */
-	wifimgr_save_config(conf, WIFIMGR_SETTING_STA_PATH);
-
 	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
 		wifimgr_info("Clearing STA Config ...\n");
+		wifimgr_config_clear(conf, WIFIMGR_SETTING_STA_PATH);
 		return 0;
 	}
 
 	wifimgr_info("Setting STA Config ...\n");
+
+	if (conf->autorun)
+		wifimgr_info("Autorun:\t%d\n", conf->autorun);
 
 	if (strlen(conf->ssid))
 		wifimgr_info("SSID:\t\t%s\n", conf->ssid);
@@ -138,6 +141,9 @@ static int wifimgr_sta_set_config(void *handle)
 		wifimgr_info("Channel:\t%d\n", conf->channel);
 
 	fflush(stdout);
+
+	/* Save config to non-volatile memory */
+	wifimgr_config_save(conf, WIFIMGR_SETTING_STA_PATH);
 
 	return 0;
 }
