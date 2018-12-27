@@ -19,38 +19,76 @@ static struct wifimgr_ctrl_cbs *wifimgr_cbs;
 
 int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 				char *passphrase, unsigned char band,
-				unsigned char channel,
-				unsigned char channel_width)
+				unsigned char channel, unsigned char ch_width,
+				char autorun)
 {
 	struct wifimgr_config conf;
 	unsigned int cmd_id = 0;
 
 	if (!iface_name)
 		return -EINVAL;
-	if ((strlen(ssid) > sizeof(conf.ssid))
-	    || (strlen(passphrase) > sizeof(conf.passphrase)))
-		return -EINVAL;
-
-	memset(&conf, 0, sizeof(conf));
-	if (ssid && strlen(ssid))
-		strcpy(conf.ssid, ssid);
-	if (bssid && !is_zero_ether_addr(bssid))
-		memcpy(conf.bssid, bssid, WIFIMGR_ETH_ALEN);
-	if (passphrase && strlen(passphrase))
-		strcpy(conf.passphrase, passphrase);
-	if (band)
-		conf.band = band;
-	if (channel)
-		conf.channel = channel;
-	if (channel_width)
-		conf.channel_width = channel_width;
-
 	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
 		cmd_id = WIFIMGR_CMD_SET_STA_CONFIG;
 	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
 		cmd_id = WIFIMGR_CMD_SET_AP_CONFIG;
 	else
 		return -EINVAL;
+
+	memset(&conf, 0, sizeof(conf));
+
+	/* Check SSID (mandatory) */
+	if (!ssid || (strlen(ssid) > sizeof(conf.ssid)))
+		return -EINVAL;
+	strcpy(conf.ssid, ssid);
+
+	/* Check BSSID (optional) */
+	if (bssid && is_zero_ether_addr(bssid))
+		return -EINVAL;
+	memcpy(conf.bssid, bssid, WIFIMGR_ETH_ALEN);
+
+	/* Check Passphrase (optional: valid only for WPA/WPA2-PSK) */
+	if (!passphrase || (strlen(passphrase) > sizeof(conf.passphrase)))
+		return -EINVAL;
+	strcpy(conf.passphrase, passphrase);
+
+	/* Check band */
+	switch (band) {
+	case 0:
+	case 2:
+	case 5:
+		conf.band = band;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	/* Check channel */
+	if ((channel > 14 && channel < 34) || (channel > 196))
+		return -EINVAL;
+	conf.channel = channel;
+
+	/* Check channel width */
+	switch (ch_width) {
+	case 0:
+	case 20:
+	case 40:
+	case 80:
+	case 160:
+		conf.ch_width = ch_width;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	/* Check autorun */
+	switch (autorun) {
+	case 0:
+	case 1:
+		conf.autorun = autorun;
+		break;
+	default:
+		return -EINVAL;
+	}
 
 	return wifimgr_send_cmd(cmd_id, &conf, sizeof(conf));
 }

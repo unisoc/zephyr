@@ -24,7 +24,7 @@ int wifi_drv_iface_notify_ip(void *iface, char *ipaddr, char len);
 int wifi_drv_iface_open_softap(void *iface);
 int wifi_drv_iface_close_softap(void *iface);
 int wifi_drv_iface_start_ap(void *iface, char *ssid, char *passwd,
-			    unsigned char channel, unsigned char channel_width);
+			    unsigned char channel, unsigned char ch_width);
 int wifi_drv_iface_stop_ap(void *iface);
 int wifi_drv_iface_del_station(void *iface, char *mac);
 

@@ -43,33 +43,23 @@ void wifimgr_ap_event_timeout(wifimgr_work *work)
 static int wifimgr_ap_get_config(void *handle)
 {
 	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
-	struct wifi_manager *mgr =
-	    container_of(conf, struct wifi_manager, ap_conf);
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	char *ssid = NULL;
-	char *bssid = NULL;
 	char *passphrase = NULL;
 
 	/* Load config form non-volatile memory */
-	wifimgr_load_config(conf, WIFIMGR_SETTING_AP_PATH);
+	wifimgr_config_load(conf, WIFIMGR_SETTING_AP_PATH);
 
 	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
 		wifimgr_info("No AP Config found!\n");
 	} else {
 		wifimgr_info("AP Config\n");
+		if (conf->autorun)
+			wifimgr_info("Autorun:\t%d\n", conf->autorun);
+
 		if (strlen(conf->ssid)) {
 			ssid = conf->ssid;
 			wifimgr_info("SSID:\t\t%s\n", ssid);
-		}
-
-		if (is_zero_ether_addr(conf->bssid))
-			wifi_drv_iface_get_mac(mgr->ap_iface, conf->bssid);
-		if (!is_zero_ether_addr(conf->bssid)) {
-			bssid = conf->bssid;
-			wifimgr_info
-			    ("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-			     bssid[0], bssid[1], bssid[2], bssid[3], bssid[4],
-			     bssid[5]);
 		}
 
 		if (strlen(conf->passphrase)) {
@@ -80,18 +70,16 @@ static int wifimgr_ap_get_config(void *handle)
 		if (conf->channel)
 			wifimgr_info("Channel:\t%d\n", conf->channel);
 
-		if (conf->channel_width)
-			wifimgr_info("Channel Width:\t%d\n",
-				     conf->channel_width);
+		if (conf->ch_width)
+			wifimgr_info("Channel Width:\t%d\n", conf->ch_width);
 	}
 
 	fflush(stdout);
 
 	/* Notify the external caller */
-	if (cbs && cbs->get_conf_cb)
-		cbs->get_conf_cb(WIFIMGR_IFACE_NAME_AP, ssid, bssid,
-				 passphrase, conf->band, conf->channel,
-				 conf->channel_width);
+	if (cbs && cbs->get_ap_conf_cb)
+		cbs->get_ap_conf_cb(ssid, passphrase, conf->band, conf->channel,
+				    conf->ch_width, conf->autorun);
 
 	return 0;
 }
@@ -100,15 +88,16 @@ static int wifimgr_ap_set_config(void *handle)
 {
 	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
-	/* Save config to non-volatile memory */
-	wifimgr_save_config(conf, WIFIMGR_SETTING_AP_PATH);
-
 	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
 		wifimgr_info("Clearing STA Config ...\n");
+		wifimgr_config_clear(conf, WIFIMGR_SETTING_AP_PATH);
 		return 0;
 	}
 
 	wifimgr_info("Setting AP Config ...\n");
+
+	if (conf->autorun)
+		wifimgr_info("Autorun:\t%d\n", conf->autorun);
 
 	if (strlen(conf->ssid))
 		wifimgr_info("SSID:\t\t%s\n", conf->ssid);
@@ -119,10 +108,13 @@ static int wifimgr_ap_set_config(void *handle)
 	if (conf->channel)
 		wifimgr_info("Channel:\t%d\n", conf->channel);
 
-	if (conf->channel_width)
-		wifimgr_info("Channel Width:\t%d\n", conf->channel_width);
+	if (conf->ch_width)
+		wifimgr_info("Channel Width:\t%d\n", conf->ch_width);
 
 	fflush(stdout);
+
+	/* Save config to non-volatile memory */
+	wifimgr_config_save(conf, WIFIMGR_SETTING_AP_PATH);
 
 	return 0;
 }
@@ -152,13 +144,14 @@ static int wifimgr_ap_get_status(void *handle)
 		if (sts->u.ap.client_nr) {
 			wifimgr_info("Client List:\n");
 			for (i = 0; i < sts->u.ap.client_nr; i++)
-				wifimgr_info("\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-					     sts->u.ap.client_mac[i][0],
-					     sts->u.ap.client_mac[i][1],
-					     sts->u.ap.client_mac[i][2],
-					     sts->u.ap.client_mac[i][3],
-					     sts->u.ap.client_mac[i][4],
-					     sts->u.ap.client_mac[i][5]);
+				wifimgr_info
+				    ("\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
+				     sts->u.ap.client_mac[i][0],
+				     sts->u.ap.client_mac[i][1],
+				     sts->u.ap.client_mac[i][2],
+				     sts->u.ap.client_mac[i][3],
+				     sts->u.ap.client_mac[i][4],
+				     sts->u.ap.client_mac[i][5]);
 		}
 	}
 
@@ -265,7 +258,7 @@ static int wifimgr_ap_start(void *handle)
 
 	ret = wifi_drv_iface_start_ap(mgr->ap_iface, conf->ssid,
 				      conf->passphrase, conf->channel,
-				      conf->channel_width);
+				      conf->ch_width);
 
 	if (ret) {
 		evt_listener_remove_receiver(&mgr->lsnr,

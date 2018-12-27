@@ -39,12 +39,13 @@
 #define E2S(x) case x: return #x;
 
 struct wifimgr_config {
+	char autorun;
 	char ssid[WIFIMGR_MAX_SSID_LEN + 1];
 	char bssid[WIFIMGR_ETH_ALEN];
 	char passphrase[WIFIMGR_MAX_PSPHR_LEN + 1];
 	unsigned char band;
 	unsigned char channel;
-	unsigned char channel_width;
+	unsigned char ch_width;
 };
 
 struct wifimgr_status {
