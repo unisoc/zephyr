@@ -32,6 +32,8 @@
 #define wifimgr_info(...)	printk(__VA_ARGS__)
 #define wifimgr_dbg(...)	LOG_DBG(__VA_ARGS__)
 
+#define wifimgr_hexdump(...)	LOG_HEXDUMP_DBG(__VA_ARGS__, NULL)
+
 /*
  * Copied from include/linux/...
  */
