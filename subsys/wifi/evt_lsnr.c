@@ -210,8 +210,10 @@ static void *evt_listener(void *handle)
 		if (match == true) {
 			/* Stop timer when receiving an event */
 			wifimgr_sm_stop_timer(mgr, msg.evt_id);
-			if (msg.buf_len)
+			if (msg.buf_len) {
+				wifimgr_hexdump(msg.buf, msg.buf_len);
 				memcpy(rcvr->arg, msg.buf, msg.buf_len);
+			}
 
 			/* Call event callback */
 			ret = rcvr->cb(rcvr->arg);
