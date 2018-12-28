@@ -33,7 +33,7 @@ struct wifi_drv_start_ap_params {
 	char *psk;
 	char psk_length; /* Min 8 - Max 64 */
 	unsigned char channel;
-	unsigned char channel_width;
+	unsigned char ch_width;
 	enum wifi_security_type security;
 };
 
