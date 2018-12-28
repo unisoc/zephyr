@@ -422,7 +422,7 @@ int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 	}
 
 	cmd.channel = params->channel;
-	cmd.vht_chwidth = wifi_chan_bw_map(params->channel_width);
+	cmd.vht_chwidth = wifi_chan_bw_map(params->ch_width);
 
 	ret = wifi_cmd_send(WIFI_CMD_START_AP, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
