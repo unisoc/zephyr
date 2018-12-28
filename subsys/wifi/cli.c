@@ -56,7 +56,6 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 	unsigned char channel = 0;
 	unsigned char ch_width = 0;
 	int choice;
-	int ret;
 
 	if (!argv[1])
 		return -EINVAL;
@@ -83,7 +82,7 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 				if (!ret) {
 					mac = mac_addr;
 				} else {
-					printf("invalid host BSSID!\n");
+					printf("invalid BSSID!\n");
 					return ret;
 				}
 				bssid = mac_addr;
@@ -113,12 +112,8 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 		}
 	}
 
-	ret = wifimgr_ctrl_iface_set_conf(iface_name, ssid, bssid, passphrase,
-					  band, channel, ch_width, autorun);
-	if (ret)
-		printf("invalid arguments!");
-
-	return ret;
+	return wifimgr_ctrl_iface_set_conf(iface_name, ssid, bssid, passphrase,
+					   band, channel, ch_width, autorun);
 }
 
 static int wifimgr_cmd_get_config(const struct shell *shell, size_t argc,
@@ -213,7 +208,7 @@ static int wifimgr_cmd_del_station(const struct shell *shell, size_t argc,
 		if (!ret) {
 			mac = mac_addr;
 		} else {
-			printf("wrong client MAC!\n");
+			printf("invalid client MAC!\n");
 			return ret;
 		}
 	} else {

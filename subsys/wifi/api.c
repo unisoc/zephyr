@@ -23,7 +23,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 				char autorun)
 {
 	struct wifimgr_config conf;
-	unsigned int cmd_id = 0;
+	unsigned int cmd_id;
 
 	if (!iface_name)
 		return -EINVAL;
@@ -37,19 +37,34 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	memset(&conf, 0, sizeof(conf));
 
 	/* Check SSID (mandatory) */
-	if (!ssid || (strlen(ssid) > sizeof(conf.ssid)))
-		return -EINVAL;
-	strcpy(conf.ssid, ssid);
+	if (ssid) {
+		if (strlen(ssid) > sizeof(conf.ssid)) {
+			wifimgr_err("invalid SSID: %s!", ssid);
+			return -EINVAL;
+		}
+
+		strcpy(conf.ssid, ssid);
+	}
 
 	/* Check BSSID (optional) */
-	if (bssid && is_zero_ether_addr(bssid))
-		return -EINVAL;
-	memcpy(conf.bssid, bssid, WIFIMGR_ETH_ALEN);
+	if (bssid) {
+		if (is_zero_ether_addr(bssid)) {
+			wifimgr_err("invalid BSSID!");
+			return -EINVAL;
+		}
+
+		memcpy(conf.bssid, bssid, WIFIMGR_ETH_ALEN);
+	}
 
 	/* Check Passphrase (optional: valid only for WPA/WPA2-PSK) */
-	if (!passphrase || (strlen(passphrase) > sizeof(conf.passphrase)))
-		return -EINVAL;
-	strcpy(conf.passphrase, passphrase);
+	if (passphrase) {
+		if (strlen(passphrase) > sizeof(conf.passphrase)) {
+			wifimgr_err("invalid PSK: %s!", passphrase);
+			return -EINVAL;
+		}
+
+		strcpy(conf.passphrase, passphrase);
+	}
 
 	/* Check band */
 	switch (band) {
@@ -59,12 +74,15 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 		conf.band = band;
 		break;
 	default:
+		wifimgr_err("invalid band: %d!", band);
 		return -EINVAL;
 	}
 
 	/* Check channel */
-	if ((channel > 14 && channel < 34) || (channel > 196))
+	if ((channel > 14 && channel < 34) || (channel > 196)) {
+		wifimgr_err("invalid channel: %d!", channel);
 		return -EINVAL;
+	}
 	conf.channel = channel;
 
 	/* Check channel width */
@@ -77,6 +95,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 		conf.ch_width = ch_width;
 		break;
 	default:
+		wifimgr_err("invalid channel width: %d!", ch_width);
 		return -EINVAL;
 	}
 
@@ -190,10 +209,14 @@ int wifimgr_ctrl_iface_del_station(char *mac)
 {
 	struct wifimgr_del_station del_sta;
 
-	if (mac && !is_zero_ether_addr(mac))
+	if (mac && !is_zero_ether_addr(mac)) {
 		memcpy(del_sta.mac, mac, WIFIMGR_ETH_ALEN);
-	else
+	} else if (!mac) {
 		memset(del_sta.mac, 0xff, WIFIMGR_ETH_ALEN);
+	} else {
+		wifimgr_err("invalid Client MAC!");
+		return -EINVAL;
+	}
 
 	return wifimgr_send_cmd(WIFIMGR_CMD_DEL_STATION, &del_sta,
 				sizeof(del_sta));

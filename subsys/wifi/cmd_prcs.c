@@ -186,8 +186,10 @@ static void *cmd_processor(void *handle)
 
 		sndr = &prcs->cmd_pool[msg.cmd_id];
 		if (sndr->fn) {
-			if (msg.buf_len)
+			if (msg.buf_len) {
+				wifimgr_hexdump(msg.buf, msg.buf_len);
 				memcpy(sndr->arg, msg.buf, msg.buf_len);
+			}
 
 			/* Call command function */
 			ret = sndr->fn(sndr->arg);
