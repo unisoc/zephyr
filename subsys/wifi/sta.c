@@ -14,7 +14,6 @@
 LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
-#include "led.h"
 
 static int wifimgr_sta_close(void *handle);
 
@@ -204,10 +203,10 @@ static int wifimgr_sta_get_status(void *handle)
 
 static int wifimgr_sta_disconnect_event(void *arg)
 {
-	struct wifimgr_evt_disconnect *disc =
-	    (struct wifimgr_evt_disconnect *)arg;
+	struct wifimgr_sta_event *sta_evt = (struct wifimgr_sta_event *)arg;
+	struct wifi_drv_evt_disconnect *disc = &sta_evt->u.disc;
 	struct wifi_manager *mgr =
-	    container_of(disc, struct wifi_manager, evt_disc);
+	    container_of(sta_evt, struct wifi_manager, sta_evt);
 	struct wifimgr_status *sts = &mgr->sta_sts;
 	struct net_if *iface = (struct net_if *)mgr->sta_iface;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
@@ -239,7 +238,7 @@ static int wifimgr_sta_disconnect(void *handle)
 
 	evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_DISCONNECT,
 				  true, wifimgr_sta_disconnect_event,
-				  &mgr->evt_disc);
+				  &mgr->sta_evt);
 
 	ret = wifi_drv_iface_disconnect(mgr->sta_iface);
 	if (ret)
@@ -251,9 +250,10 @@ static int wifimgr_sta_disconnect(void *handle)
 
 static int wifimgr_sta_connect_event(void *arg)
 {
-	struct wifimgr_evt_connect *conn = (struct wifimgr_evt_connect *)arg;
+	struct wifimgr_sta_event *sta_evt = (struct wifimgr_sta_event *)arg;
+	struct wifi_drv_evt_connect *conn = &sta_evt->u.conn;
 	struct wifi_manager *mgr =
-	    container_of(conn, struct wifi_manager, evt_conn);
+	    container_of(sta_evt, struct wifi_manager, sta_evt);
 	struct wifimgr_status *sts = &mgr->sta_sts;
 	struct wifimgr_config *conf = &mgr->sta_conf;
 	struct net_if *iface = (struct net_if *)mgr->sta_iface;
@@ -266,7 +266,7 @@ static int wifimgr_sta_connect_event(void *arg)
 		/* Register disconnect event here due to AP deauth */
 		evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_DISCONNECT,
 					  true, wifimgr_sta_disconnect_event,
-					  &mgr->evt_disc);
+					  &mgr->sta_evt);
 
 		cmd_processor_add_sender(&mgr->prcs,
 					 WIFIMGR_CMD_DISCONNECT,
@@ -309,7 +309,7 @@ static int wifimgr_sta_connect(void *handle)
 
 	ret = evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_CONNECT,
 					true, wifimgr_sta_connect_event,
-					&mgr->evt_conn);
+					&mgr->sta_evt);
 	if (ret)
 		return ret;
 
@@ -324,10 +324,10 @@ static int wifimgr_sta_connect(void *handle)
 
 static int wifimgr_sta_scan_result(void *arg)
 {
-	struct wifimgr_evt_scan_result *scan_res =
-	    (struct wifimgr_evt_scan_result *)arg;
+	struct wifimgr_sta_event *sta_evt = (struct wifimgr_sta_event *)arg;
+	struct wifi_drv_evt_scan_result *scan_res = &sta_evt->u.scan_res;
 	struct wifi_manager *mgr =
-	    container_of(scan_res, struct wifi_manager, evt_scan_res);
+	    container_of(sta_evt, struct wifi_manager, sta_evt);
 	struct wifimgr_config *conf = &mgr->sta_conf;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	char *ssid = NULL;
@@ -351,10 +351,10 @@ static int wifimgr_sta_scan_result(void *arg)
 	/* Found specified AP */
 	if (!strcmp(scan_res->ssid, conf->ssid)) {
 		if (!strncmp(scan_res->bssid, conf->bssid, WIFIMGR_ETH_ALEN))
-			mgr->evt_scan_done.found = true;
+			mgr->sta_evt.u.scan_done.found = true;
 		/* Choose the first match when BSSID is not specified */
 		else if (is_zero_ether_addr(conf->bssid))
-			mgr->evt_scan_done.found = true;
+			mgr->sta_evt.u.scan_done.found = true;
 	}
 
 	/* Notify the external caller */
@@ -367,10 +367,10 @@ static int wifimgr_sta_scan_result(void *arg)
 
 static int wifimgr_sta_scan_done(void *arg)
 {
-	struct wifimgr_evt_scan_done *scan_done =
-	    (struct wifimgr_evt_scan_done *)arg;
+	struct wifimgr_sta_event *sta_evt = (struct wifimgr_sta_event *)arg;
+	struct wifi_drv_evt_scan_done *scan_done = &sta_evt->u.scan_done;
 	struct wifi_manager *mgr =
-	    container_of(scan_done, struct wifi_manager, evt_scan_done);
+	    container_of(sta_evt, struct wifi_manager, sta_evt);
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	int ret = scan_done->result;
 
@@ -397,20 +397,20 @@ static int wifimgr_sta_scan(void *handle)
 
 	ret = evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_RESULT,
 					false, wifimgr_sta_scan_result,
-					&mgr->evt_scan_res);
+					&mgr->sta_evt);
 	if (ret)
 		return ret;
 
 	ret = evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_DONE,
 					true, wifimgr_sta_scan_done,
-					&mgr->evt_scan_done);
+					&mgr->sta_evt);
 	if (ret) {
 		evt_listener_remove_receiver(&mgr->lsnr,
 					     WIFIMGR_EVT_SCAN_RESULT);
 		return ret;
 	}
 
-	mgr->evt_scan_done.found = false;
+	mgr->sta_evt.u.scan_done.found = false;
 
 	ret = wifi_drv_iface_scan(mgr->sta_iface, conf->band, conf->channel);
 	if (ret) {

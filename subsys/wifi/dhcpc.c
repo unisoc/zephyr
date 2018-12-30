@@ -14,7 +14,6 @@
 LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
-#include "led.h"
 
 static struct net_mgmt_event_callback mgmt_cb;
 
