@@ -237,8 +237,7 @@ static int uwp_mgmt_stop_ap(struct device *dev)
 	return wifi_cmd_stop_ap(wifi_dev);
 }
 
-static int uwp_mgmt_del_station(struct device *dev,
-				u8_t *mac)
+static int uwp_mgmt_del_station(struct device *dev, char *mac)
 {
 	struct wifi_device *wifi_dev;
 
@@ -265,8 +264,8 @@ static int uwp_mgmt_del_station(struct device *dev,
 
 static int uwp_mgmt_hw_test(struct device *dev,
 		int ictx_id, char *t_buf,
-		u32_t t_len, char *r_buf,
-		u32_t *r_len)
+		unsigned int t_len, char *r_buf,
+		unsigned int *r_len)
 {
 	struct wifi_device *wifi_dev;
 
@@ -316,8 +315,7 @@ static int uwp_mgmt_scan(struct device *dev,
 
 }
 
-static int uwp_mgmt_get_station(struct device *dev,
-		u8_t *signal)
+static int uwp_mgmt_get_station(struct device *dev, char *signal)
 {
 	struct wifi_device *wifi_dev;
 
@@ -403,7 +401,7 @@ static int uwp_mgmt_disconnect(struct device *dev,
 	return wifi_cmd_disconnect(wifi_dev);
 }
 
-static int uwp_mgmt_set_ip(struct device *dev, u8_t *ip, u8_t len)
+static int uwp_mgmt_set_ip(struct device *dev, char *ip, unsigned char len)
 {
 	struct wifi_device *wifi_dev;
 
