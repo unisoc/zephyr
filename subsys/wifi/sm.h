@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef _WIFI_STATE_MACHINE_H_
-#define _WIFI_STATE_MACHINE_H_
+#ifndef _WIFI_SM_H_
+#define _WIFI_SM_H_
 
 enum wifimgr_sm_sta_state {
 	WIFIMGR_SM_STA_NODEV,

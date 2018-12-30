@@ -11,14 +11,10 @@
 
 #include <init.h>
 #include <shell/shell.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <net/net_linkaddr.h>
 #include <net/wifimgr_api.h>
 
 #include "api.h"
+#include "os_adapter.h"
 
 static int strtomac(char *mac_str, char *mac_addr)
 {
@@ -28,7 +24,7 @@ static int strtomac(char *mac_str, char *mac_addr)
 
 	mac = strtok(mac_str, ":");
 
-	for (i = 0; i < NET_LINK_ADDR_MAX_LENGTH; i++) {
+	for (i = 0; i < WIFIMGR_ETH_ALEN; i++) {
 		char *tail;
 
 		mac_addr[i] = strtol(mac, &tail, 16);
@@ -38,7 +34,7 @@ static int strtomac(char *mac_str, char *mac_addr)
 			break;
 	}
 
-	if (i != (NET_LINK_ADDR_MAX_LENGTH - 1))
+	if (i != (WIFIMGR_ETH_ALEN - 1))
 		ret = -EINVAL;
 
 	return ret;
@@ -75,7 +71,7 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 			break;
 		case 'm':
 			if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
-				char mac_addr[NET_LINK_ADDR_MAX_LENGTH];
+				char mac_addr[WIFIMGR_ETH_ALEN];
 				char *mac;
 				int ret = strtomac(optarg, mac_addr);
 
@@ -202,7 +198,7 @@ static int wifimgr_cmd_del_station(const struct shell *shell, size_t argc,
 	if (argc == 1) {
 		mac = NULL;
 	} else if (argc == 2 && argv[1]) {
-		char mac_addr[NET_LINK_ADDR_MAX_LENGTH];
+		char mac_addr[WIFIMGR_ETH_ALEN];
 		int ret = strtomac(argv[1], mac_addr);
 
 		if (!ret) {

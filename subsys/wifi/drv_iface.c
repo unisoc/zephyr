@@ -9,11 +9,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
-#include <logging/log.h>
-LOG_MODULE_DECLARE(wifimgr);
+#include <net/wifimgr_drv.h>
 
-#include "wifimgr.h"
+#include "os_adapter.h"
+#include "drv_iface.h"
+
+int wifi_drv_get_capa(void *iface)
+{
+	struct device *dev = net_if_get_device((struct net_if *)iface);
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
+
+	if (!drv_api->open)
+		return -EIO;
+
+	return drv_api->open(dev);
+}
 
 int wifi_drv_iface_get_mac(void *iface, char *mac)
 {
@@ -45,10 +55,10 @@ int wifi_drv_iface_close_station(void *iface)
 }
 
 static void wifi_drv_iface_scan_result_cb(void *iface, int status,
-					  struct wifi_drv_scan_result *entry)
+					  struct wifi_drv_evt_scan_result *entry)
 {
-	struct wifimgr_evt_scan_result scan_res;
-	struct wifimgr_evt_scan_done scan_done;
+	struct wifi_drv_evt_scan_result scan_res;
+	struct wifi_drv_evt_scan_done scan_done;
 
 	if (!entry) {
 		scan_done.result = status;
@@ -82,7 +92,7 @@ int wifi_drv_iface_scan(void *iface, unsigned char band, unsigned char channel)
 
 void wifi_drv_iface_disconnect_cb(void *iface, int status)
 {
-	struct wifimgr_evt_disconnect disc;
+	struct wifi_drv_evt_disconnect disc;
 
 	disc.reason_code = status;
 
@@ -103,7 +113,7 @@ int wifi_drv_iface_disconnect(void *iface)
 void wifi_drv_iface_connect_cb(void *iface, int status, char *bssid,
 			       unsigned char channel)
 {
-	struct wifimgr_evt_connect conn;
+	struct wifi_drv_evt_connect conn;
 
 	conn.status = status;
 	if (bssid && !is_zero_ether_addr(bssid))
@@ -185,7 +195,7 @@ int wifi_drv_iface_close_softap(void *iface)
 
 void wifi_drv_iface_new_station(void *iface, int status, char *mac)
 {
-	struct wifimgr_evt_new_station new_sta;
+	struct wifi_drv_evt_new_station new_sta;
 
 	new_sta.is_connect = status;
 	if (mac && !is_zero_ether_addr(mac))
