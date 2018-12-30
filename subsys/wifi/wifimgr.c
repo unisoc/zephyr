@@ -17,7 +17,6 @@ LOG_MODULE_REGISTER(wifimgr);
 #include <shell/shell.h>
 
 #include "wifimgr.h"
-#include "led.h"
 
 static struct wifi_manager wifimgr;
 

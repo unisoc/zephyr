@@ -9,11 +9,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
-#include <logging/log.h>
-LOG_MODULE_DECLARE(wifimgr);
+#include <net/wifimgr_api.h>
 
-#include "wifimgr.h"
+#include "api.h"
+#include "config.h"
 
 static struct wifimgr_ctrl_cbs *wifimgr_cbs;
 
@@ -39,7 +38,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	/* Check SSID (mandatory) */
 	if (ssid) {
 		if (strlen(ssid) > sizeof(conf.ssid)) {
-			wifimgr_err("invalid SSID: %s!", ssid);
+			printf("invalid SSID: %s!", ssid);
 			return -EINVAL;
 		}
 
@@ -49,7 +48,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	/* Check BSSID (optional) */
 	if (bssid) {
 		if (is_zero_ether_addr(bssid)) {
-			wifimgr_err("invalid BSSID!");
+			printf("invalid BSSID!");
 			return -EINVAL;
 		}
 
@@ -59,7 +58,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	/* Check Passphrase (optional: valid only for WPA/WPA2-PSK) */
 	if (passphrase) {
 		if (strlen(passphrase) > sizeof(conf.passphrase)) {
-			wifimgr_err("invalid PSK: %s!", passphrase);
+			printf("invalid PSK: %s!", passphrase);
 			return -EINVAL;
 		}
 
@@ -74,13 +73,13 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 		conf.band = band;
 		break;
 	default:
-		wifimgr_err("invalid band: %d!", band);
+		printf("invalid band: %d!", band);
 		return -EINVAL;
 	}
 
 	/* Check channel */
 	if ((channel > 14 && channel < 34) || (channel > 196)) {
-		wifimgr_err("invalid channel: %d!", channel);
+		printf("invalid channel: %d!", channel);
 		return -EINVAL;
 	}
 	conf.channel = channel;
@@ -95,7 +94,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 		conf.ch_width = ch_width;
 		break;
 	default:
-		wifimgr_err("invalid channel width: %d!", ch_width);
+		printf("invalid channel width: %d!", ch_width);
 		return -EINVAL;
 	}
 
@@ -109,7 +108,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 		return -EINVAL;
 	}
 
-	return wifimgr_send_cmd(cmd_id, &conf, sizeof(conf));
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, &conf, sizeof(conf));
 }
 
 int wifimgr_ctrl_iface_get_conf(char *iface_name)
@@ -126,7 +125,7 @@ int wifimgr_ctrl_iface_get_conf(char *iface_name)
 	else
 		return -EINVAL;
 
-	return wifimgr_send_cmd(cmd_id, NULL, 0);
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
 int wifimgr_ctrl_iface_get_status(char *iface_name)
@@ -143,7 +142,7 @@ int wifimgr_ctrl_iface_get_status(char *iface_name)
 	else
 		return -EINVAL;
 
-	return wifimgr_send_cmd(cmd_id, NULL, 0);
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
 int wifimgr_ctrl_iface_open(char *iface_name)
@@ -160,7 +159,7 @@ int wifimgr_ctrl_iface_open(char *iface_name)
 	else
 		return -EINVAL;
 
-	return wifimgr_send_cmd(cmd_id, NULL, 0);
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
 int wifimgr_ctrl_iface_close(char *iface_name)
@@ -177,32 +176,32 @@ int wifimgr_ctrl_iface_close(char *iface_name)
 	else
 		return -EINVAL;
 
-	return wifimgr_send_cmd(cmd_id, NULL, 0);
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
 int wifimgr_ctrl_iface_scan(void)
 {
-	return wifimgr_send_cmd(WIFIMGR_CMD_SCAN, NULL, 0);
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_SCAN, NULL, 0);
 }
 
 int wifimgr_ctrl_iface_connect(void)
 {
-	return wifimgr_send_cmd(WIFIMGR_CMD_CONNECT, NULL, 0);
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_CONNECT, NULL, 0);
 }
 
 int wifimgr_ctrl_iface_disconnect(void)
 {
-	return wifimgr_send_cmd(WIFIMGR_CMD_DISCONNECT, NULL, 0);
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_DISCONNECT, NULL, 0);
 }
 
 int wifimgr_ctrl_iface_start_ap(void)
 {
-	return wifimgr_send_cmd(WIFIMGR_CMD_START_AP, NULL, 0);
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_START_AP, NULL, 0);
 }
 
 int wifimgr_ctrl_iface_stop_ap(void)
 {
-	return wifimgr_send_cmd(WIFIMGR_CMD_STOP_AP, NULL, 0);
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_STOP_AP, NULL, 0);
 }
 
 int wifimgr_ctrl_iface_del_station(char *mac)
@@ -214,12 +213,12 @@ int wifimgr_ctrl_iface_del_station(char *mac)
 	} else if (!mac) {
 		memset(del_sta.mac, 0xff, WIFIMGR_ETH_ALEN);
 	} else {
-		wifimgr_err("invalid Client MAC!");
+		printf("invalid Client MAC!");
 		return -EINVAL;
 	}
 
-	return wifimgr_send_cmd(WIFIMGR_CMD_DEL_STATION, &del_sta,
-				sizeof(del_sta));
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_DEL_STATION, &del_sta,
+					   sizeof(del_sta));
 }
 
 static const struct wifimgr_ctrl_ops wifimgr_ops = {
