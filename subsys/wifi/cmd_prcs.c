@@ -17,7 +17,7 @@ LOG_MODULE_DECLARE(wifimgr);
 
 K_THREAD_STACK_ARRAY_DEFINE(cmd_stacks, 1, WIFIMGR_CMD_PROCESSOR_STACKSIZE);
 
-int wifimgr_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
+int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
 {
 	struct mq_des *mq;
 	struct mq_attr attr;

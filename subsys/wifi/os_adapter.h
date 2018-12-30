@@ -9,12 +9,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef _OS_ADAPTER_H_
-#define _OS_ADAPTER_H_
+#ifndef _WIFIMGR_OS_ADAPTER_H_
+#define _WIFIMGR_OS_ADAPTER_H_
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <posix/sys/types.h>
 #include <posix/pthread.h>
@@ -23,7 +24,7 @@
 
 #include <misc/slist.h>
 
-#include <net/net_if.h>
+#include <net/net_linkaddr.h>
 
 #define WIFIMGR_ETH_ALEN	NET_LINK_ADDR_MAX_LENGTH
 
