@@ -14,27 +14,13 @@
 
 #include <device.h>
 #include <net/ethernet.h>
+#include <net/net_linkaddr.h>
 #include <net/net_mgmt.h>
 #include <net/wifi.h>
 
-struct wifi_drv_connect_params {
-	char *ssid;
-	char ssid_length; /* Max 32 */
-	char *bssid;
-	char *psk;
-	char psk_length; /* Min 8 - Max 64 */
-	unsigned char channel;
-	enum wifi_security_type security;
-};
-
-struct wifi_drv_start_ap_params {
-	char *ssid;
-	char ssid_length; /* Max 32 */
-	char *psk;
-	char psk_length; /* Min 8 - Max 64 */
-	unsigned char channel;
-	unsigned char ch_width;
-	enum wifi_security_type security;
+struct wifi_drv_capa {
+	unsigned char max_ap_assoc_sta;
+	unsigned char max_acl_mac_addrs;
 };
 
 struct wifi_drv_scan_params {
@@ -44,23 +30,64 @@ struct wifi_drv_scan_params {
 	unsigned char channel;
 };
 
-struct wifi_drv_scan_result {
+struct wifi_drv_connect_params {
+	char *ssid;
+	char ssid_length;	/* Max 32 */
+	char *bssid;
+	char *psk;
+	char psk_length;	/* Min 8 - Max 64 */
+	unsigned char channel;
+	enum wifi_security_type security;
+};
+
+struct wifi_drv_start_ap_params {
+	char *ssid;
+	char ssid_length;	/* Max 32 */
+	char *psk;
+	char psk_length;	/* Min 8 - Max 64 */
+	unsigned char channel;
+	unsigned char ch_width;
+	enum wifi_security_type security;
+};
+
+struct wifi_drv_evt_connect {
+	char status;
+	char bssid[NET_LINK_ADDR_MAX_LENGTH];
+	unsigned char channel;
+};
+
+struct wifi_drv_evt_disconnect {
+	char reason_code;
+};
+
+struct wifi_drv_evt_scan_done {
+	char result;
+	bool found;
+};
+
+struct wifi_drv_evt_scan_result {
 	char bssid[NET_LINK_ADDR_MAX_LENGTH];
 	char ssid[WIFI_SSID_MAX_LEN];
 	char ssid_length;
+	unsigned char band;
 	unsigned char channel;
 	char rssi;
 	enum wifi_security_type security;
 };
 
+struct wifi_drv_evt_new_station {
+	char is_connect;
+	char mac[NET_LINK_ADDR_MAX_LENGTH];
+};
+
 typedef void (*scan_result_cb_t)(void *iface, int status,
-				 struct wifi_drv_scan_result *entry);
+				 struct wifi_drv_evt_scan_result *entry);
 typedef void (*connect_cb_t)(void *iface, int status, char *bssid,
 			     unsigned char channel);
 typedef void (*disconnect_cb_t)(void *iface, int status);
 typedef void (*new_station_t)(void *iface, int status, char *mac);
 
-struct wifi_drv_api{
+struct wifi_drv_api {
 	/**
 	 * Mandatory to get in first position.
 	 * A network device should indeed provide a pointer on such
@@ -69,6 +96,7 @@ struct wifi_drv_api{
 	 */
 	struct ethernet_api eth_api;
 
+	int (*get_capa)(struct device *dev, struct wifi_drv_capa *capa);
 	int (*open)(struct device *dev);
 	int (*close)(struct device *dev);
 	int (*scan)(struct device *dev, struct wifi_drv_scan_params *params,
@@ -77,16 +105,16 @@ struct wifi_drv_api{
 		       struct wifi_drv_connect_params *params,
 		       connect_cb_t conn_cb, disconnect_cb_t disc_cb);
 	int (*disconnect)(struct device *dev, disconnect_cb_t cb);
-	int (*get_station)(struct device *dev, u8_t *signal);
-	int (*notify_ip)(struct device *dev, u8_t *ipaddr, u8_t len);
+	int (*get_station)(struct device *dev, char *signal);
+	int (*notify_ip)(struct device *dev, char *ipaddr, unsigned char len);
 	int (*start_ap)(struct device *dev,
 			struct wifi_drv_start_ap_params *params,
 			new_station_t cb);
 	int (*stop_ap)(struct device *dev);
-	int (*del_station)(struct device *dev, u8_t *mac);
+	int (*del_station)(struct device *dev, char *mac);
 	int (*hw_test)(struct device *dev, int ictx_id,
-		       char *t_buf, u32_t t_len, char *r_buf,
-		       u32_t *r_len);
+		       char *t_buf, unsigned int t_len, char *r_buf,
+		       unsigned int *r_len);
 };
 
 #endif
