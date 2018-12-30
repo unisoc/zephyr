@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef _WIFI_LISTENER_H_
-#define _WIFI_LISTENER_H_
+#ifndef _WIFIMGR_EVT_LSNR_H_
+#define _WIFIMGR_EVT_LSNR_H_
 
 #define WIFIMGR_EVT_LISTENER		"wifimgr_evt_listener"
 #define WIFIMGR_EVT_LISTENER_PRIORITY	(1)
@@ -20,18 +20,6 @@
 #define WIFIMGR_EVT_MQUEUE_NR	(WIFIMGR_EVT_MAX - 1)
 #define WIFIMGR_EVT_RECEIVER_NR	WIFIMGR_EVT_MQUEUE_NR
 #define WIFIMGR_FRM_RECEIVER_NR	(1)
-
-enum event_type {
-	/*STA*/
-	WIFIMGR_EVT_CONNECT,
-	WIFIMGR_EVT_DISCONNECT,
-	WIFIMGR_EVT_SCAN_RESULT,
-	WIFIMGR_EVT_SCAN_DONE,
-	/*AP*/
-	WIFIMGR_EVT_NEW_STATION,
-
-	WIFIMGR_EVT_MAX,
-};
 
 /* CallBack function pointer prototype for notifing upper App */
 typedef int (*evt_cb_t) (void *arg);
@@ -76,8 +64,6 @@ struct evt_message {
 	int buf_len;		/* Event message length in bytes */
 	void *buf;		/* Event message pointer */
 };
-
-int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len);
 
 int evt_listener_add_receiver(struct evt_listener *handle, unsigned int evt_id,
 			      bool oneshot, evt_cb_t cb, void *arg);

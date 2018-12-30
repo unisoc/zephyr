@@ -14,7 +14,6 @@
 LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
-#include "led.h"
 
 static int wifimgr_ap_stop(void *handle);
 static int wifimgr_ap_close(void *handle);
@@ -146,12 +145,12 @@ static int wifimgr_ap_get_status(void *handle)
 			for (i = 0; i < sts->u.ap.client_nr; i++)
 				wifimgr_info
 				    ("\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-				     sts->u.ap.client_mac[i][0],
-				     sts->u.ap.client_mac[i][1],
-				     sts->u.ap.client_mac[i][2],
-				     sts->u.ap.client_mac[i][3],
-				     sts->u.ap.client_mac[i][4],
-				     sts->u.ap.client_mac[i][5]);
+				     sts->u.ap.client_mac_addrs[i][0],
+				     sts->u.ap.client_mac_addrs[i][1],
+				     sts->u.ap.client_mac_addrs[i][2],
+				     sts->u.ap.client_mac_addrs[i][3],
+				     sts->u.ap.client_mac_addrs[i][4],
+				     sts->u.ap.client_mac_addrs[i][5]);
 		}
 	}
 
@@ -159,7 +158,7 @@ static int wifimgr_ap_get_status(void *handle)
 	if (cbs && cbs->get_ap_status_cb)
 		cbs->get_ap_status_cb(sm_ap_query(sm),
 				      sts->own_mac, sts->u.ap.client_nr,
-				      sts->u.ap.client_mac);
+				      sts->u.ap.client_mac_addrs);
 	fflush(stdout);
 
 	return 0;
@@ -184,10 +183,10 @@ static int wifimgr_ap_del_station(void *handle)
 
 static int wifimgr_ap_new_station_event_cb(void *arg)
 {
-	struct wifimgr_evt_new_station *new_sta =
-	    (struct wifimgr_evt_new_station *)arg;
+	struct wifimgr_ap_event *ap_evt = (struct wifimgr_ap_event *)arg;
+	struct wifi_drv_evt_new_station *new_sta = &ap_evt->u.new_sta;
 	struct wifi_manager *mgr =
-	    container_of(new_sta, struct wifi_manager, evt_new_sta);
+	    container_of(ap_evt, struct wifi_manager, ap_evt);
 	struct wifimgr_status *sts = &mgr->ap_sts;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	bool need_notify = false;
@@ -207,13 +206,13 @@ static int wifimgr_ap_new_station_event_cb(void *arg)
 
 		if (sts->u.ap.client_nr < WIFIMGR_MAX_STA_NR) {
 			sts->u.ap.client_nr++;
-			memcpy(sts->u.ap.client_mac + (sts->u.ap.client_nr - 1),
+			memcpy(sts->u.ap.client_mac_addrs + (sts->u.ap.client_nr - 1),
 			       new_sta->mac, WIFIMGR_ETH_ALEN);
 			need_notify = true;
 		}
 	} else {
 		if (sts->u.ap.client_nr) {
-			memset(sts->u.ap.client_mac + (sts->u.ap.client_nr - 1),
+			memset(sts->u.ap.client_mac_addrs + (sts->u.ap.client_nr - 1),
 			       0x0, WIFIMGR_ETH_ALEN);
 			sts->u.ap.client_nr--;
 			need_notify = true;
@@ -243,14 +242,14 @@ static int wifimgr_ap_start(void *handle)
 		return -EINVAL;
 	}
 
-	memset(sts->u.ap.client_mac, 0x0,
+	memset(sts->u.ap.client_mac_addrs, 0x0,
 	       WIFIMGR_MAX_STA_NR * WIFIMGR_ETH_ALEN);
 	sts->u.ap.client_nr = 0;
 
 	ret = evt_listener_add_receiver(&mgr->lsnr,
 					WIFIMGR_EVT_NEW_STATION, false,
 					wifimgr_ap_new_station_event_cb,
-					&mgr->evt_new_sta);
+					&mgr->ap_evt);
 	if (ret) {
 		wifimgr_err("failed to start AP!\n");
 		return ret;

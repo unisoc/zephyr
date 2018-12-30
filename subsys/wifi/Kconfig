@@ -23,12 +23,12 @@ config WIFIMGR_CLI
 	bool "WiFi Manager Client"
 	select SHELL
 	select NEWLIB_LIBC
-	default y
+	default n
 	help
 	  A client that can interact with WiFi manger,
 	  which can be ran from shell.
 
-config WIFIMGR_CONFIG
+config WIFIMGR_CONFIG_SAVING
 	bool "Enable Saving Config"
 	select FCB
 	select SETTINGS
