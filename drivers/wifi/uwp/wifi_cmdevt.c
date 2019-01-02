@@ -555,7 +555,7 @@ static int wifi_evt_scan_result(struct wifi_device *wifi_dev,
 {
 	struct event_scan_result *event =
 		(struct event_scan_result *)data;
-	struct wifi_drv_evt_scan_result scan_result;
+	struct wifi_drv_scan_result_evt scan_result;
 
 	if (check_cmdevt_len(len, sizeof(struct event_scan_result))) {
 		return -EINVAL;
