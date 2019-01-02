@@ -50,38 +50,37 @@ struct wifi_drv_start_ap_params {
 	enum wifi_security_type security;
 };
 
-struct wifi_drv_evt_connect {
+struct wifi_drv_connect_evt {
 	char status;
 	char bssid[NET_LINK_ADDR_MAX_LENGTH];
 	unsigned char channel;
 };
 
-struct wifi_drv_evt_disconnect {
+struct wifi_drv_disconnect_evt {
 	char reason_code;
 };
 
-struct wifi_drv_evt_scan_done {
+struct wifi_drv_scan_done_evt {
 	char result;
-	bool found;
 };
 
-struct wifi_drv_evt_scan_result {
+struct wifi_drv_scan_result_evt {
 	char bssid[NET_LINK_ADDR_MAX_LENGTH];
 	char ssid[WIFI_SSID_MAX_LEN];
 	char ssid_length;
 	unsigned char band;
 	unsigned char channel;
-	char rssi;
+	signed char rssi;
 	enum wifi_security_type security;
 };
 
-struct wifi_drv_evt_new_station {
+struct wifi_drv_new_station_evt {
 	char is_connect;
 	char mac[NET_LINK_ADDR_MAX_LENGTH];
 };
 
 typedef void (*scan_result_cb_t)(void *iface, int status,
-				 struct wifi_drv_evt_scan_result *entry);
+				 struct wifi_drv_scan_result_evt *entry);
 typedef void (*connect_cb_t)(void *iface, int status, char *bssid,
 			     unsigned char channel);
 typedef void (*disconnect_cb_t)(void *iface, int status);
@@ -105,13 +104,17 @@ struct wifi_drv_api {
 		       struct wifi_drv_connect_params *params,
 		       connect_cb_t conn_cb, disconnect_cb_t disc_cb);
 	int (*disconnect)(struct device *dev, disconnect_cb_t cb);
-	int (*get_station)(struct device *dev, char *signal);
+	int (*get_station)(struct device *dev, signed char *rssi);
 	int (*notify_ip)(struct device *dev, char *ipaddr, unsigned char len);
 	int (*start_ap)(struct device *dev,
 			struct wifi_drv_start_ap_params *params,
 			new_station_t cb);
 	int (*stop_ap)(struct device *dev);
 	int (*del_station)(struct device *dev, char *mac);
+	int (*add_mac_acl)(struct device *dev, unsigned char acl_nr,
+			   char acl_mac_addrs[][NET_LINK_ADDR_MAX_LENGTH]);
+	int (*del_mac_acl)(struct device *dev, unsigned char acl_nr,
+			   char acl_mac_addrs[][NET_LINK_ADDR_MAX_LENGTH]);
 	int (*hw_test)(struct device *dev, int ictx_id,
 		       char *t_buf, unsigned int t_len, char *r_buf,
 		       unsigned int *r_len);
