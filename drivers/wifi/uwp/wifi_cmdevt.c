@@ -118,7 +118,7 @@ int wifi_cmd_scan(struct wifi_device *wifi_dev,
 
 	int ret;
 	int ssid_len = 0;
-	int cmd_len = 0;
+	int cmd_len;
 	struct cmd_scan *cmd;
 	u16_t channels_5g_cnt = 0;
 	u8_t band = params->band;
@@ -229,10 +229,10 @@ int wifi_cmd_connect(struct wifi_device *wifi_dev,
 
 	cmd.channel = params->channel;
 	cmd.ssid_len = params->ssid_length;
-	cmd.passphrase_len = params->psk_length;
+	cmd.psk_len = params->psk_length;
 
 	memcpy(cmd.ssid, params->ssid, cmd.ssid_len);
-	memcpy(cmd.passphrase, params->psk, cmd.passphrase_len);
+	memcpy(cmd.psk, params->psk, cmd.psk_len);
 
 	ret = wifi_cmd_send(WIFI_CMD_CONNECT, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
@@ -267,25 +267,40 @@ int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 {
 	struct cmd_get_cp_info cmd;
 	int ret;
-	int len;
+	int rlen;
 
 	memset(&cmd, 0, sizeof(cmd));
-	ret = wifi_cmd_send(WIFI_CMD_GET_CP_INFO, (char *)&cmd, sizeof(cmd),
-			    (char *)&cmd, &len);
+
+	ret = wifi_cmd_send(WIFI_CMD_GET_CP_INFO, (char *)&cmd,
+			sizeof(struct trans_hdr), (char *)&cmd, &rlen);
 	if (ret) {
 		LOG_ERR("Get cp info send cmd fail");
 		return ret;
 	}
 
+	if (check_cmdevt_len(rlen, sizeof(cmd))) {
+		return -EINVAL;
+	}
+
 	priv->cp_version = cmd.version;
 
-	/* Set sta mac */
+	/* Store sta mac */
 	memcpy(priv->wifi_dev[WIFI_DEV_STA].mac, cmd.mac, ETH_ALEN);
-	/* Set softap mac */
+	/* Store softap mac */
 	cmd.mac[4] ^= 0x80;
 	memcpy(priv->wifi_dev[WIFI_DEV_AP].mac, cmd.mac, ETH_ALEN);
 
+	/* Store maximum station on softap */
+	priv->wifi_dev[WIFI_DEV_AP].max_sta_num = cmd.max_ap_assoc_sta_num;
+
+	/* Store maximum stations in blacklist on softap */
+	priv->wifi_dev[WIFI_DEV_AP].max_blacklist_num =
+		cmd.max_ap_blacklist_sta_num;
+
 	LOG_INF("CP version: 0x%x\n", priv->cp_version);
+
+	LOG_DBG("Max sta num: %d\n", cmd.max_ap_assoc_sta_num);
+	LOG_DBG("Max blacklist num: %d\n", cmd.max_ap_blacklist_sta_num);
 
 	return 0;
 }
@@ -332,41 +347,30 @@ int wifi_cmd_close(struct wifi_device *wifi_dev)
 }
 
 int wifi_cmd_get_sta(struct wifi_device *wifi_dev,
-		u8_t *signal)
+		s8_t *signal)
 {
 	ARG_UNUSED(wifi_dev);
 
 	struct cmd_get_sta cmd;
 	int ret;
-	char *rbuf;
 	int rlen;
-	int expected_len;
-
-	expected_len = sizeof(cmd) + GET_STA_BUF_SIZE;
-	rbuf = k_malloc(expected_len);
-	if (!rbuf) {
-		LOG_ERR("rbuf is null");
-		return -ENOMEM;
-	}
 
 	memset(&cmd, 0, sizeof(cmd));
 
 	ret = wifi_cmd_send(WIFI_CMD_GET_STATION, (char *)&cmd,
-			sizeof(cmd), rbuf, &rlen);
+			sizeof(struct trans_hdr), (char *)&cmd, &rlen);
 	if (ret) {
 		LOG_ERR("Get sta send cmd fail %d", ret);
-		k_free(rbuf);
 		return ret;
 	}
 
-	if (rlen == expected_len) {
-		*signal = rbuf[sizeof(cmd) + 5];
-		LOG_DBG("Get station signal=%d", *signal);
-	} else {
-		LOG_ERR("Invalid response len %d", rlen);
+	if (check_cmdevt_len(rlen, sizeof(cmd))) {
+		return -EINVAL;
 	}
 
-	k_free(rbuf);
+	*signal = cmd.signal;
+
+	LOG_DBG("signal %d", *signal);
 
 	return 0;
 }
@@ -553,19 +557,19 @@ static int wifi_evt_scan_result(struct wifi_device *wifi_dev,
 		(struct event_scan_result *)data;
 	struct wifi_drv_evt_scan_result scan_result;
 
-	memset(&scan_result, 0, sizeof(scan_result));
-
 	if (check_cmdevt_len(len, sizeof(struct event_scan_result))) {
 		return -EINVAL;
 	}
 
-	scan_result.security = WIFI_SECURITY_TYPE_NONE;
+	memset(&scan_result, 0, sizeof(scan_result));
+
 	memcpy(scan_result.ssid, event->ssid, MAX_SSID_LEN);
 	scan_result.ssid_length = strlen(scan_result.ssid);
 	memcpy(scan_result.bssid, event->bssid, ETH_ALEN);
 
 	scan_result.channel = event->channel;
 	scan_result.rssi = event->rssi;
+	scan_result.security = event->encrypt_mode;
 
 	LOG_DBG("ssid: %s", event->ssid);
 
