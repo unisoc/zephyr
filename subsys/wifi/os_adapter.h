@@ -44,10 +44,6 @@
 #define malloc(size)		k_malloc(size)
 #define free(ptr)		k_free(ptr)
 
-#if !defined(CONFIG_NATIVE_POSIX_STDOUT_CONSOLE)
-#define fflush(...)
-#endif
-
 #define wifimgr_slist_init(list)		sys_slist_init(list)
 #define wifimgr_slist_peek_head(list)		sys_slist_peek_head(list)
 #define wifimgr_slist_peek_next(node)		sys_slist_peek_next(node)
@@ -73,6 +69,20 @@ typedef struct k_work wifimgr_work;
 static inline bool is_zero_ether_addr(const char *addr)
 {
 	return (addr[0] | addr[1] | addr[2] | addr[3] | addr[4] | addr[5]) == 0;
+}
+
+/**
+ * is_broadcast_ether_addr - Determine if the Ethernet address is broadcast
+ * @addr: Pointer to a six-byte array containing the Ethernet address
+ *
+ * Return true if the address is the broadcast address.
+ *
+ * Please note: addr must be aligned to u16.
+ */
+static inline bool is_broadcast_ether_addr(const char *addr)
+{
+	return (addr[0] & addr[1] & addr[2] & addr[3] & addr[4] & addr[5]) ==
+	    0xff;
 }
 
 /**

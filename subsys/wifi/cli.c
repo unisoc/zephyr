@@ -123,6 +123,18 @@ static int wifimgr_cmd_get_config(const struct shell *shell, size_t argc,
 	return wifimgr_ctrl_iface_get_conf(iface_name);
 }
 
+static int wifimgr_cmd_capa(const struct shell *shell, size_t argc,
+			    char *argv[])
+{
+	char *iface_name;
+
+	if (argc != 2 || !argv[1])
+		return -EINVAL;
+	iface_name = argv[1];
+
+	return wifimgr_ctrl_iface_get_capa(iface_name);
+}
+
 static int wifimgr_cmd_status(const struct shell *shell, size_t argc,
 			      char *argv[])
 {
@@ -189,28 +201,54 @@ static int wifimgr_cmd_stop_ap(const struct shell *shell, size_t argc,
 	return wifimgr_ctrl_iface_stop_ap();
 }
 
-static int wifimgr_cmd_del_station(const struct shell *shell, size_t argc,
+static int wifimgr_cmd_set_mac_acl(const struct shell *shell, size_t argc,
 				   char *argv[])
 {
-	char *mac;
+	int choice;
+	char subcmd = 0;
+	char *mac = NULL;
 
-	if (argc == 1) {
-		mac = NULL;
-	} else if (argc == 2 && argv[1]) {
-		char mac_addr[WIFIMGR_ETH_ALEN];
-		int ret = strtomac(argv[1], mac_addr);
+	optind = 0;
+	while ((choice = getopt(argc, argv, "ab:cu:")) != -1) {
+		switch (choice) {
+		case 'a':
+		case 'b':
+		case 'c':
+		case 'u':
+			switch (choice) {
+			case 'a':
+				subcmd = WIFIMGR_SUBCMD_ACL_BLOCK_ALL;
+				break;
+			case 'b':
+				subcmd = WIFIMGR_SUBCMD_ACL_BLOCK;
+				break;
+			case 'c':
+				subcmd = WIFIMGR_SUBCMD_ACL_UNBLOCK_ALL;
+				break;
+			case 'u':
+				subcmd = WIFIMGR_SUBCMD_ACL_UNBLOCK;
+				break;
+			}
+			if (!optarg) {
+				mac = NULL;
+			} else {
+				char mac_addr[WIFIMGR_ETH_ALEN];
+				int ret = strtomac(optarg, mac_addr);
 
-		if (!ret) {
-			mac = mac_addr;
-		} else {
-			printf("invalid client MAC!\n");
-			return ret;
+				if (!ret) {
+					mac = mac_addr;
+				} else {
+					printf("invalid MAC address!\n");
+					return ret;
+				}
+			}
+			break;
+		default:
+			return -EINVAL;
 		}
-	} else {
-		return -EINVAL;
 	}
 
-	return wifimgr_ctrl_iface_del_station(mac);
+	return wifimgr_ctrl_iface_set_mac_acl(subcmd, mac);
 }
 
 SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
@@ -223,6 +261,9 @@ SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
 	SHELL_CMD(get_config, NULL,
 	 "<iface, sta or ap>",
 	 wifimgr_cmd_get_config),
+	SHELL_CMD(capa, NULL,
+	 "<iface, sta or ap>",
+	 wifimgr_cmd_capa),
 	SHELL_CMD(status, NULL,
 	 "<iface, sta or ap>",
 	 wifimgr_cmd_status),
@@ -247,9 +288,12 @@ SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
 	SHELL_CMD(stop_ap, NULL,
 	 NULL,
 	 wifimgr_cmd_stop_ap),
-	SHELL_CMD(block, NULL,
-	 "<MAC address (empty for all stations)>",
-	 wifimgr_cmd_del_station),
+	SHELL_CMD(mac_acl, NULL,
+	 "-a (block all connected stations)"
+	 "\n-b <MAC address (to be unblocked)>"
+	 "\n-c (clear all blocked stations)"
+	 "\n-u <MAC address (to be unblocked)>",
+	 wifimgr_cmd_set_mac_acl),
 	SHELL_SUBCMD_SET_END
 };
 
