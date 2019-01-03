@@ -12,11 +12,12 @@
 #ifndef _WIFIMGR_DRV_H_
 #define _WIFIMGR_DRV_H_
 
-#include <device.h>
 #include <net/ethernet.h>
 #include <net/net_linkaddr.h>
-#include <net/net_mgmt.h>
 #include <net/wifi.h>
+
+#define WIFI_DRV_BLACKLIST_ADD	(1)
+#define WIFI_DRV_BLACKLIST_DEL	(2)
 
 struct wifi_drv_capa {
 	unsigned char max_ap_assoc_sta;
@@ -111,9 +112,8 @@ struct wifi_drv_api {
 			new_station_t cb);
 	int (*stop_ap)(struct device *dev);
 	int (*del_station)(struct device *dev, char *mac);
-	int (*add_mac_acl)(struct device *dev, unsigned char acl_nr,
-			   char acl_mac_addrs[][NET_LINK_ADDR_MAX_LENGTH]);
-	int (*del_mac_acl)(struct device *dev, unsigned char acl_nr,
+	int (*set_mac_acl)(struct device *dev, char subcmd,
+			   unsigned char acl_nr,
 			   char acl_mac_addrs[][NET_LINK_ADDR_MAX_LENGTH]);
 	int (*hw_test)(struct device *dev, int ictx_id,
 		       char *t_buf, unsigned int t_len, char *r_buf,
