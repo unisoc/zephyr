@@ -464,6 +464,48 @@ int wifi_cmd_del_sta(struct wifi_device *wifi_dev,
 	return 0;
 }
 
+int wifi_cmd_set_blacklist(struct wifi_device *wifi_dev,
+		u8_t sub_type, u8_t mac_num, u8_t **mac_addr)
+{
+	ARG_UNUSED(wifi_dev);
+
+	struct cmd_set_blacklist *cmd;
+	int ret;
+	int cmd_len;
+	int max_blacklist_num = wifi_dev->max_blacklist_num;
+
+	if (mac_num > max_blacklist_num) {
+		LOG_WRN("Over maximum %d", max_blacklist_num);
+		return -EINVAL;
+	}
+
+	cmd_len = sizeof(*cmd) + ETH_ALEN * mac_num;
+
+	cmd = k_malloc(cmd_len);
+	if (!cmd) {
+		LOG_ERR("cmd is null");
+		return -ENOMEM;
+	}
+
+	memset(cmd, 0, cmd_len);
+	cmd->sub_type = sub_type;
+	cmd->mac_num = mac_num;
+	memcpy(cmd->mac_addr, mac_addr,
+			ETH_ALEN * mac_num);
+
+	ret = wifi_cmd_send(WIFI_CMD_SET_BLACKLIST, (char *)cmd,
+			    cmd_len, NULL, NULL);
+	if (ret) {
+		LOG_ERR("Set blacklist send cmd fail %d", ret);
+		k_free(cmd);
+		return ret;
+	}
+
+	k_free(cmd);
+
+	return 0;
+}
+
 int wifi_cmd_stop_ap(struct wifi_device *wifi_dev)
 {
 	ARG_UNUSED(wifi_dev);
