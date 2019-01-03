@@ -87,8 +87,11 @@ struct cmd_open {
 
 struct cmd_get_cp_info {
 	struct trans_hdr trans_header;
+	/* Response value */
 	u32_t version;
 	char mac[ETH_ALEN];
+	u8_t max_ap_assoc_sta_num;
+	u8_t max_ap_blacklist_sta_num;
 } __packed;
 
 struct cmd_stop {
@@ -141,9 +144,9 @@ struct cmd_connect {
 	u8_t group_cipher;
 	u8_t key_mgmt;
 	u8_t mfp_enable;
-	u8_t passphrase_len;
+	u8_t psk_len;
 	u8_t ssid_len;
-	u8_t passphrase[MAX_KEY_LEN];
+	u8_t psk[MAX_KEY_LEN];
 	u8_t ssid[MAX_SSID_LEN];
 } __packed;
 
@@ -164,6 +167,13 @@ struct cmd_set_ip {
 
 struct cmd_get_sta {
 	struct trans_hdr trans_header;
+	/*
+	 * Response value
+	 * Now needs signal only.
+	 */
+	u8_t reserved[5];
+	s8_t signal;
+	u8_t reserved_1[6];
 } __packed;
 
 struct cmd_npi {
@@ -175,13 +185,19 @@ struct event_scan_result {
 	u8_t band;
 	u8_t channel;
 	s8_t rssi;
+	/*
+	 * ENCRYPT_OPEN = 0,
+	 * ENCRYPT_WPA = 1,
+	 * ENCRYPT_WPA2 = 2,
+	 * ENCRYPT_OTHERS = 3,
+	 */
+	u8_t encrypt_mode;
 	char bssid[ETH_ALEN];
 	char ssid[MAX_SSID_LEN];
 } __packed;
 
 struct event_scan_done {
-/* #define WIFI_EVENT_SCAN_SUCC (0) */
-/* #define WIFI_EVENT_SCAN_ERROR (1) */
+	/* 0: success 1: fail */
 	u8_t status;
 } __packed;
 
@@ -197,7 +213,7 @@ struct event_disconnect {
 
 struct event_new_station {
 	u8_t is_connect; /* 1 for connected, 0 for disconnected. */
-	u8_t mac[6];
+	u8_t mac[ETH_ALEN];
 	/* u16_t ie_len; */
 	/* u8_t ie[0]; */
 } __packed;
@@ -213,7 +229,7 @@ int wifi_cmd_connect(struct wifi_device *wifi_dev,
 			    struct wifi_drv_connect_params *params);
 int wifi_cmd_disconnect(struct wifi_device *wifi_dev);
 int wifi_cmd_get_sta(struct wifi_device *wifi_dev,
-		u8_t *signal);
+		s8_t *signal);
 int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 		struct wifi_drv_start_ap_params *params);
 int wifi_cmd_del_sta(struct wifi_device *wifi_dev,
