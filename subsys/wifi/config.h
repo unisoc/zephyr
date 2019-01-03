@@ -16,9 +16,6 @@
 
 #include "os_adapter.h"
 
-#define WIFIMGR_MAX_SSID_LEN	32
-#define WIFIMGR_MAX_PSPHR_LEN	63
-
 #define WIFIMGR_SETTING_NAME_LEN	63
 #define WIFIMGR_SETTING_VAL_LEN		(((((WIFIMGR_SETTING_NAME_LEN) / 3) * 4) + 4) + 1)	/*Due to base64 encoding*/
 
@@ -33,16 +30,6 @@
 #define WIFIMGR_SETTING_PATH		"wifimgr"
 #define WIFIMGR_SETTING_STA_PATH	"wifimgr/sta"
 #define WIFIMGR_SETTING_AP_PATH		"wifimgr/ap"
-
-struct wifimgr_config {
-	char autorun;
-	char ssid[WIFIMGR_MAX_SSID_LEN + 1];
-	char bssid[WIFIMGR_ETH_ALEN];
-	char passphrase[WIFIMGR_MAX_PSPHR_LEN + 1];
-	unsigned char band;
-	unsigned char channel;
-	unsigned char ch_width;
-};
 
 struct wifimgr_settings_map {
 	enum settings_type type;

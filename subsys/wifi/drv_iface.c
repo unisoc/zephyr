@@ -158,7 +158,7 @@ int wifi_drv_connect(void *iface, char *ssid, char *bssid, char *passwd,
 				wifi_drv_event_disconnect);
 }
 
-int wifi_drv_get_station(void *iface, char *signal)
+int wifi_drv_get_station(void *iface, char *rssi)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
 	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
@@ -166,10 +166,10 @@ int wifi_drv_get_station(void *iface, char *signal)
 	if (!drv_api->get_station)
 		return -EIO;
 
-	if (!signal)
+	if (!rssi)
 		return -EINVAL;
 
-	return drv_api->get_station(dev, signal);
+	return drv_api->get_station(dev, rssi);
 }
 
 int wifi_drv_notify_ip(void *iface, char *ipaddr, char len)
@@ -250,4 +250,22 @@ int wifi_drv_del_station(void *iface, char *mac)
 		return -EINVAL;
 
 	return drv_api->del_station(dev, mac);
+}
+
+int wifi_drv_set_mac_acl(void *iface, char subcmd, unsigned char acl_nr,
+			 char acl_mac_addrs[][NET_LINK_ADDR_MAX_LENGTH])
+{
+	struct device *dev = net_if_get_device((struct net_if *)iface);
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
+
+	if (!drv_api->set_mac_acl)
+		return -EIO;
+
+	if (!acl_mac_addrs)
+		return -EINVAL;
+
+	if (!acl_nr)
+		return 0;
+
+	return drv_api->set_mac_acl(dev, subcmd, acl_nr, acl_mac_addrs);
 }

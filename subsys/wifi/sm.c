@@ -142,7 +142,7 @@ int sm_ap_timer_start(struct wifimgr_state_machine *ap_sm, unsigned int cmd_id)
 	int ret = 0;
 
 	switch (cmd_id) {
-	case WIFIMGR_CMD_BLOCK_STATION:
+	case WIFIMGR_CMD_SET_MAC_ACL:
 		ret = sm_timer_start(ap_sm->timerid, WIFIMGR_EVENT_TIMEOUT);
 		break;
 	default:
@@ -158,7 +158,7 @@ int sm_ap_timer_stop(struct wifimgr_state_machine *ap_sm, unsigned int evt_id)
 
 	switch (evt_id) {
 	case WIFIMGR_EVT_NEW_STATION:
-		if (ap_sm->cur_cmd == WIFIMGR_CMD_BLOCK_STATION)
+		if (ap_sm->cur_cmd == WIFIMGR_CMD_SET_MAC_ACL)
 			ret = sm_timer_stop(ap_sm->timerid);
 		break;
 	default:
@@ -187,6 +187,8 @@ const char *wifimgr_cmd2str(int cmd)
 	E2S(WIFIMGR_CMD_SET_AP_CONFIG)
 	E2S(WIFIMGR_CMD_GET_STA_CONFIG)
 	E2S(WIFIMGR_CMD_GET_AP_CONFIG)
+	E2S(WIFIMGR_CMD_GET_STA_CAPA)
+	E2S(WIFIMGR_CMD_GET_AP_CAPA)
 	E2S(WIFIMGR_CMD_GET_STA_STATUS)
 	E2S(WIFIMGR_CMD_GET_AP_STATUS)
 	E2S(WIFIMGR_CMD_OPEN_STA)
@@ -198,7 +200,8 @@ const char *wifimgr_cmd2str(int cmd)
 	E2S(WIFIMGR_CMD_CLOSE_AP)
 	E2S(WIFIMGR_CMD_START_AP)
 	E2S(WIFIMGR_CMD_STOP_AP)
-	E2S(WIFIMGR_CMD_BLOCK_STATION)
+	E2S(WIFIMGR_CMD_DEL_STA)
+	E2S(WIFIMGR_CMD_SET_MAC_ACL)
 	default:
 		return "WIFIMGR_CMD_UNKNOWN";
 	}
@@ -249,8 +252,8 @@ const char *sta_sts2str(int state)
 
 bool is_sta_cmd(unsigned int cmd_id)
 {
-	return ((cmd_id >= WIFIMGR_CMD_GET_STA_STATUS)
-		&& (cmd_id < WIFIMGR_CMD_GET_AP_STATUS));
+	return ((cmd_id >= WIFIMGR_CMD_GET_STA_CAPA)
+		&& (cmd_id < WIFIMGR_CMD_GET_AP_CAPA));
 }
 
 bool is_sta_evt(unsigned int evt_id)
@@ -416,7 +419,7 @@ const char *ap_sts2str(int state)
 
 bool is_ap_cmd(unsigned int cmd_id)
 {
-	return ((cmd_id >= WIFIMGR_CMD_GET_AP_STATUS)
+	return ((cmd_id >= WIFIMGR_CMD_GET_AP_CAPA)
 		&& (cmd_id < WIFIMGR_CMD_MAX));
 }
 
@@ -493,5 +496,5 @@ int sm_ap_init(struct wifimgr_state_machine *ap_sm)
 
 bool is_common_cmd(unsigned int cmd_id)
 {
-	return (cmd_id < WIFIMGR_CMD_GET_STA_STATUS);
+	return (cmd_id < WIFIMGR_CMD_GET_STA_CAPA);
 }

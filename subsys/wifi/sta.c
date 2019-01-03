@@ -147,6 +147,13 @@ static int wifimgr_sta_set_config(void *handle)
 	return 0;
 }
 
+static int wifimgr_sta_get_capa(void *handle)
+{
+	/* TODO */
+
+	return 0;
+}
+
 static int wifimgr_sta_get_status(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
@@ -160,7 +167,7 @@ static int wifimgr_sta_get_status(void *handle)
 
 	if (is_zero_ether_addr(sts->own_mac))
 		if (wifi_drv_get_mac(mgr->sta_iface, sts->own_mac))
-			wifimgr_warn("failed to get Own MAC!");
+			wifimgr_warn("failed to get Own MAC!\n");
 	wifimgr_info("Own MAC:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
 		     sts->own_mac[0], sts->own_mac[1], sts->own_mac[2],
 		     sts->own_mac[3], sts->own_mac[4], sts->own_mac[5]);
@@ -186,8 +193,8 @@ static int wifimgr_sta_get_status(void *handle)
 				     sts->u.sta.host_channel);
 
 		if (wifi_drv_get_station(mgr->sta_iface, &sts->u.sta.host_rssi))
-			wifimgr_warn("failed to get Own MAC!");
-		wifimgr_info("Host Signal:\t%d\n", sts->u.sta.host_rssi);
+			wifimgr_warn("failed to get Host RSSI!\n");
+		wifimgr_info("Host RSSI:\t%d\n", sts->u.sta.host_rssi);
 	}
 	fflush(stdout);
 
@@ -482,6 +489,8 @@ void wifimgr_sta_init(void *handle)
 				 wifimgr_sta_set_config, &mgr->sta_conf);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_STA_CONFIG,
 				 wifimgr_sta_get_config, &mgr->sta_conf);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_STA_CAPA,
+				 wifimgr_sta_get_capa, mgr);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_STA_STATUS,
 				 wifimgr_sta_get_status, mgr);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_OPEN_STA,
