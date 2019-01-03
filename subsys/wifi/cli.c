@@ -19,7 +19,6 @@
 static int strtomac(char *mac_str, char *mac_addr)
 {
 	char *mac;
-	int ret = 0;
 	int i;
 
 	mac = strtok(mac_str, ":");
@@ -35,9 +34,9 @@ static int strtomac(char *mac_str, char *mac_addr)
 	}
 
 	if (i != (WIFIMGR_ETH_ALEN - 1))
-		ret = -EINVAL;
+		return -EINVAL;
 
-	return ret;
+	return 0;
 }
 
 static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
@@ -248,7 +247,7 @@ SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
 	SHELL_CMD(stop_ap, NULL,
 	 NULL,
 	 wifimgr_cmd_stop_ap),
-	SHELL_CMD(del_station, NULL,
+	SHELL_CMD(block, NULL,
 	 "<MAC address (empty for all stations)>",
 	 wifimgr_cmd_del_station),
 	SHELL_SUBCMD_SET_END
