@@ -39,13 +39,15 @@ int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len)
 	msg.buf = NULL;
 	if (buf_len) {
 		msg.buf = malloc(buf_len);
+		if (!msg.buf)
+			return -ENOMEM;
 		memcpy(msg.buf, buf, buf_len);
 	}
 
 	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
 	if (ret < 0) {
 		free(msg.buf);
-		wifimgr_err("failed to send [%s]: %d, errno %d!\n",
+		wifimgr_err("failed to send [%s]! ret %d, errno %d\n",
 			    wifimgr_evt2str(msg.evt_id), ret, errno);
 	} else {
 		wifimgr_dbg("send [%s], buf: 0x%08x\n",
@@ -84,7 +86,7 @@ int evt_listener_add_receiver(struct evt_listener *handle, unsigned int evt_id,
 	while (rcvr != NULL) {
 		/* Check if callback matches */
 		if (rcvr->expected_evt == evt_id) {
-			wifimgr_info("[%s] receiver already exist!\n",
+			wifimgr_warn("[%s] receiver already exist!\n",
 				     wifimgr_evt2str(evt_id));
 			sem_post(&lsnr->exclsem);
 			return 0;
@@ -99,7 +101,7 @@ int evt_listener_add_receiver(struct evt_listener *handle, unsigned int evt_id,
 	    wifimgr_slist_remove_first(&lsnr->free_evt_list);
 	if (!rcvr) {
 		ret = -ENOMEM;
-		wifimgr_err("no free event receiver: %d\n", ret);
+		wifimgr_err("no free event receiver! %d\n", ret);
 		sem_post(&lsnr->exclsem);
 		return ret;
 	}
@@ -177,8 +179,9 @@ static void *evt_listener(void *handle)
 		/* Wait for events */
 		ret = mq_receive(lsnr->mq, (char *)&msg, sizeof(msg), &prio);
 		if (ret != sizeof(struct evt_message)) {
-			wifimgr_err("failed to receive event: %d, errno %d!\n",
-				    ret, errno);
+			wifimgr_err
+			    ("failed to receive event! ret %d, errno %d\n", ret,
+			     errno);
 			continue;
 		}
 
