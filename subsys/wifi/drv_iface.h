@@ -12,6 +12,8 @@
 #ifndef _WIFIMGR_DRV_IFACE_H_
 #define _WIFIMGR_DRV_IFACE_H_
 
+#include "os_adapter.h"
+
 enum event_type {
 	/*STA*/
 	WIFIMGR_EVT_CONNECT,
@@ -32,13 +34,14 @@ int wifi_drv_scan(void *iface, unsigned char band, unsigned char channel);
 int wifi_drv_connect(void *iface, char *ssid, char *bssid, char *passwd,
 			   unsigned char channel);
 int wifi_drv_disconnect(void *iface);
-int wifi_drv_get_station(void *iface, char *signal);
+int wifi_drv_get_station(void *iface, char *rssi);
 int wifi_drv_notify_ip(void *iface, char *ipaddr, char len);
 int wifi_drv_start_ap(void *iface, char *ssid, char *passwd,
 			    unsigned char channel, unsigned char ch_width);
 int wifi_drv_stop_ap(void *iface);
-int wifi_drv_set_blacklist(void *iface, char *mac);
 int wifi_drv_del_station(void *iface, char *mac);
+int wifi_drv_set_mac_acl(void *iface, char subcmd, unsigned char acl_nr,
+			 char acl_mac_addrs[][WIFIMGR_ETH_ALEN]);
 
 int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len);
 

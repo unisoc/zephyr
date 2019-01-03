@@ -70,10 +70,6 @@ struct wifimgr_ap_event {
 	} u;
 };
 
-struct wifimgr_del_station {
-	char mac[WIFIMGR_ETH_ALEN];
-};
-
 struct wifi_manager {
 	struct wifimgr_config sta_conf;
 	struct wifimgr_status sta_sts;
@@ -83,7 +79,7 @@ struct wifi_manager {
 	struct wifimgr_config ap_conf;
 	struct wifimgr_status ap_sts;
 	struct wifimgr_state_machine ap_sm;
-	struct wifimgr_del_station del_sta;
+	struct wifimgr_ap_acl acl;
 
 	struct cmd_processor prcs;
 	struct evt_listener lsnr;

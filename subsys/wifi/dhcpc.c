@@ -13,6 +13,8 @@
 #include <logging/log.h>
 LOG_MODULE_DECLARE(wifimgr);
 
+#include <net/net_mgmt.h>
+
 #include "wifimgr.h"
 
 static struct net_mgmt_event_callback mgmt_cb;
