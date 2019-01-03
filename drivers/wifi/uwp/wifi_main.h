@@ -32,6 +32,10 @@ struct wifi_device {
 	u8_t mode;
 	u8_t mac[ETH_ALEN];
 	u8_t ipv4_addr[IPV4_LEN];
+	/* Maximum stations on softap */
+	u8_t max_sta_num;
+	/* Maximum stations in blacklist on softap */
+	u8_t max_blacklist_num;
 	scan_result_cb_t scan_result_cb;
 	connect_cb_t connect_cb;
 	disconnect_cb_t disconnect_cb;
