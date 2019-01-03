@@ -28,9 +28,9 @@ int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len)
 	attr.mq_msgsize = sizeof(msg);
 	attr.mq_flags = 0;
 	mq = mq_open(WIFIMGR_EVT_MQUEUE, O_WRONLY | O_CREAT, 0666, &attr);
-	if (!mq) {
-		wifimgr_err("failed to open event queue %s!\n",
-			    WIFIMGR_EVT_MQUEUE);
+	if (mq == (mqd_t)-1) {
+		wifimgr_err("failed to open event queue %s! errno %d\n",
+			    WIFIMGR_EVT_MQUEUE, errno);
 		return -errno;
 	}
 
@@ -45,10 +45,10 @@ int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len)
 	}
 
 	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
-	if (ret < 0) {
+	if (ret == -1) {
 		free(msg.buf);
-		wifimgr_err("failed to send [%s]! ret %d, errno %d\n",
-			    wifimgr_evt2str(msg.evt_id), ret, errno);
+		wifimgr_err("failed to send [%s]! errno %d\n",
+			    wifimgr_evt2str(msg.evt_id), errno);
 	} else {
 		wifimgr_dbg("send [%s], buf: 0x%08x\n",
 			    wifimgr_evt2str(msg.evt_id), *(int *)msg.buf);
@@ -178,10 +178,9 @@ static void *evt_listener(void *handle)
 
 		/* Wait for events */
 		ret = mq_receive(lsnr->mq, (char *)&msg, sizeof(msg), &prio);
-		if (ret != sizeof(struct evt_message)) {
-			wifimgr_err
-			    ("failed to receive event! ret %d, errno %d\n", ret,
-			     errno);
+		if (ret == -1) {
+			wifimgr_err("failed to receive event! errno %d\n",
+				    errno);
 			continue;
 		}
 
@@ -257,9 +256,9 @@ int wifimgr_evt_listener_init(struct evt_listener *handle)
 
 	/* open message queue of event receiver */
 	lsnr->mq = mq_open(WIFIMGR_EVT_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
-	if (!lsnr->mq) {
-		wifimgr_err("failed to open event queue %s!\n",
-			    WIFIMGR_EVT_MQUEUE);
+	if (lsnr->mq == (mqd_t)-1) {
+		wifimgr_err("failed to open event queue %s! errno %d\n",
+			    WIFIMGR_EVT_MQUEUE, errno);
 		return -errno;
 	}
 

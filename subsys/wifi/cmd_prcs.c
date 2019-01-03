@@ -30,9 +30,9 @@ int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
 	attr.mq_msgsize = sizeof(msg);
 	attr.mq_flags = 0;
 	mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
-	if (!mq) {
-		wifimgr_err("failed to open command queue %s!\n",
-			    WIFIMGR_CMD_MQUEUE);
+	if (mq == (mqd_t)-1) {
+		wifimgr_err("failed to open command queue %s! errno %d\n",
+			    WIFIMGR_CMD_MQUEUE, errno);
 		return -errno;
 	}
 
@@ -48,9 +48,9 @@ int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
 	}
 
 	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
-	if (ret < 0) {
-		wifimgr_err("failed to send [%s]! ret %d, errno %d\n",
-			    wifimgr_cmd2str(msg.cmd_id), ret, errno);
+	if (ret == -1) {
+		wifimgr_err("failed to send [%s]! errno %d\n",
+			    wifimgr_cmd2str(msg.cmd_id), errno);
 		ret = -errno;
 	} else {
 		wifimgr_dbg("send [%s], buf: 0x%08x\n",
@@ -62,10 +62,9 @@ int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
 		ts.tv_sec += WIFIMGR_CMD_TIMEOUT;
 		ret =
 		    mq_timedreceive(mq, (char *)&msg, sizeof(msg), &prio, &ts);
-		if (ret != sizeof(struct cmd_message)) {
-			wifimgr_err
-			    ("failed to get command reply! ret %d, errno %d\n",
-			     ret, errno);
+		if (ret == -1) {
+			wifimgr_err("failed to get command reply! errno %d\n",
+				    errno);
 			if (errno == ETIME)
 				wifimgr_err("[%s] timeout!\n",
 					    wifimgr_cmd2str(msg.cmd_id));
@@ -125,9 +124,9 @@ static void cmd_processor_post_process(void *handle,
 	msg->reply = reply;
 	ret =
 	    mq_send(prcs->mq, (const char *)msg, sizeof(struct cmd_message), 0);
-	if (ret < 0) {
-		wifimgr_err("failed to send [%s] reply! ret %d, errno %d\n",
-			    wifimgr_cmd2str(msg->cmd_id), ret, errno);
+	if (ret == -1) {
+		wifimgr_err("failed to send [%s] reply! errno %d\n",
+			    wifimgr_cmd2str(msg->cmd_id), errno);
 	} else {
 		wifimgr_dbg("send [%s] reply: %d\n",
 			    wifimgr_cmd2str(msg->cmd_id), msg->reply);
@@ -152,7 +151,7 @@ static void *cmd_processor(void *handle)
 	while (prcs->is_started) {
 		/* Wait for commands */
 		ret = mq_receive(prcs->mq, (char *)&msg, sizeof(msg), &prio);
-		if (ret != sizeof(struct cmd_message)) {
+		if (ret == -1) {
 			wifimgr_err("failed to get command! ret %d, errno %d\n",
 				    ret, errno);
 			continue;
@@ -239,9 +238,9 @@ int wifimgr_cmd_processor_init(struct cmd_processor *handle)
 
 	/* open message queue of command sender */
 	prcs->mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
-	if (!prcs->mq) {
-		wifimgr_err("failed to open command queue %s!\n",
-			    WIFIMGR_CMD_MQUEUE);
+	if (prcs->mq == (mqd_t)-1) {
+		wifimgr_err("failed to open command queue %s! errno: %d\n",
+			    WIFIMGR_CMD_MQUEUE, errno);
 		return -errno;
 	}
 

@@ -128,6 +128,23 @@ int wifimgr_ctrl_iface_get_conf(char *iface_name)
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
+int wifimgr_ctrl_iface_get_capa(char *iface_name)
+{
+	unsigned int cmd_id = 0;
+
+	if (!iface_name)
+		return -EINVAL;
+
+	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
+		cmd_id = WIFIMGR_CMD_GET_STA_CAPA;
+	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
+		cmd_id = WIFIMGR_CMD_GET_AP_CAPA;
+	else
+		return -EINVAL;
+
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
+}
+
 int wifimgr_ctrl_iface_get_status(char *iface_name)
 {
 	unsigned int cmd_id = 0;
@@ -204,21 +221,32 @@ int wifimgr_ctrl_iface_stop_ap(void)
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_STOP_AP, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_del_station(char *mac)
+int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac)
 {
-	char mac_addr[WIFIMGR_ETH_ALEN];
+	struct wifimgr_ap_acl acl;
 
-	if (mac && !is_zero_ether_addr(mac)) {
-		memcpy(mac_addr, mac, WIFIMGR_ETH_ALEN);
-	} else if (!mac) {
-		memset(mac_addr, 0xff, WIFIMGR_ETH_ALEN);
-	} else {
-		printf("invalid Client MAC!");
+	switch (subcmd) {
+	case WIFIMGR_SUBCMD_ACL_BLOCK:
+	case WIFIMGR_SUBCMD_ACL_UNBLOCK:
+	case WIFIMGR_SUBCMD_ACL_BLOCK_ALL:
+	case WIFIMGR_SUBCMD_ACL_UNBLOCK_ALL:
+		acl.subcmd = subcmd;
+		break;
+	default:
 		return -EINVAL;
 	}
 
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_BLOCK_STATION, mac_addr,
-					   sizeof(mac_addr));
+	if (mac && !is_zero_ether_addr(mac)) {
+		memcpy(acl.mac, mac, WIFIMGR_ETH_ALEN);
+	} else if (!mac) {
+		memset(acl.mac, 0xff, WIFIMGR_ETH_ALEN);
+	} else {
+		printf("invalid MAC address!");
+		return -EINVAL;
+	}
+
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_SET_MAC_ACL, &acl,
+					   sizeof(acl));
 }
 
 static const struct wifimgr_ctrl_ops wifimgr_ops = {
@@ -232,7 +260,7 @@ static const struct wifimgr_ctrl_ops wifimgr_ops = {
 	.disconnect = wifimgr_ctrl_iface_disconnect,
 	.start_ap = wifimgr_ctrl_iface_start_ap,
 	.stop_ap = wifimgr_ctrl_iface_stop_ap,
-	.del_station = wifimgr_ctrl_iface_del_station,
+	.set_mac_acl = wifimgr_ctrl_iface_set_mac_acl,
 };
 
 const

@@ -17,7 +17,7 @@
 #define WIFIMGR_CMD_PROCESSOR_STACKSIZE	(4096)
 
 #define WIFIMGR_CMD_MQUEUE	"wifimgr_cmd_mq"
-#define WIFIMGR_CMD_MQUEUE_NR	(WIFIMGR_CMD_MAX - 1)
+#define WIFIMGR_CMD_MQUEUE_NR	WIFIMGR_CMD_MAX
 #define WIFIMGR_CMD_SENDER_NR	WIFIMGR_CMD_MAX
 
 /* Function pointer prototype for commands */
