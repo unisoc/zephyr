@@ -86,6 +86,33 @@ static int wifi_rf_init(void)
 	return 0;
 }
 
+static int uwp_mgmt_get_capa(struct device *dev,
+		struct wifi_drv_capa *capa)
+{
+	struct wifi_device *wifi_dev;
+
+	if (!dev || !capa) {
+		return -EINVAL;
+	}
+
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
+	}
+
+	if (wifi_dev->mode != WIFI_MODE_AP) {
+		LOG_WRN("Improper mode %d to get capa.",
+				wifi_dev->mode);
+		return -EINVAL;
+	}
+
+	capa->max_ap_assoc_sta = wifi_dev->max_sta_num;
+	capa->max_acl_mac_addrs = wifi_dev->max_blacklist_num;
+
+	return 0;
+}
+
 static int uwp_mgmt_open(struct device *dev)
 {
 	int ret;
@@ -315,7 +342,8 @@ static int uwp_mgmt_scan(struct device *dev,
 
 }
 
-static int uwp_mgmt_get_station(struct device *dev, char *signal)
+static int uwp_mgmt_get_station(struct device *dev,
+		signed char *rssi)
 {
 	struct wifi_device *wifi_dev;
 
@@ -335,7 +363,7 @@ static int uwp_mgmt_get_station(struct device *dev, char *signal)
 		return -EINVAL;
 	}
 
-	return wifi_cmd_get_sta(wifi_dev, signal);
+	return wifi_cmd_get_sta(wifi_dev, rssi);
 }
 
 static int uwp_mgmt_connect(struct device *dev,
@@ -588,6 +616,7 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 static const struct wifi_drv_api uwp_api = {
 	.eth_api.iface_api.init		= uwp_iface_init,
 	.eth_api.iface_api.send		= uwp_iface_tx,
+	.get_capa					= uwp_mgmt_get_capa,
 	.open						= uwp_mgmt_open,
 	.close						= uwp_mgmt_close,
 	.scan						= uwp_mgmt_scan,
