@@ -16,6 +16,7 @@
 #define MAX_AP_KEY_LEN (64)
 
 
+
 enum cmd_type {
 	WIFI_CMD_BEGIN = 0x00,
 	/* Common command. */
@@ -61,6 +62,11 @@ enum vht_chan_bw {
 	VHT_CHAN_BW_80_80M,
 
 	VHT_CHAN_BW_DEF = 0xFF,
+};
+
+enum blacklist_sub_type {
+	ADD_MAC_ACL = 3,
+	DEL_MAC_ACL,
 };
 
 /* These structures are shared by command and event. */
@@ -121,6 +127,13 @@ struct cmd_del_sta {
 	 */
 	u8_t mac[ETH_ALEN];
 	u16_t reason_code;
+} __packed;
+
+struct cmd_set_blacklist {
+	struct trans_hdr trans_header;
+	u8_t sub_type; /* 3:add, 4:del */
+	u8_t mac_num;
+	u8_t mac_addr[0];
 } __packed;
 
 /* Command struct for sta. */
@@ -234,6 +247,8 @@ int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 		struct wifi_drv_start_ap_params *params);
 int wifi_cmd_del_sta(struct wifi_device *wifi_dev,
 		u8_t *mac, u16_t reason_code);
+int wifi_cmd_set_blacklist(struct wifi_device *wifi_dev,
+		u8_t sub_type, u8_t mac_num, u8_t **mac_addr);
 int wifi_cmd_stop_ap(struct wifi_device *wifi_dev);
 int wifi_cmd_hw_test(struct wifi_device *wifi_dev,
 		int ictx_id, char *t_buf, u32_t t_len,
