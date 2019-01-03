@@ -27,7 +27,7 @@ void wifimgr_ap_event_timeout(wifimgr_work *work)
 
 	/* Notify the external caller */
 	switch (ap_sm->cur_cmd) {
-	case WIFIMGR_CMD_DEL_STATION:
+	case WIFIMGR_CMD_BLOCK_STATION:
 		expected_evt = WIFIMGR_EVT_NEW_STATION;
 		wifimgr_err("[%s] timeout!\n", wifimgr_evt2str(expected_evt));
 
@@ -124,12 +124,12 @@ static int wifimgr_ap_get_status(void *handle)
 	struct wifimgr_state_machine *sm = &mgr->ap_sm;
 	struct wifimgr_status *sts = &mgr->ap_sts;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
-	int ret = 0;
 
 	wifimgr_info("AP Status:\t%s\n", ap_sts2str(sm_ap_query(sm)));
 
 	if (is_zero_ether_addr(sts->own_mac))
-		ret = wifi_drv_iface_get_mac(mgr->ap_iface, sts->own_mac);
+		if (wifi_drv_get_mac(mgr->ap_iface, sts->own_mac))
+			wifimgr_warn("failed to get Own MAC!");
 	wifimgr_info("Own MAC:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
 		     sts->own_mac[0], sts->own_mac[1], sts->own_mac[2],
 		     sts->own_mac[3], sts->own_mac[4], sts->own_mac[5]);
@@ -138,33 +138,35 @@ static int wifimgr_ap_get_status(void *handle)
 		int i;
 
 		wifimgr_info("----------------\n");
-		wifimgr_info("Client Number:\t%d\n", sts->u.ap.client_nr);
+		wifimgr_info("Stations:\t%d\n", sts->u.ap.sta_nr);
 
-		if (sts->u.ap.client_nr) {
-			wifimgr_info("Client List:\n");
-			for (i = 0; i < sts->u.ap.client_nr; i++)
+		if (sts->u.ap.sta_nr) {
+			wifimgr_info("Station List:\n");
+			for (i = 0; i < sts->u.ap.sta_nr; i++)
 				wifimgr_info
 				    ("\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-				     sts->u.ap.client_mac_addrs[i][0],
-				     sts->u.ap.client_mac_addrs[i][1],
-				     sts->u.ap.client_mac_addrs[i][2],
-				     sts->u.ap.client_mac_addrs[i][3],
-				     sts->u.ap.client_mac_addrs[i][4],
-				     sts->u.ap.client_mac_addrs[i][5]);
+				     sts->u.ap.sta_mac_addrs[i][0],
+				     sts->u.ap.sta_mac_addrs[i][1],
+				     sts->u.ap.sta_mac_addrs[i][2],
+				     sts->u.ap.sta_mac_addrs[i][3],
+				     sts->u.ap.sta_mac_addrs[i][4],
+				     sts->u.ap.sta_mac_addrs[i][5]);
 		}
 	}
 
 	/* Notify the external caller */
 	if (cbs && cbs->get_ap_status_cb)
-		cbs->get_ap_status_cb(sm_ap_query(sm),
-				      sts->own_mac, sts->u.ap.client_nr,
-				      sts->u.ap.client_mac_addrs);
+		cbs->get_ap_status_cb(sm_ap_query(sm), sts->own_mac,
+				      sts->u.ap.sta_nr,
+				      sts->u.ap.sta_mac_addrs,
+				      sts->u.ap.acl_nr,
+				      sts->u.ap.acl_mac_addrs);
 	fflush(stdout);
 
 	return 0;
 }
 
-static int wifimgr_ap_del_station(void *handle)
+static int wifimgr_ap_block_station(void *handle)
 {
 	struct wifimgr_del_station *del_sta =
 	    (struct wifimgr_del_station *)handle;
@@ -176,7 +178,7 @@ static int wifimgr_ap_del_station(void *handle)
 		     del_sta->mac[0], del_sta->mac[1], del_sta->mac[2],
 		     del_sta->mac[3], del_sta->mac[4], del_sta->mac[5]);
 
-	ret = wifi_drv_iface_del_station(mgr->ap_iface, del_sta->mac);
+	ret = wifi_drv_del_station(mgr->ap_iface, del_sta->mac);
 
 	return ret;
 }
@@ -184,7 +186,7 @@ static int wifimgr_ap_del_station(void *handle)
 static int wifimgr_ap_new_station_event_cb(void *arg)
 {
 	struct wifimgr_ap_event *ap_evt = (struct wifimgr_ap_event *)arg;
-	struct wifi_drv_evt_new_station *new_sta = &ap_evt->u.new_sta;
+	struct wifi_drv_new_station_evt *new_sta = &ap_evt->u.new_sta;
 	struct wifi_manager *mgr =
 	    container_of(ap_evt, struct wifi_manager, ap_evt);
 	struct wifimgr_status *sts = &mgr->ap_sts;
@@ -198,29 +200,29 @@ static int wifimgr_ap_new_station_event_cb(void *arg)
 	fflush(stdout);
 
 	if (new_sta->is_connect) {
-		if (!sts->u.ap.client_nr)
+		if (!sts->u.ap.sta_nr)
 			cmd_processor_add_sender(&mgr->prcs,
-						 WIFIMGR_CMD_DEL_STATION,
-						 wifimgr_ap_del_station,
+						 WIFIMGR_CMD_BLOCK_STATION,
+						 wifimgr_ap_block_station,
 						 &mgr->del_sta);
 
-		if (sts->u.ap.client_nr < WIFIMGR_MAX_STA_NR) {
-			sts->u.ap.client_nr++;
-			memcpy(sts->u.ap.client_mac_addrs + (sts->u.ap.client_nr - 1),
+		if (sts->u.ap.sta_nr < WIFIMGR_MAX_STA_NR) {
+			sts->u.ap.sta_nr++;
+			memcpy(sts->u.ap.sta_mac_addrs + (sts->u.ap.sta_nr - 1),
 			       new_sta->mac, WIFIMGR_ETH_ALEN);
 			need_notify = true;
 		}
 	} else {
-		if (sts->u.ap.client_nr) {
-			memset(sts->u.ap.client_mac_addrs + (sts->u.ap.client_nr - 1),
+		if (sts->u.ap.sta_nr) {
+			memset(sts->u.ap.sta_mac_addrs + (sts->u.ap.sta_nr - 1),
 			       0x0, WIFIMGR_ETH_ALEN);
-			sts->u.ap.client_nr--;
+			sts->u.ap.sta_nr--;
 			need_notify = true;
 		}
 
-		if (!sts->u.ap.client_nr)
+		if (!sts->u.ap.sta_nr)
 			cmd_processor_remove_sender(&mgr->prcs,
-						    WIFIMGR_CMD_DEL_STATION);
+						    WIFIMGR_CMD_BLOCK_STATION);
 	}
 
 	/* Notify the external caller */
@@ -233,33 +235,50 @@ static int wifimgr_ap_new_station_event_cb(void *arg)
 static int wifimgr_ap_start(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
+	struct wifi_drv_capa *capa = &mgr->ap_capa;
 	struct wifimgr_config *conf = &mgr->ap_conf;
 	struct wifimgr_status *sts = &mgr->ap_sts;
+	char *ssid = NULL;
+	char *passphrase = NULL;
+	int size;
 	int ret;
 
-	if (!strlen(conf->ssid)) {
-		wifimgr_err("no AP config!\n");
-		return -EINVAL;
-	}
+	if (!capa->max_ap_assoc_sta)
+		capa->max_ap_assoc_sta = WIFIMGR_MAX_STA_NR;
+	size = capa->max_ap_assoc_sta * WIFIMGR_ETH_ALEN;
+	sts->u.ap.sta_mac_addrs = malloc(size);
+	if (!sts->u.ap.sta_mac_addrs)
+		return -ENOMEM;
+	memset(sts->u.ap.sta_mac_addrs, 0, size);
+	sts->u.ap.sta_nr = 0;
 
-	memset(sts->u.ap.client_mac_addrs, 0x0,
-	       WIFIMGR_MAX_STA_NR * WIFIMGR_ETH_ALEN);
-	sts->u.ap.client_nr = 0;
+	if (!capa->max_acl_mac_addrs)
+		capa->max_acl_mac_addrs = WIFIMGR_MAX_STA_NR;
+	size = capa->max_acl_mac_addrs * WIFIMGR_ETH_ALEN;
+	sts->u.ap.acl_mac_addrs = malloc(size);
+	if (!sts->u.ap.acl_mac_addrs) {
+		free(sts->u.ap.sta_mac_addrs);
+		return -ENOMEM;
+	}
+	memset(sts->u.ap.acl_mac_addrs, 0, size);
+	sts->u.ap.acl_nr = 0;
 
 	ret = evt_listener_add_receiver(&mgr->lsnr,
 					WIFIMGR_EVT_NEW_STATION, false,
 					wifimgr_ap_new_station_event_cb,
 					&mgr->ap_evt);
-	if (ret) {
-		wifimgr_err("failed to start AP!\n");
+	if (ret)
 		return ret;
-	}
 
-	ret = wifi_drv_iface_start_ap(mgr->ap_iface, conf->ssid,
-				      conf->passphrase, conf->channel,
-				      conf->ch_width);
+	if (strlen(conf->ssid))
+		ssid = conf->ssid;
+	if (strlen(conf->passphrase))
+		passphrase = conf->passphrase;
+	ret = wifi_drv_start_ap(mgr->ap_iface, ssid, passphrase,
+				conf->channel, conf->ch_width);
 
 	if (ret) {
+		wifimgr_err("failed to start AP! %d\n", ret);
 		evt_listener_remove_receiver(&mgr->lsnr,
 					     WIFIMGR_EVT_NEW_STATION);
 		return ret;
@@ -282,7 +301,7 @@ static int wifimgr_ap_stop(void *handle)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
 
-	ret = wifi_drv_iface_stop_ap(mgr->ap_iface);
+	ret = wifi_drv_stop_ap(mgr->ap_iface);
 	if (ret) {
 		wifimgr_err("failed to stop AP!\n");
 		return ret;
@@ -304,7 +323,7 @@ static int wifimgr_ap_open(void *handle)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
 
-	ret = wifi_drv_iface_open_softap(mgr->ap_iface);
+	ret = wifi_drv_open(mgr->ap_iface);
 	if (ret) {
 		wifimgr_err("failed to open AP!\n");
 		return ret;
@@ -325,7 +344,7 @@ static int wifimgr_ap_close(void *handle)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
 
-	ret = wifi_drv_iface_close_softap(mgr->ap_iface);
+	ret = wifi_drv_close(mgr->ap_iface);
 	if (ret) {
 		wifimgr_err("failed to close AP!\n");
 		return ret;

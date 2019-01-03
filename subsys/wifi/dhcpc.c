@@ -37,7 +37,7 @@ static void wifimgr_dhcp_handler(struct net_mgmt_event_callback *cb,
 		    iface->config.ip.ipv4->unicast[i].address.in_addr.s4_addr;
 		netmask = iface->config.ip.ipv4->netmask.s4_addr;
 		gateway = iface->config.ip.ipv4->gw.s4_addr;
-		wifi_drv_iface_notify_ip(iface, ipaddr, sizeof(struct in_addr));
+		wifi_drv_notify_ip(iface, ipaddr, sizeof(struct in_addr));
 
 		wifimgr_info("IP address: %s\n",
 			     net_addr_ntop(AF_INET, ipaddr, buf, sizeof(buf)));
