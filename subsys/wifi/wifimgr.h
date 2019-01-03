@@ -36,49 +36,50 @@
 
 #define E2S(x) case x: return #x;
 
-struct wifimgr_capa {
-	unsigned char max_ap_assoc_sta;
-	unsigned char max_acl_mac_addrs;
-};
-
 struct wifimgr_status {
 	char own_mac[WIFIMGR_ETH_ALEN];
 	union {
 		struct {
+			bool host_found;
 			char host_ssid[WIFIMGR_MAX_SSID_LEN + 1];
 			char host_bssid[WIFIMGR_ETH_ALEN];
 			unsigned char host_channel;
-			char host_rssi;
+			signed char host_rssi;
 		} sta;
 		struct {
-			unsigned char client_nr;
-			char client_mac_addrs[WIFIMGR_MAX_STA_NR][WIFIMGR_ETH_ALEN];
+			unsigned char sta_nr;
+			char (*sta_mac_addrs)[WIFIMGR_ETH_ALEN];
+			unsigned char acl_nr;
+			char (*acl_mac_addrs)[WIFIMGR_ETH_ALEN];
 		} ap;
 	} u;
 };
 
 struct wifimgr_sta_event {
 	union {
-		struct wifi_drv_evt_connect conn;
-		struct wifi_drv_evt_disconnect disc;
-		struct wifi_drv_evt_scan_done scan_done;
-		struct wifi_drv_evt_scan_result scan_res;
+		struct wifi_drv_connect_evt conn;
+		struct wifi_drv_disconnect_evt disc;
+		struct wifi_drv_scan_done_evt scan_done;
+		struct wifi_drv_scan_result_evt scan_res;
 	} u;
 };
 
 struct wifimgr_ap_event {
 	union {
-		struct wifi_drv_evt_new_station new_sta;
+		struct wifi_drv_new_station_evt new_sta;
 	} u;
 };
 
-struct wifi_manager {
-	struct wifimgr_capa capa;
+struct wifimgr_del_station {
+	char mac[WIFIMGR_ETH_ALEN];
+};
 
+struct wifi_manager {
 	struct wifimgr_config sta_conf;
 	struct wifimgr_status sta_sts;
 	struct wifimgr_state_machine sta_sm;
 
+	struct wifi_drv_capa ap_capa;
 	struct wifimgr_config ap_conf;
 	struct wifimgr_status ap_sts;
 	struct wifimgr_state_machine ap_sm;

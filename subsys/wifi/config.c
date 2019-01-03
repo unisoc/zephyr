@@ -51,10 +51,10 @@ static int wifimgr_settings_set(int argc, char **argv, char *val)
 					memset(settings[i].valptr, 0,
 					       settings[i].vallen);
 					settings_bytes_from_str(val,
-								settings[i].
-								valptr,
-								&settings[i].
-								vallen);
+								settings
+								[i].valptr,
+								&settings
+								[i].vallen);
 					wifimgr_dbg("val: %s\n",
 						    settings[i].valptr);
 				} else if (settings[i].type == SETTINGS_INT8) {
@@ -132,7 +132,7 @@ int wifimgr_settings_save_one(struct wifimgr_settings_map *setting, char *path,
 	char abs_path[WIFIMGR_SETTING_NAME_LEN + 1];
 	char val[WIFIMGR_SETTING_VAL_LEN];
 	char *valptr = NULL;
-	int ret = 0;
+	int ret;
 
 	if (setting->mask)
 		return 0;
@@ -168,7 +168,7 @@ int wifimgr_settings_save_one(struct wifimgr_settings_map *setting, char *path,
 	snprintf(abs_path, sizeof(abs_path), "%s/%s", path, setting->name);
 	ret = settings_save_one(abs_path, valptr);
 	if (ret)
-		wifimgr_err("failed to save %s, ret: %d!\n", abs_path, ret);
+		wifimgr_err("failed to save %s! %d\n", abs_path, ret);
 
 	return ret;
 }

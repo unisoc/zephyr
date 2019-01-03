@@ -147,10 +147,9 @@ int wifimgr_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id)
 {
 	char *devname = NULL;
 	struct net_if *iface = NULL;
-	int ret = 0;
 
 	if (is_common_cmd(cmd_id) == true)
-		return ret;
+		return 0;
 
 	if (!mgr->sta_iface && is_sta_cmd(cmd_id) == true)
 		devname = WIFIMGR_DEV_NAME_STA;
@@ -171,7 +170,7 @@ int wifimgr_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id)
 	else if (!mgr->ap_iface && is_ap_cmd(cmd_id) == true)
 		mgr->ap_iface = iface;
 
-	return ret;
+	return 0;
 }
 
 static int wifimgr_sm_init(struct wifi_manager *mgr)
