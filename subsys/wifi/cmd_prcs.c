@@ -42,12 +42,14 @@ int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
 	msg.buf = NULL;
 	if (buf_len) {
 		msg.buf = malloc(buf_len);
+		if (!msg.buf)
+			return -ENOMEM;
 		memcpy(msg.buf, buf, buf_len);
 	}
 
 	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
 	if (ret < 0) {
-		wifimgr_err("failed to send [%s]: %d, errno %d!\n",
+		wifimgr_err("failed to send [%s]! ret %d, errno %d\n",
 			    wifimgr_cmd2str(msg.cmd_id), ret, errno);
 		ret = -errno;
 	} else {
@@ -56,13 +58,13 @@ int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
 
 		ret = clock_gettime(CLOCK_MONOTONIC, &ts);
 		if (ret)
-			wifimgr_err("failed to get clock time: %d!\n", ret);
+			wifimgr_err("failed to get clock time! %d\n", ret);
 		ts.tv_sec += WIFIMGR_CMD_TIMEOUT;
 		ret =
 		    mq_timedreceive(mq, (char *)&msg, sizeof(msg), &prio, &ts);
 		if (ret != sizeof(struct cmd_message)) {
 			wifimgr_err
-			    ("failed to get command reply: %d, errno %d!\n",
+			    ("failed to get command reply! ret %d, errno %d\n",
 			     ret, errno);
 			if (errno == ETIME)
 				wifimgr_err("[%s] timeout!\n",
@@ -73,7 +75,7 @@ int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
 				    wifimgr_cmd2str(msg.cmd_id), msg.reply);
 			ret = msg.reply;
 			if (ret)
-				wifimgr_err("failed to exec [%s]: %d!\n",
+				wifimgr_err("failed to exec [%s]! %d\n",
 					    wifimgr_cmd2str(msg.cmd_id), ret);
 		}
 	}
@@ -124,7 +126,7 @@ static void cmd_processor_post_process(void *handle,
 	ret =
 	    mq_send(prcs->mq, (const char *)msg, sizeof(struct cmd_message), 0);
 	if (ret < 0) {
-		wifimgr_err("failed to send [%s] reply: %d, errno %d!\n",
+		wifimgr_err("failed to send [%s] reply! ret %d, errno %d\n",
 			    wifimgr_cmd2str(msg->cmd_id), ret, errno);
 	} else {
 		wifimgr_dbg("send [%s] reply: %d\n",
@@ -151,12 +153,12 @@ static void *cmd_processor(void *handle)
 		/* Wait for commands */
 		ret = mq_receive(prcs->mq, (char *)&msg, sizeof(msg), &prio);
 		if (ret != sizeof(struct cmd_message)) {
-			wifimgr_err("failed to get command: %d, errno %d!\n",
+			wifimgr_err("failed to get command! ret %d, errno %d\n",
 				    ret, errno);
 			continue;
 		} else if (msg.reply) {
 			/* Drop command reply when receiving it */
-			wifimgr_err("recv [%s] reply: %d? drop it\n",
+			wifimgr_err("recv [%s] reply: %d? drop it!\n",
 				    wifimgr_cmd2str(msg.cmd_id), msg.reply);
 			continue;
 		}
