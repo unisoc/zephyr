@@ -33,13 +33,10 @@ enum wifimgr_cmd {
 	WIFIMGR_CMD_CLOSE_AP,
 	WIFIMGR_CMD_START_AP,
 	WIFIMGR_CMD_STOP_AP,
-	WIFIMGR_CMD_DEL_STATION,
+	WIFIMGR_CMD_BLOCK_STATION,
+	WIFIMGR_CMD_UNBLOCK_STATION,
 
 	WIFIMGR_CMD_MAX,
-};
-
-struct wifimgr_del_station {
-	char mac[WIFIMGR_ETH_ALEN];
 };
 
 int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len);

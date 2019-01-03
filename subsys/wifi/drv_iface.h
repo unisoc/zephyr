@@ -24,21 +24,21 @@ enum event_type {
 	WIFIMGR_EVT_MAX,
 };
 
-int wifi_drv_iface_get_mac(void *iface, char *mac);
-int wifi_drv_iface_open_station(void *iface);
-int wifi_drv_iface_close_station(void *iface);
-int wifi_drv_iface_scan(void *iface, unsigned char band, unsigned char channel);
-int wifi_drv_iface_connect(void *iface, char *ssid, char *bssid, char *passwd,
+int wifi_drv_get_mac(void *iface, char *mac);
+int wifi_drv_get_capa(void *iface, struct wifi_drv_capa *capa);
+int wifi_drv_open(void *iface);
+int wifi_drv_close(void *iface);
+int wifi_drv_scan(void *iface, unsigned char band, unsigned char channel);
+int wifi_drv_connect(void *iface, char *ssid, char *bssid, char *passwd,
 			   unsigned char channel);
-int wifi_drv_iface_disconnect(void *iface);
-int wifi_drv_iface_get_station(void *iface, char *signal);
-int wifi_drv_iface_notify_ip(void *iface, char *ipaddr, char len);
-int wifi_drv_iface_open_softap(void *iface);
-int wifi_drv_iface_close_softap(void *iface);
-int wifi_drv_iface_start_ap(void *iface, char *ssid, char *passwd,
+int wifi_drv_disconnect(void *iface);
+int wifi_drv_get_station(void *iface, char *signal);
+int wifi_drv_notify_ip(void *iface, char *ipaddr, char len);
+int wifi_drv_start_ap(void *iface, char *ssid, char *passwd,
 			    unsigned char channel, unsigned char ch_width);
-int wifi_drv_iface_stop_ap(void *iface);
-int wifi_drv_iface_del_station(void *iface, char *mac);
+int wifi_drv_stop_ap(void *iface);
+int wifi_drv_set_blacklist(void *iface, char *mac);
+int wifi_drv_del_station(void *iface, char *mac);
 
 int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len);
 

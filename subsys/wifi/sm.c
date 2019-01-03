@@ -30,7 +30,7 @@ static int sm_timer_start(timer_t timerid, unsigned int sec)
 
 	ret = timer_settime(timerid, 0, &todelay, NULL);
 	if (ret < 0) {
-		wifimgr_err("failed to set the timer: %d\n", errno);
+		wifimgr_err("failed to set the timer! %d\n", errno);
 		ret = -errno;
 	}
 
@@ -50,7 +50,7 @@ static int sm_timer_init(struct wifimgr_state_machine *sm, void *sighand)
 
 	ret = timer_create(CLOCK_MONOTONIC, &toevent, &sm->timerid);
 	if (ret < 0) {
-		wifimgr_err("failed to create a timer: %d\n", -errno);
+		wifimgr_err("failed to create a timer! %d\n", -errno);
 		return -errno;
 	}
 
@@ -59,13 +59,12 @@ static int sm_timer_init(struct wifimgr_state_machine *sm, void *sighand)
 
 static int sm_timer_release(timer_t timerid)
 {
-	int result;
-	int ret = 0;
+	int ret;
 
 	/* Delete the POSIX timer */
-	result = timer_delete(timerid);
-	if (result < 0) {
-		wifimgr_err("failed to create a timer: %d\n", -errno);
+	ret = timer_delete(timerid);
+	if (ret < 0) {
+		wifimgr_err("failed to create a timer! %d\n", -errno);
 		return -errno;
 	}
 
@@ -143,7 +142,7 @@ int sm_ap_timer_start(struct wifimgr_state_machine *ap_sm, unsigned int cmd_id)
 	int ret = 0;
 
 	switch (cmd_id) {
-	case WIFIMGR_CMD_DEL_STATION:
+	case WIFIMGR_CMD_BLOCK_STATION:
 		ret = sm_timer_start(ap_sm->timerid, WIFIMGR_EVENT_TIMEOUT);
 		break;
 	default:
@@ -159,7 +158,7 @@ int sm_ap_timer_stop(struct wifimgr_state_machine *ap_sm, unsigned int evt_id)
 
 	switch (evt_id) {
 	case WIFIMGR_EVT_NEW_STATION:
-		if (ap_sm->cur_cmd == WIFIMGR_CMD_DEL_STATION)
+		if (ap_sm->cur_cmd == WIFIMGR_CMD_BLOCK_STATION)
 			ret = sm_timer_stop(ap_sm->timerid);
 		break;
 	default:
@@ -199,7 +198,7 @@ const char *wifimgr_cmd2str(int cmd)
 	E2S(WIFIMGR_CMD_CLOSE_AP)
 	E2S(WIFIMGR_CMD_START_AP)
 	E2S(WIFIMGR_CMD_STOP_AP)
-	E2S(WIFIMGR_CMD_DEL_STATION)
+	E2S(WIFIMGR_CMD_BLOCK_STATION)
 	default:
 		return "WIFIMGR_CMD_UNKNOWN";
 	}

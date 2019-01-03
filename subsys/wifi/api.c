@@ -206,19 +206,19 @@ int wifimgr_ctrl_iface_stop_ap(void)
 
 int wifimgr_ctrl_iface_del_station(char *mac)
 {
-	struct wifimgr_del_station del_sta;
+	char mac_addr[WIFIMGR_ETH_ALEN];
 
 	if (mac && !is_zero_ether_addr(mac)) {
-		memcpy(del_sta.mac, mac, WIFIMGR_ETH_ALEN);
+		memcpy(mac_addr, mac, WIFIMGR_ETH_ALEN);
 	} else if (!mac) {
-		memset(del_sta.mac, 0xff, WIFIMGR_ETH_ALEN);
+		memset(mac_addr, 0xff, WIFIMGR_ETH_ALEN);
 	} else {
 		printf("invalid Client MAC!");
 		return -EINVAL;
 	}
 
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_DEL_STATION, &del_sta,
-					   sizeof(del_sta));
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_BLOCK_STATION, mac_addr,
+					   sizeof(mac_addr));
 }
 
 static const struct wifimgr_ctrl_ops wifimgr_ops = {
