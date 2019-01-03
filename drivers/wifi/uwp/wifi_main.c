@@ -289,6 +289,45 @@ static int uwp_mgmt_del_station(struct device *dev, char *mac)
 			0/* reason_code */);
 }
 
+static int uwp_mgmt_set_mac_acl(struct device *dev,
+		char subcmd, unsigned char acl_nr,
+		char acl_mac_addrs[][NET_LINK_ADDR_MAX_LENGTH])
+{
+	struct wifi_device *wifi_dev;
+	u8_t sub_type;
+
+	if (!dev) {
+		return -EINVAL;
+	}
+
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
+	}
+
+	if (wifi_dev->mode != WIFI_MODE_AP) {
+		LOG_WRN("Improper mode %d to add mac acl.",
+				wifi_dev->mode);
+		return -EINVAL;
+	}
+
+	switch (subcmd) {
+	case WIFI_DRV_BLACKLIST_ADD:
+		sub_type = ADD_MAC_ACL;
+		break;
+	case WIFI_DRV_BLACKLIST_DEL:
+		sub_type = DEL_MAC_ACL;
+		break;
+	default:
+		LOG_WRN("Unknown subcmd %d", subcmd);
+		return -EINVAL;
+	}
+
+	return wifi_cmd_set_blacklist(wifi_dev, sub_type,
+			acl_nr, (u8_t **)acl_mac_addrs);
+}
+
 static int uwp_mgmt_hw_test(struct device *dev,
 		int ictx_id, char *t_buf,
 		unsigned int t_len, char *r_buf,
@@ -627,6 +666,7 @@ static const struct wifi_drv_api uwp_api = {
 	.start_ap					= uwp_mgmt_start_ap,
 	.stop_ap					= uwp_mgmt_stop_ap,
 	.del_station				= uwp_mgmt_del_station,
+	.set_mac_acl				= uwp_mgmt_set_mac_acl,
 	.hw_test					= uwp_mgmt_hw_test,
 };
 
