@@ -30,7 +30,7 @@ struct wifimgr_ctrl_ops {
 	int (*disconnect)(void);
 	int (*start_ap)(void);
 	int (*stop_ap)(void);
-	int (*del_station)(char *mac);
+	int (*set_mac_acl)(char subcmd, char *mac);
 };
 
 struct wifimgr_ctrl_cbs {
@@ -49,14 +49,15 @@ struct wifimgr_ctrl_cbs {
 				 unsigned char acl_nr, char acl_mac_addrs[][6]);
 	void (*notify_scan_res)(char *ssid, char *bssid, unsigned char band,
 				unsigned char channel, signed char rssi);
-	void (*notify_scan_done)(unsigned char result);
-	void (*notify_connect)(unsigned char result);
-	void (*notify_disconnect)(unsigned char reason);
+	void (*notify_scan_done)(char result);
+	void (*notify_connect)(char result);
+	void (*notify_disconnect)(char reason);
 	void (*notify_scan_timeout)(void);
 	void (*notify_connect_timeout)(void);
 	void (*notify_disconnect_timeout)(void);
-	void (*notify_new_station)(unsigned char status, unsigned char *mac);
-	void (*notify_del_station_timeout)(void);
+	void (*notify_new_station)(char status, char *mac);
+	void (*notify_set_mac_acl)(char result);
+	void (*notify_set_mac_acl_timeout)(void);
 };
 
 const
