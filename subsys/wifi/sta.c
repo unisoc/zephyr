@@ -352,10 +352,21 @@ static int wifimgr_sta_scan_result_event(void *arg)
 
 	if (!is_zero_ether_addr(scan_res->bssid)) {
 		bssid = scan_res->bssid;
-		wifimgr_info("\t%02x:%02x:%02x:%02x:%02x:%02x\t%u\t%d\n",
+		wifimgr_info("\t%02x:%02x:%02x:%02x:%02x:%02x",
 			     bssid[0], bssid[1], bssid[2],
-			     bssid[3], bssid[4], bssid[5],
-			     scan_res->channel, scan_res->rssi);
+			     bssid[3], bssid[4], bssid[5]);
+		switch (scan_res->security) {
+		case WIFI_SECURITY_TYPE_NONE:
+			wifimgr_info("\t%s\t", "OPEN");
+			break;
+		case WIFI_SECURITY_TYPE_PSK:
+			wifimgr_info("\t%s", "WPA/WPA2");
+			break;
+		default:
+			wifimgr_info("\t%s\t", "OTHERS");
+			break;
+		}
+		wifimgr_info("\t%u\t%d\n", scan_res->channel, scan_res->rssi);
 	}
 
 	fflush(stdout);
