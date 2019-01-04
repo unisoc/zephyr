@@ -293,24 +293,26 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 			break;
 		}
 
+		ret = sm_ap_timer_stop(&mgr->ap_sm, WIFIMGR_EVT_NEW_STATION);
 		memset(sts->u.ap.acl_mac_addrs + (sts->u.ap.acl_nr - 1),
 		       0, WIFIMGR_ETH_ALEN);
-		sts->u.ap.acl_nr--;
 		subcmd = WIFI_DRV_BLACKLIST_DEL;
 		pending = true;
 		wifimgr_info("Unblock ");
 		break;
 	case WIFIMGR_SUBCMD_ACL_BLOCK_ALL:
-		wifimgr_info("Block ");
+		ret = sm_ap_timer_stop(&mgr->ap_sm, WIFIMGR_EVT_NEW_STATION);
 		subcmd = WIFI_DRV_BLACKLIST_ADD;
 		pending = true;
+		wifimgr_info("Block ");
 		break;
 	case WIFIMGR_SUBCMD_ACL_UNBLOCK_ALL:
-		wifimgr_info("Unblock ");
+		ret = sm_ap_timer_stop(&mgr->ap_sm, WIFIMGR_EVT_NEW_STATION);
 		memset(sts->u.ap.acl_mac_addrs, 0,
 		       mgr->ap_capa.max_acl_mac_addrs * WIFIMGR_ETH_ALEN);
 		subcmd = WIFI_DRV_BLACKLIST_DEL;
 		pending = true;
+		wifimgr_info("Unblock ");
 		break;
 	default:
 		return -EINVAL;
@@ -338,49 +340,16 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 	pending = false;
 	switch (acl->subcmd) {
 	case WIFIMGR_SUBCMD_ACL_BLOCK:
-		if (!sts->u.ap.sta_nr) {
-			wifimgr_warn("No Station to deauth!");
-			result = -ENOENT;
-			break;
-		}
-
-		ret =
-		    search_mac_addr(sts->u.ap.sta_mac_addrs, sts->u.ap.sta_nr,
-				    acl->mac);
-		if (!ret) {
-			wifimgr_info("No matches found!\n");
-			result = -ENOENT;
-			break;
-		}
-
-		pending = true;
-		wifimgr_info("Deauth ");
-		break;
-	case WIFIMGR_SUBCMD_ACL_BLOCK_ALL:
-		wifimgr_info("Deauth ");
-		pending = true;
 		break;
 	case WIFIMGR_SUBCMD_ACL_UNBLOCK:
+		sts->u.ap.acl_nr--;
+		break;
+	case WIFIMGR_SUBCMD_ACL_BLOCK_ALL:
+		break;
 	case WIFIMGR_SUBCMD_ACL_UNBLOCK_ALL:
 		break;
 	default:
 		return -EINVAL;
-	}
-
-	if (pending == true) {
-		if (is_broadcast_ether_addr(acl->mac))
-			wifimgr_info("all stations!\n");
-		else
-			wifimgr_info("(%02x:%02x:%02x:%02x:%02x:%02x)\n",
-				     acl->mac[0], acl->mac[1], acl->mac[2],
-				     acl->mac[3], acl->mac[4], acl->mac[5]);
-
-		/* Deauth station */
-		ret = wifi_drv_del_station(mgr->ap_iface, acl->mac);
-		if (ret) {
-			wifimgr_err("failed to deauth STA! %d\n", ret);
-			result = ret;
-		}
 	}
 
 	if (cbs && cbs->notify_set_mac_acl)

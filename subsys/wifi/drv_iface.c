@@ -73,6 +73,7 @@ void wifi_drv_event_iface_scan_result(void *iface, int status,
 		strncpy(scan_res.bssid, entry->bssid, WIFIMGR_ETH_ALEN);
 		scan_res.channel = entry->channel;
 		scan_res.rssi = entry->rssi;
+		scan_res.security = entry->security;
 
 		wifimgr_notify_event(WIFIMGR_EVT_SCAN_RESULT, &scan_res,
 				     sizeof(scan_res));
