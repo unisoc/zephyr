@@ -14,8 +14,6 @@
 #define WIFI_MODE_NONE (0)
 #define WIFI_MODE_STA (1)
 #define WIFI_MODE_AP (2)
-/* #define WIFI_MODE_APSTA (3) */
-/* #define WIFI_MODE_MONITOR (4) */
 
 #define MAX_WIFI_DEV_NUM (2)
 
@@ -26,7 +24,6 @@
 #define IPV4_LEN (4)
 
 struct wifi_device {
-	/* bool connecting; */
 	bool connected;
 	bool opened;
 	u8_t mode;
@@ -66,13 +63,6 @@ static inline u32_t uwp_get_addr_from_payload(u32_t payload)
 
 	return *ptr;
 }
-/* extern struct adapter wifi_pAd; */
-
-
-struct wifi_device *get_wifi_dev_by_dev(struct device *dev);
-/* int wifi_ifnet_sta_init(struct adapter *pAd); */
-/* int wifi_ifnet_ap_init(struct adapter *pAd); */
-/* struct netif *wifi_ifnet_get_interface(struct adapter *pAd,int ctx_id); */
 
 
 #endif /* __WIFI_MAIN_H__ */
