@@ -26,7 +26,7 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 #include "sipc.h"
 #include "uwp_hal.h"
 
-/*
+/**
  * We do not need <socket/include/socket.h>
  * It seems there is a bug in ASF side: if OS is already defining sockaddr
  * and all, ASF will not need to define it. Unfortunately its socket.h does
@@ -49,7 +49,7 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 static struct wifi_priv uwp_wifi_priv_data;
 
 
-struct wifi_device *get_wifi_dev_by_dev(struct device *dev)
+static struct wifi_device *get_wifi_dev_by_dev(struct device *dev)
 {
 	struct wifi_device *wifi_dev = NULL;
 	struct wifi_priv *priv = DEV_DATA(dev);
@@ -67,17 +67,15 @@ static int wifi_rf_init(void)
 {
 	int ret = 0;
 
-	LOG_DBG("download the first section of config file");
 	ret = wifi_cmd_load_ini(sec1_table, sizeof(sec1_table), SEC1);
 	if (ret) {
-		LOG_ERR("download first section ini fail,ret = %d", ret);
+		LOG_ERR("Download first section ini fail,ret = %d", ret);
 		return ret;
 	}
 
-	LOG_DBG("download the second section of config file");
 	ret = wifi_cmd_load_ini(sec2_table, sizeof(sec2_table), SEC2);
 	if (ret) {
-		LOG_ERR("download second section ini fail,ret = %d", ret);
+		LOG_ERR("Download second section ini fail,ret = %d", ret);
 		return ret;
 	}
 
@@ -468,7 +466,8 @@ static int uwp_mgmt_disconnect(struct device *dev,
 	return wifi_cmd_disconnect(wifi_dev);
 }
 
-static int uwp_mgmt_set_ip(struct device *dev, char *ip, unsigned char len)
+static int uwp_mgmt_notify_ip_acquired(struct device *dev,
+		char *ip, unsigned char len)
 {
 	struct wifi_device *wifi_dev;
 
@@ -488,7 +487,7 @@ static int uwp_mgmt_set_ip(struct device *dev, char *ip, unsigned char len)
 		return -EINVAL;
 	}
 
-	return wifi_cmd_set_ip(wifi_dev, ip, len);
+	return wifi_cmd_notify_ip_acquired(wifi_dev, ip, len);
 }
 
 static void uwp_iface_init(struct net_if *iface)
@@ -557,9 +556,9 @@ static int wifi_tx_fill_msdu_dscr(struct wifi_device *wifi_dev,
 	/* TODO */
 	dscr->tx_ctrl.sw_rate = (type == SPRDWL_TYPE_DATA_SPECIAL ? 1 : 0);
 	dscr->tx_ctrl.wds = 0;
-	/*TBD*/ dscr->tx_ctrl.swq_flag = 0;
-	/*TBD*/ dscr->tx_ctrl.rsvd = 0;
-	/*TBD*/ dscr->tx_ctrl.pcie_mh_readcomp = 1;
+	/* TODO */ dscr->tx_ctrl.swq_flag = 0;
+	/* TODO */ dscr->tx_ctrl.rsvd = 0;
+	/* TODO */ dscr->tx_ctrl.pcie_mh_readcomp = 1;
 	dscr->buffer_info.msdu_tid = 0;
 	dscr->buffer_info.mac_data_offset = 0;
 	dscr->buffer_info.sta_lut_idx = 0;
@@ -653,21 +652,21 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 
 
 static const struct wifi_drv_api uwp_api = {
-	.eth_api.iface_api.init		= uwp_iface_init,
-	.eth_api.iface_api.send		= uwp_iface_tx,
-	.get_capa					= uwp_mgmt_get_capa,
-	.open						= uwp_mgmt_open,
-	.close						= uwp_mgmt_close,
-	.scan						= uwp_mgmt_scan,
-	.get_station				= uwp_mgmt_get_station,
-	.connect					= uwp_mgmt_connect,
-	.disconnect					= uwp_mgmt_disconnect,
-	.notify_ip					= uwp_mgmt_set_ip,
-	.start_ap					= uwp_mgmt_start_ap,
-	.stop_ap					= uwp_mgmt_stop_ap,
-	.del_station				= uwp_mgmt_del_station,
-	.set_mac_acl				= uwp_mgmt_set_mac_acl,
-	.hw_test					= uwp_mgmt_hw_test,
+	.eth_api.iface_api.init = uwp_iface_init,
+	.eth_api.iface_api.send = uwp_iface_tx,
+	.get_capa               = uwp_mgmt_get_capa,
+	.open                   = uwp_mgmt_open,
+	.close                  = uwp_mgmt_close,
+	.scan                   = uwp_mgmt_scan,
+	.get_station            = uwp_mgmt_get_station,
+	.connect                = uwp_mgmt_connect,
+	.disconnect             = uwp_mgmt_disconnect,
+	.notify_ip              = uwp_mgmt_notify_ip_acquired,
+	.start_ap               = uwp_mgmt_start_ap,
+	.stop_ap                = uwp_mgmt_stop_ap,
+	.del_station            = uwp_mgmt_del_station,
+	.set_mac_acl            = uwp_mgmt_set_mac_acl,
+	.hw_test                = uwp_mgmt_hw_test,
 };
 
 static int uwp_init(struct device *dev)

@@ -37,7 +37,7 @@ enum cmd_type {
 	WIFI_CMD_SET_BLACKLIST,
 	WIFI_CMD_SET_WHITELIST,
 
-	WIFI_CMD_SET_IP = 0x0F, /* Set IP address. */
+	WIFI_CMD_NOTIFY_IP_ACQUIRED = 0x0F, /* Set IP address. */
 
 	WIFI_CMD_MAX,
 };
@@ -142,7 +142,7 @@ struct cmd_scan {
 	u32_t channels_2g; /* One bit for one 2.4G channel. */
 	u32_t flags;
 	u16_t ssid_len; /* Hidden ssid length. */
-	u8_t ssid[0]; /* FIXME: Invalid reservation. Hidden ssid.  */
+	u8_t ssid[0]; /* FIXME: Invalid reservation. Hidden ssid. */
 	u16_t channels_5g_cnt; /* Number of 5G channels. */
 	u16_t channels_5g[0]; /* 5G channels to be scanned. */
 } __packed;
@@ -180,7 +180,7 @@ struct cmd_set_ip {
 
 struct cmd_get_sta {
 	struct trans_hdr trans_header;
-	/*
+	/**
 	 * Response value
 	 * Now needs signal only.
 	 */
@@ -198,12 +198,6 @@ struct event_scan_result {
 	u8_t band;
 	u8_t channel;
 	s8_t rssi;
-	/*
-	 * ENCRYPT_OPEN = 0,
-	 * ENCRYPT_WPA = 1,
-	 * ENCRYPT_WPA2 = 2,
-	 * ENCRYPT_OTHERS = 3,
-	 */
 	u8_t encrypt_mode;
 	char bssid[ETH_ALEN];
 	char ssid[MAX_SSID_LEN];
@@ -231,8 +225,6 @@ struct event_new_station {
 	/* u8_t ie[0]; */
 } __packed;
 
-/* int wifi_cmd_load_ini(u8_t *pAd); */
-/* int wifi_cmd_set_sta_connect_info(u8_t *pAd, char *ssid, char *key); */
 int wifi_cmd_get_cp_info(struct wifi_priv *priv);
 int wifi_cmd_open(struct wifi_device *wifi_dev);
 int wifi_cmd_close(struct wifi_device *wifi_dev);
@@ -253,7 +245,8 @@ int wifi_cmd_stop_ap(struct wifi_device *wifi_dev);
 int wifi_cmd_hw_test(struct wifi_device *wifi_dev,
 		int ictx_id, char *t_buf, u32_t t_len,
 		char *r_buf, u32_t *r_len);
-int wifi_cmd_set_ip(struct wifi_device *wifi_dev, u8_t *ip, u8_t len);
+int wifi_cmd_notify_ip_acquired(struct wifi_device *wifi_dev,
+		u8_t *ip, u8_t len);
 
 int wifi_cmd_send(u8_t cmd, char *data, int len,
 			 char *rbuf, int *rlen);
