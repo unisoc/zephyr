@@ -17,13 +17,6 @@
 #define SPRDWL_PHYS_LEN (5)
 
 #define ADDR_LEN (5)
-/* #define CP_PBUF_SIZE (1600) */
-
-/* #define SPRDWL_PROCESS_BUFFER (0)
- * #define SPRDWL_FREE_BUFFER (1)
- * #define SPRDWL_REQUEST_BUFFER (2)
- * #define SPRDWL_FLUSH_BUFFER (3)
- */
 
 #define MAX_RX_ADDR_NUM CONFIG_WIFI_UWP_MAX_RX_ADDR_NUM
 #define TOTAL_RX_ADDR_NUM CONFIG_WIFI_UWP_TOTAL_RX_ADDR_NUM
@@ -59,7 +52,8 @@ struct tx_ctrl {
 	unsigned char sw_rate : 1;
 	/* WDS frame */
 	unsigned char wds : 1;
-	/* 1:frame sent from SWQ to MH,
+	/**
+	 * 1:frame sent from SWQ to MH,
 	 * 0:frame sent from TXQ to MH,
 	 * default:0
 	 */
@@ -277,14 +271,6 @@ enum sprdwl_head_type {
 	SPRDWL_TYPE_DATA_SPECIAL,
 	SPRDWL_TYPE_PKT_LOG,
 };
-#if 0
-enum sprdwl_head_rsp {
-	/* Command no rsp. */
-	SPRDWL_HEAD_NORSP,
-	/* Command need rsp. */
-	SPRDWL_HEAD_RSP,
-};
-#endif
 
 struct hw_addr_buff_t {
 	struct sprdwl_common_hdr common;
@@ -320,14 +306,6 @@ enum {
 	DDR_BUFF_ERROR = 1,
 };
 
-#if 0
-struct pbuf *wifi_rx_event_dequeue(void);
-int wifi_rx_mbox_init(void);
-int wifi_rx_event_callback(int channel, void *data, int len);
-int wifi_rx_data_callback(int channel, void *data, int len);
-int wifi_rx_buffer_init(int num);
-int wifi_tx_packet(struct netif *netif, struct pbuf *p);
-#endif /* 0 */
 
 int wifi_tx_cmd(void *data, int len);
 int wifi_txrx_init(struct wifi_priv *priv);

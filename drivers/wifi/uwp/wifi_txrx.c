@@ -267,7 +267,7 @@ static int wifi_tx_empty_buf_(int num)
 	memset(&buf, 0, sizeof(buf));
 
 	for (i = 0; i < num; i++) {
-		/* Reserve a data frag to receive the frame */
+		/* Reserve a data frag to receive the frame. */
 		pkt_buf = net_pkt_get_reserve_rx_data(0, K_NO_WAIT);
 		if (!pkt_buf) {
 			LOG_ERR("Could not allocate rx buf %d.", i);
