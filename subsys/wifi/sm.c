@@ -142,6 +142,7 @@ int sm_ap_timer_start(struct wifimgr_state_machine *ap_sm, unsigned int cmd_id)
 	int ret = 0;
 
 	switch (cmd_id) {
+	case WIFIMGR_CMD_DEL_STA:
 	case WIFIMGR_CMD_SET_MAC_ACL:
 		ret = sm_timer_start(ap_sm->timerid, WIFIMGR_EVENT_TIMEOUT);
 		break;
@@ -158,7 +159,8 @@ int sm_ap_timer_stop(struct wifimgr_state_machine *ap_sm, unsigned int evt_id)
 
 	switch (evt_id) {
 	case WIFIMGR_EVT_NEW_STATION:
-		if (ap_sm->cur_cmd == WIFIMGR_CMD_SET_MAC_ACL)
+		if ((ap_sm->cur_cmd == WIFIMGR_CMD_DEL_STA) ||
+		    (ap_sm->cur_cmd == WIFIMGR_CMD_SET_MAC_ACL))
 			ret = sm_timer_stop(ap_sm->timerid);
 		break;
 	default:
