@@ -35,7 +35,7 @@ static const u16_t CRC_table[] = {
 	0x5000, 0x9C01, 0x8801, 0x4400,
 };
 
-/* 5G channel list. */
+/* 5G channel list */
 static const u16_t channels_5g_scan_table[] = {
 	36, 40, 44, 48, 52,
 	56, 60, 64, 100, 104,
@@ -284,16 +284,16 @@ int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 
 	priv->cp_version = cmd.version;
 
-	/* Store sta mac */
+	/* Store sta mac. */
 	memcpy(priv->wifi_dev[WIFI_DEV_STA].mac, cmd.mac, ETH_ALEN);
-	/* Store softap mac */
+	/* Store softap mac. */
 	cmd.mac[4] ^= 0x80;
 	memcpy(priv->wifi_dev[WIFI_DEV_AP].mac, cmd.mac, ETH_ALEN);
 
-	/* Store maximum station on softap */
+	/* Store maximum station on softap. */
 	priv->wifi_dev[WIFI_DEV_AP].max_sta_num = cmd.max_ap_assoc_sta_num;
 
-	/* Store maximum stations in blacklist on softap */
+	/* Store maximum stations in blacklist on softap. */
 	priv->wifi_dev[WIFI_DEV_AP].max_blacklist_num =
 		cmd.max_ap_blacklist_sta_num;
 
@@ -510,12 +510,12 @@ int wifi_cmd_stop_ap(struct wifi_device *wifi_dev)
 {
 	ARG_UNUSED(wifi_dev);
 
-	/* Stop ap is not supported by CP */
+	/* Not supported by CP. */
 	return 0;
 }
 
 
-/*
+/**
  * @param r_buf: address of return value
  * @param r_len: length of return value
  */
@@ -552,7 +552,7 @@ int wifi_cmd_hw_test(struct wifi_device *wifi_dev,
 
 	if (r_buf && r_len) {
 		*r_len = *r_len - sizeof(*cmd);
-		/* No need to copy trans_hdr. */
+		/* Drop trans_hdr. */
 		memcpy(r_buf, r_buf + sizeof(*cmd), *r_len);
 	}
 
@@ -561,26 +561,24 @@ int wifi_cmd_hw_test(struct wifi_device *wifi_dev,
 	return 0;
 }
 
-int wifi_cmd_set_ip(struct wifi_device *wifi_dev, u8_t *ip_addr, u8_t len)
+int wifi_cmd_notify_ip_acquired(struct wifi_device *wifi_dev,
+		u8_t *ip_addr, u8_t len)
 {
 	int ret;
 	struct cmd_set_ip cmd;
 
 	memset(&cmd, 0, sizeof(cmd));
 	if (len == IPV4_LEN) {
-		/*
-		 * Temporarily supported 4-byte ipv4 address.
-		 * TODO: support ipv6 address, need to reserve more bytes.
-		 */
+		/* IPv4 only */
 		memcpy(cmd.ip, ip_addr, len);
 		/* Store ipv4 address in wifi device. */
 		memcpy(wifi_dev->ipv4_addr, ip_addr, len);
 	} else {
-		LOG_WRN("Currently only ipv4, 4 bytes.");
+		LOG_WRN("Currently ipv4 only, 4 bytes.");
 		return -EINVAL;
 	}
 
-	ret = wifi_cmd_send(WIFI_CMD_SET_IP, (char *)&cmd,
+	ret = wifi_cmd_send(WIFI_CMD_NOTIFY_IP_ACQUIRED, (char *)&cmd,
 			    sizeof(cmd), NULL, NULL);
 	if (ret) {
 		LOG_ERR("Set ip send cmd fail");
@@ -727,7 +725,7 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 
 		k_sem_give(&cmd_sem);
 
-		/*
+		/**
 		 * Release command wait semaphore, and switch current thread to
 		 * command process thread. This routine could prevent the send
 		 * command timeout if there are many data recived from CP.
@@ -780,8 +778,8 @@ int wifi_cmd_send(u8_t cmd, char *data, int len, char *rbuf, int *rlen)
 		return -EINVAL;
 	}
 
-	if (data && len == 0) {
-		LOG_ERR("Data len Invalid,data=%p,len=%d", data, len);
+	if (!data || len == 0) {
+		LOG_ERR("Invalid data or len.");
 		return -EINVAL;
 	}
 
