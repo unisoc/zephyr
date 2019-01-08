@@ -49,6 +49,7 @@
 #define wifimgr_slist_peek_next(node)		sys_slist_peek_next(node)
 #define wifimgr_slist_prepend(list, node)	sys_slist_prepend(list, node)
 #define wifimgr_slist_append(list, node)	sys_slist_append(list, node)
+#define wifimgr_slist_merge(list_a, list_b)	sys_slist_merge_slist(list_a, list_b)
 #define wifimgr_slist_remove_first(list)	sys_slist_get(list)
 #define wifimgr_slist_remove(list, node)	sys_slist_find_and_remove(list, node)
 
@@ -59,6 +60,11 @@ typedef struct k_work wifimgr_work;
 
 #define wifimgr_init_work(...)	k_work_init(__VA_ARGS__)
 #define wifimgr_queue_work(...)	k_work_submit(__VA_ARGS__)
+
+#ifndef MAC2STR
+#define MAC2STR(m) (m)[0], (m)[1], (m)[2], (m)[3], (m)[4], (m)[5]
+#define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
+#endif
 
 /**
  * is_zero_ether_addr - Determine if give Ethernet address is all zeros.
@@ -76,8 +82,6 @@ static inline bool is_zero_ether_addr(const char *addr)
  * @addr: Pointer to a six-byte array containing the Ethernet address
  *
  * Return true if the address is the broadcast address.
- *
- * Please note: addr must be aligned to u16.
  */
 static inline bool is_broadcast_ether_addr(const char *addr)
 {

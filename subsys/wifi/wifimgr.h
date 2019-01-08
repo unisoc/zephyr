@@ -55,6 +55,16 @@ struct wifimgr_status {
 	} u;
 };
 
+struct wifimgr_mac_node {
+	wifimgr_snode_t node;
+	char mac[WIFIMGR_ETH_ALEN];
+};
+
+struct wifimgr_mac_list {
+	unsigned char nr;
+	wifimgr_slist_t list;
+};
+
 struct wifimgr_sta_event {
 	union {
 		struct wifi_drv_connect_evt conn;
@@ -79,7 +89,9 @@ struct wifi_manager {
 	struct wifimgr_config ap_conf;
 	struct wifimgr_status ap_sts;
 	struct wifimgr_state_machine ap_sm;
-	struct wifimgr_ap_acl acl;
+	struct wifimgr_mac_list assoc_list;
+	struct wifimgr_mac_list mac_acl;
+	struct wifimgr_set_mac_acl set_acl;
 
 	struct cmd_processor prcs;
 	struct evt_listener lsnr;
@@ -91,21 +103,9 @@ struct wifi_manager {
 	struct wifimgr_ap_event ap_evt;
 };
 
-const char *wifimgr_cmd2str(int cmd);
-const char *wifimgr_evt2str(int evt);
-const char *wifimgr_sts2str_cmd(struct wifi_manager *mgr, unsigned int cmd_id);
-const char *wifimgr_sts2str_evt(struct wifi_manager *mgr, unsigned int cmd_id);
-int wifimgr_sm_start_timer(struct wifi_manager *mgr, unsigned int cmd_id);
-int wifimgr_sm_stop_timer(struct wifi_manager *mgr, unsigned int cmd_id);
-int wifimgr_sm_query_cmd(struct wifi_manager *mgr, unsigned int cmd_id);
-void wifimgr_sm_step_cmd(struct wifi_manager *mgr, unsigned int cmd_id);
-void wifimgr_sm_step_evt(struct wifi_manager *mgr, unsigned int evt_id);
-void wifimgr_sm_step_back(struct wifi_manager *mgr, unsigned int evt_id);
-int wifimgr_low_level_init(struct wifi_manager *mgr, unsigned int cmd_id);
-
-void wifimgr_sta_event_timeout(wifimgr_work *work);
-void wifimgr_sta_init(void *handle);
-void wifimgr_ap_event_timeout(wifimgr_work *work);
-void wifimgr_ap_init(void *handle);
+int wifimgr_sta_init(void *handle);
+void wifimgr_sta_exit(void *handle);
+int wifimgr_ap_init(void *handle);
+void wifimgr_ap_exit(void *handle);
 
 #endif
