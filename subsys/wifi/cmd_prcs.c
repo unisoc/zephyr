@@ -29,7 +29,7 @@ int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
 	attr.mq_maxmsg = WIFIMGR_CMD_MQUEUE_NR;
 	attr.mq_msgsize = sizeof(msg);
 	attr.mq_flags = 0;
-	mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
+	mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR, 0666, &attr);
 	if (mq == (mqd_t)-1) {
 		wifimgr_err("failed to open command queue %s! errno %d\n",
 			    WIFIMGR_CMD_MQUEUE, errno);
@@ -175,16 +175,7 @@ static void *cmd_processor(void *handle)
 			continue;
 		}
 
-		/* Initialize driver interface for the first time running */
-		ret = wifimgr_low_level_init(mgr, msg.cmd_id);
-		if (ret == -ENODEV) {
-			cmd_processor_post_process(prcs, &msg, ret);
-			wifimgr_err("No such device!\n");
-			continue;
-		}
-
 		sem_wait(&prcs->exclsem);
-
 		sndr = &prcs->cmd_pool[msg.cmd_id];
 		if (sndr->fn) {
 			if (msg.buf_len) {
@@ -194,18 +185,8 @@ static void *cmd_processor(void *handle)
 
 			/* Call command function */
 			ret = sndr->fn(sndr->arg);
-			if (!ret) {
-				/*Step to next state when successful sending */
-				wifimgr_sm_step_cmd(mgr, msg.cmd_id);
-				/*Start timer then */
-				wifimgr_sm_start_timer(mgr, msg.cmd_id);
-			} else {
-				/*Remain current state when failed sending */
-				wifimgr_err("failed to exec [%s]! remains %s\n",
-					    wifimgr_cmd2str(msg.cmd_id),
-					    wifimgr_sts2str_cmd(mgr,
-								msg.cmd_id));
-			}
+			/* Trigger state machine */
+			wifimgr_sm_cmd_step(mgr, msg.cmd_id, ret);
 		} else {
 			wifimgr_err("[%s] not allowed under %s!\n",
 				    wifimgr_cmd2str(msg.cmd_id),
@@ -245,7 +226,6 @@ int wifimgr_cmd_processor_init(struct cmd_processor *handle)
 	}
 
 	sem_init(&prcs->exclsem, 0, 1);
-	prcs->is_setup = true;
 	prcs->is_started = true;
 
 	/* Starts internal threads to process commands */
@@ -259,11 +239,21 @@ int wifimgr_cmd_processor_init(struct cmd_processor *handle)
 	ret = pthread_create(&prcs->pid, &tattr, cmd_processor, prcs);
 	if (ret) {
 		wifimgr_err("failed to start %s!\n", WIFIMGR_CMD_PROCESSOR);
-		prcs->is_setup = false;
 		mq_close(prcs->mq);
 		return ret;
 	}
 	wifimgr_dbg("started %s, pid=%p\n", WIFIMGR_CMD_PROCESSOR, prcs->pid);
 
 	return 0;
+}
+
+void wifimgr_cmd_processor_exit(struct cmd_processor *handle)
+{
+	struct cmd_processor *prcs = (struct cmd_processor *)handle;
+
+	prcs->is_started = false;
+	if (prcs->mq && (prcs->mq != (mqd_t)-1)) {
+		mq_close(prcs->mq);
+		mq_unlink(WIFIMGR_CMD_MQUEUE);
+	}
 }

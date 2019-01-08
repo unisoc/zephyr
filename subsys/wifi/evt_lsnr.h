@@ -21,12 +21,12 @@
 #define WIFIMGR_EVT_RECEIVER_NR	WIFIMGR_EVT_MAX
 #define WIFIMGR_FRM_RECEIVER_NR	(1)
 
-/* CallBack function pointer prototype for notifing upper App */
+/* CallBack function pointer prototype for notifing events */
 typedef int (*evt_cb_t) (void *arg);
 typedef int (*frm_cb_t) (void *arg);
 
 struct evt_receiver {
-	wifimgr_snode_t evt_node;
+	wifimgr_snode_t node;
 	unsigned short expected_evt;
 	bool oneshot;
 	evt_cb_t cb;
@@ -34,7 +34,7 @@ struct evt_receiver {
 };
 
 struct frm_receiver {
-	wifimgr_snode_t frm_node;
+	wifimgr_snode_t node;
 	bool oneshot;
 	frm_cb_t cb;
 	void *arg;
@@ -44,7 +44,6 @@ struct evt_listener {
 	sem_t exclsem;		/* exclusive access to the struct */
 	mqd_t mq;
 
-	bool is_setup:1;
 	bool is_started:1;
 	pthread_t evt_pid;
 	pthread_t frm_pid;
@@ -70,5 +69,6 @@ int evt_listener_add_receiver(struct evt_listener *handle, unsigned int evt_id,
 int evt_listener_remove_receiver(struct evt_listener *handle,
 				   unsigned int evt_id);
 int wifimgr_evt_listener_init(struct evt_listener *handle);
+void wifimgr_evt_listener_exit(struct evt_listener *handle);
 
 #endif

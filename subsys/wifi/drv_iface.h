@@ -26,6 +26,7 @@ enum event_type {
 	WIFIMGR_EVT_MAX,
 };
 
+void *wifi_drv_init(char *devname);
 int wifi_drv_get_mac(void *iface, char *mac);
 int wifi_drv_get_capa(void *iface, struct wifi_drv_capa *capa);
 int wifi_drv_open(void *iface);
