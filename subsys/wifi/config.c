@@ -72,59 +72,10 @@ static int wifimgr_settings_set(int argc, char **argv, char *val)
 	return 0;
 }
 
-static struct settings_handler wifimgr_settings_handler[] = {
-	{
-		.name = WIFIMGR_SETTING_PATH,
-		.h_set = wifimgr_settings_set,
-	}
+static struct settings_handler wifimgr_settings_handler = {
+	.name = WIFIMGR_SETTING_PATH,
+	.h_set = wifimgr_settings_set,
 };
-
-static void wifimgr_settings_map_init(struct wifimgr_settings_map *settings_map,
-				      struct wifimgr_config *conf, char *path)
-{
-	int i = 0;
-	/* Initialize Autorun setting map */
-	settings_map[i].type = SETTINGS_INT8;
-	strcpy(settings_map[i].name, WIFIMGR_SETTING_NAME_AUTORUN);
-	settings_map[i].valptr = &conf->autorun;
-	i++;
-	/* Initialize SSID setting map */
-	settings_map[i].type = SETTINGS_STRING;
-	strcpy(settings_map[i].name, WIFIMGR_SETTING_NAME_SSID);
-	settings_map[i].valptr = conf->ssid;
-	settings_map[i].vallen = sizeof(conf->ssid);
-	i++;
-	/* Initialize BSSID setting map */
-	settings_map[i].type = SETTINGS_STRING;
-	strcpy(settings_map[i].name, WIFIMGR_SETTING_NAME_BSSID);
-	settings_map[i].valptr = conf->bssid;
-	settings_map[i].vallen = sizeof(conf->bssid);
-	if (!strcmp(path, WIFIMGR_SETTING_AP_PATH))
-		settings_map[i].mask = true;
-	i++;
-	/* Initialize PSK setting map */
-	settings_map[i].type = SETTINGS_STRING;
-	strcpy(settings_map[i].name, WIFIMGR_SETTING_NAME_PSK);
-	settings_map[i].valptr = conf->passphrase;
-	settings_map[i].vallen = sizeof(conf->passphrase);
-	i++;
-	/* Initialize Band setting map */
-	settings_map[i].type = SETTINGS_INT8;
-	strcpy(settings_map[i].name, WIFIMGR_SETTING_NAME_BAND);
-	settings_map[i].valptr = &conf->band;
-	i++;
-	/* Initialize Channel setting map */
-	settings_map[i].type = SETTINGS_INT8;
-	strcpy(settings_map[i].name, WIFIMGR_SETTING_NAME_CHANNEL);
-	settings_map[i].valptr = &conf->channel;
-	i++;
-	/* Initialize Channel width setting map */
-	settings_map[i].type = SETTINGS_INT8;
-	strcpy(settings_map[i].name, WIFIMGR_SETTING_NAME_CHANNEL_WIDTH);
-	settings_map[i].valptr = &conf->ch_width;
-	if (!strcmp(path, WIFIMGR_SETTING_STA_PATH))
-		settings_map[i].mask = true;
-}
 
 int wifimgr_settings_save_one(struct wifimgr_settings_map *setting, char *path,
 			      bool clear)
@@ -173,16 +124,17 @@ int wifimgr_settings_save_one(struct wifimgr_settings_map *setting, char *path,
 	return ret;
 }
 
-/*int wifimgr_settings_save(bool clear, void *handle, char *path)*/
 int wifimgr_settings_save(void *handle, char *path, bool clear)
 {
 	int cnt = ARRAY_SIZE(wifimgr_setting_keynames);
 	int i;
 	int ret;
 
-	if (!strcmp(path, WIFIMGR_SETTING_STA_PATH)) {
+	if (!strcmp(path, WIFIMGR_SETTING_STA_PATH)
+	    && wifimgr_sta_settings_map) {
 		settings = wifimgr_sta_settings_map;
-	} else if (!strcmp(path, WIFIMGR_SETTING_AP_PATH)) {
+	} else if (!strcmp(path, WIFIMGR_SETTING_AP_PATH)
+		   && wifimgr_ap_settings_map) {
 		settings = wifimgr_ap_settings_map;
 	} else {
 		wifimgr_err("unsupported path %s!\n", path);
@@ -198,47 +150,85 @@ int wifimgr_settings_save(void *handle, char *path, bool clear)
 	return ret;
 }
 
-int wifimgr_config_init(void *handle)
+static
+void wifimgr_settings_init_one(struct wifimgr_settings_map *setting,
+			       const char *name, char *valptr, int vallen,
+			       enum settings_type type, bool mask)
 {
-	struct wifi_manager *mgr = (struct wifi_manager *)handle;
+	strcpy(setting->name, name);
+	setting->valptr = valptr;
+	setting->vallen = vallen;
+	setting->type = type;
+	setting->mask = mask;
+}
+
+static int wifimgr_settings_init(struct wifimgr_config *conf, char *path)
+{
 	int settings_size = sizeof(struct wifimgr_settings_map) *
 	    ARRAY_SIZE(wifimgr_setting_keynames);
-	int ret;
+	bool mask;
+	int i = 0;
 
-	ret = settings_subsys_init();
-	if (ret)
-		wifimgr_err("failed to init settings subsys!\n");
-
-	/* Allocate memory space for STA settings */
-	wifimgr_sta_settings_map = malloc(settings_size);
-	if (!wifimgr_sta_settings_map)
+	/* Allocate memory for settings map */
+	settings = malloc(settings_size);
+	if (!settings)
 		return -ENOMEM;
 
-	/* Initialize STA settings */
-	memset(wifimgr_sta_settings_map, 0, settings_size);
-	wifimgr_settings_map_init(wifimgr_sta_settings_map, &mgr->sta_conf,
-				  WIFIMGR_SETTING_STA_PATH);
-
-	/* Allocate memory space for AP settings */
-	wifimgr_ap_settings_map = malloc(settings_size);
-	if (!wifimgr_ap_settings_map) {
-		free(wifimgr_sta_settings_map);
-		return -ENOMEM;
+	if (!strcmp(path, WIFIMGR_SETTING_STA_PATH)) {
+		wifimgr_sta_settings_map = settings;
+	} else if (!strcmp(path, WIFIMGR_SETTING_AP_PATH)) {
+		wifimgr_ap_settings_map = settings;
+	} else {
+		wifimgr_err("unsupported path %s!\n", path);
+		return -ENOENT;
 	}
 
-	/* Initialize AP settings */
-	memset(wifimgr_ap_settings_map, 0, settings_size);
-	wifimgr_settings_map_init(wifimgr_ap_settings_map, &mgr->ap_conf,
-				  WIFIMGR_SETTING_AP_PATH);
+	memset(settings, 0, settings_size);
 
-	ret = settings_register(&(wifimgr_settings_handler[0]));
-	if (ret) {
-		wifimgr_err("failed to register setting handlers!\n");
-		free(wifimgr_sta_settings_map);
-		free(wifimgr_ap_settings_map);
-	}
+	/* Initialize Autorun setting map */
+	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
+				  &conf->autorun, sizeof(conf->autorun),
+				  SETTINGS_INT8, false);
+	i++;
+	/* Initialize SSID setting map */
+	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
+				  conf->ssid, sizeof(conf->ssid),
+				  SETTINGS_STRING, false);
+	i++;
+	/* Initialize BSSID setting map */
+	if (!strcmp(path, WIFIMGR_SETTING_STA_PATH))
+		mask = false;
+	else
+		mask = true;
+	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
+				  conf->bssid, sizeof(conf->bssid),
+				  SETTINGS_STRING, mask);
+	i++;
+	/* Initialize PSK setting map */
+	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
+				  conf->passphrase, sizeof(conf->passphrase),
+				  SETTINGS_STRING, false);
+	i++;
+	/* Initialize Band setting map */
+	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
+				  &conf->band, sizeof(conf->band),
+				  SETTINGS_INT8, false);
+	i++;
+	/* Initialize Channel setting map */
+	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
+				  &conf->channel, sizeof(conf->channel),
+				  SETTINGS_INT8, false);
+	i++;
+	/* Initialize Channel width setting map */
+	if (!strcmp(path, WIFIMGR_SETTING_AP_PATH))
+		mask = false;
+	else
+		mask = true;
+	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
+				  &conf->ch_width, sizeof(conf->ch_width),
+				  SETTINGS_INT8, false);
 
-	return ret;
+	return 0;
 }
 
 int wifimgr_config_load(void *handle, char *path)
@@ -248,9 +238,11 @@ int wifimgr_config_load(void *handle, char *path)
 	settings_category = strstr(path, "/");
 	settings_category++;
 
-	if (!strcmp(path, WIFIMGR_SETTING_STA_PATH)) {
+	if (!strcmp(path, WIFIMGR_SETTING_STA_PATH)
+	    && wifimgr_sta_settings_map) {
 		settings = wifimgr_sta_settings_map;
-	} else if (!strcmp(path, WIFIMGR_SETTING_AP_PATH)) {
+	} else if (!strcmp(path, WIFIMGR_SETTING_AP_PATH)
+		   && wifimgr_ap_settings_map) {
 		settings = wifimgr_ap_settings_map;
 	} else {
 		wifimgr_err("unsupported path %s!\n", path);
@@ -264,4 +256,44 @@ int wifimgr_config_load(void *handle, char *path)
 	}
 
 	return ret;
+}
+
+int wifimgr_config_init(void *handle, char *path)
+{
+	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
+	int ret;
+
+	ret = settings_subsys_init();
+	if (ret) {
+		wifimgr_err("failed to init settings subsys! %d\n", ret);
+		return ret;
+	}
+
+	ret = settings_register(&wifimgr_settings_handler);
+	if (ret) {
+		wifimgr_err("failed to register setting handlers! %d\n", ret);
+		return ret;
+	}
+
+	ret = wifimgr_settings_init(conf, path);
+	if (ret)
+		wifimgr_err("failed to init settings map! %d\n", ret);
+
+	return ret;
+}
+
+void wifimgr_config_exit(char *path)
+{
+	if (!strcmp(path, WIFIMGR_SETTING_STA_PATH)) {
+		settings = wifimgr_sta_settings_map;
+		wifimgr_sta_settings_map = NULL;
+	} else if (!strcmp(path, WIFIMGR_SETTING_AP_PATH)) {
+		settings = wifimgr_ap_settings_map;
+		wifimgr_ap_settings_map = NULL;
+	} else {
+		wifimgr_err("unsupported path %s!\n", path);
+		return;
+	}
+
+	free(settings);
 }

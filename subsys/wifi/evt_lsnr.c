@@ -59,14 +59,31 @@ int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len)
 	return ret;
 }
 
-static void _evt_listener_remove_receiver(struct evt_listener *lsnr,
-					  struct evt_receiver *rcvr)
+static struct evt_receiver *search_event(struct evt_listener *lsnr,
+					 unsigned int evt_id)
+{
+	struct evt_receiver *rcvr;
+
+	/* Loop through list to find the corresponding event */
+	rcvr = (struct evt_receiver *)wifimgr_slist_peek_head(&lsnr->evt_list);
+	while (rcvr) {
+		if (rcvr->expected_evt == evt_id)
+			return rcvr;
+
+		rcvr =
+		    (struct evt_receiver *)wifimgr_slist_peek_next(&rcvr->node);
+	}
+
+	return NULL;
+}
+
+static void free_event(struct evt_listener *lsnr, struct evt_receiver *rcvr)
 {
 	/* Unlink the receiver from the list */
-	wifimgr_slist_remove(&lsnr->evt_list, &rcvr->evt_node);
+	wifimgr_slist_remove(&lsnr->evt_list, &rcvr->node);
 
 	/* Link the receiver back into the free list */
-	wifimgr_slist_append(&lsnr->free_evt_list, &rcvr->evt_node);
+	wifimgr_slist_append(&lsnr->free_evt_list, &rcvr->node);
 }
 
 int evt_listener_add_receiver(struct evt_listener *handle, unsigned int evt_id,
@@ -82,18 +99,12 @@ int evt_listener_add_receiver(struct evt_listener *handle, unsigned int evt_id,
 	sem_wait(&lsnr->exclsem);
 
 	/* Check whether the event receiver already exist */
-	rcvr = (struct evt_receiver *)wifimgr_slist_peek_head(&lsnr->evt_list);
-	while (rcvr != NULL) {
-		/* Check if callback matches */
-		if (rcvr->expected_evt == evt_id) {
-			wifimgr_warn("[%s] receiver already exist!\n",
-				     wifimgr_evt2str(evt_id));
-			sem_post(&lsnr->exclsem);
-			return 0;
-		}
-
-		rcvr = (struct evt_receiver *)
-		    wifimgr_slist_peek_next(&rcvr->evt_node);
+	rcvr = search_event(lsnr, evt_id);
+	if (rcvr) {
+		wifimgr_warn("[%s] receiver already exist!\n",
+			     wifimgr_evt2str(evt_id));
+		sem_post(&lsnr->exclsem);
+		return 0;
 	}
 
 	/* Allocate a receiver struct from the free pool */
@@ -112,7 +123,7 @@ int evt_listener_add_receiver(struct evt_listener *handle, unsigned int evt_id,
 	rcvr->arg = arg;
 
 	/* Link the evt_listener into the list */
-	wifimgr_slist_append(&lsnr->evt_list, &rcvr->evt_node);
+	wifimgr_slist_append(&lsnr->evt_list, &rcvr->node);
 	sem_post(&lsnr->exclsem);
 
 	return 0;
@@ -130,32 +141,17 @@ int evt_listener_remove_receiver(struct evt_listener *handle,
 	/* Get exclusive access to the struct */
 	sem_wait(&lsnr->exclsem);
 
-	/* Search through frame receivers until either we match the callback, or
-	 * there is no more receivers to check.
-	 */
-	rcvr = (struct evt_receiver *)wifimgr_slist_peek_head(&lsnr->evt_list);
-
-	while (rcvr != NULL) {
-		/* Check if callback matches */
-		if (rcvr->expected_evt == evt_id) {
-			_evt_listener_remove_receiver(lsnr, rcvr);
-
-			rcvr->expected_evt = 0;
-			rcvr->oneshot = 0;
-			rcvr->cb = NULL;
-			rcvr->arg = NULL;
-
-			sem_post(&lsnr->exclsem);
-			return 0;
-		}
-
-		rcvr = (struct evt_receiver *)
-		    wifimgr_slist_peek_next(&rcvr->evt_node);
+	rcvr = search_event(lsnr, evt_id);
+	sem_post(&lsnr->exclsem);
+	if (!rcvr) {
+		wifimgr_err("no matched receiver to remove!\n");
+		return -ENOENT;
 	}
 
-	sem_post(&lsnr->exclsem);
+	free_event(lsnr, rcvr);
+	memset(rcvr, 0, sizeof(struct evt_receiver));
 
-	return -1;
+	return 0;
 }
 
 static void *evt_listener(void *handle)
@@ -189,29 +185,18 @@ static void *evt_listener(void *handle)
 
 		sem_wait(&lsnr->exclsem);
 
-		/* Loop through events to find the corresponding receiver */
-		rcvr = (struct evt_receiver *)
-		    wifimgr_slist_peek_head(&lsnr->evt_list);
+		rcvr = search_event(lsnr, msg.evt_id);
+		if (rcvr) {
+			if (rcvr->oneshot)
+				free_event(lsnr, rcvr);
 
-		while (rcvr) {
-			if (rcvr->expected_evt == msg.evt_id) {
-				if (rcvr->oneshot)
-					_evt_listener_remove_receiver(lsnr,
-								      rcvr);
-
-				match = true;
-				wifimgr_dbg("receiver 0x%p matches\n", rcvr);
-				break;
-			}
-			rcvr = (struct evt_receiver *)
-			    wifimgr_slist_peek_next(&rcvr->evt_node);
+			match = true;
+			wifimgr_dbg("receiver 0x%p matches\n", rcvr);
 		}
 
 		sem_post(&lsnr->exclsem);
 
 		if (match == true) {
-			/* Stop timer when receiving an event */
-			wifimgr_sm_stop_timer(mgr, msg.evt_id);
 			if (msg.buf_len) {
 				wifimgr_hexdump(msg.buf, msg.buf_len);
 				memcpy(rcvr->arg, msg.buf, msg.buf_len);
@@ -219,12 +204,8 @@ static void *evt_listener(void *handle)
 
 			/* Call event callback */
 			ret = rcvr->cb(rcvr->arg);
-			if (!ret)
-				/*Step to next state on success */
-				wifimgr_sm_step_evt(mgr, msg.evt_id);
-			else
-				/*Roll back to previous state on failure */
-				wifimgr_sm_step_back(mgr, msg.evt_id);
+			/* Trigger state machine */
+			wifimgr_sm_evt_step(mgr, msg.evt_id, ret);
 		} else {
 			wifimgr_err("unexpected [%s] under %s!\n",
 				    wifimgr_evt2str(msg.evt_id),
@@ -270,7 +251,6 @@ int wifimgr_evt_listener_init(struct evt_listener *handle)
 				     (wifimgr_snode_t *) &lsnr->evt_pool[i]);
 
 	sem_init(&lsnr->exclsem, 0, 1);
-	lsnr->is_setup = true;
 	lsnr->is_started = true;
 
 	/* Starts internal threads to listen for frames and events */
@@ -284,7 +264,6 @@ int wifimgr_evt_listener_init(struct evt_listener *handle)
 	ret = pthread_create(&lsnr->evt_pid, &tattr, evt_listener, lsnr);
 	if (ret) {
 		wifimgr_err("failed to start %s!\n", WIFIMGR_EVT_LISTENER);
-		lsnr->is_setup = false;
 		mq_close(lsnr->mq);
 		return ret;
 	}
@@ -292,4 +271,15 @@ int wifimgr_evt_listener_init(struct evt_listener *handle)
 		    lsnr->evt_pid);
 
 	return 0;
+}
+
+void wifimgr_evt_listener_exit(struct evt_listener *handle)
+{
+	struct evt_listener *lsnr = (struct evt_listener *)handle;
+
+	lsnr->is_started = false;
+	if (lsnr->mq && (lsnr->mq != (mqd_t)-1)) {
+		mq_close(lsnr->mq);
+		mq_unlink(WIFIMGR_CMD_MQUEUE);
+	}
 }
