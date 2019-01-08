@@ -38,7 +38,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	/* Check SSID (mandatory) */
 	if (ssid) {
 		if (strlen(ssid) > sizeof(conf.ssid)) {
-			printf("invalid SSID: %s!", ssid);
+			printf("Invalid SSID: %s!", ssid);
 			return -EINVAL;
 		}
 
@@ -48,7 +48,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	/* Check BSSID (optional) */
 	if (bssid) {
 		if (is_zero_ether_addr(bssid)) {
-			printf("invalid BSSID!");
+			printf("Invalid BSSID!");
 			return -EINVAL;
 		}
 
@@ -223,30 +223,30 @@ int wifimgr_ctrl_iface_stop_ap(void)
 
 int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac)
 {
-	struct wifimgr_ap_acl acl;
+	struct wifimgr_set_mac_acl set_acl;
 
 	switch (subcmd) {
 	case WIFIMGR_SUBCMD_ACL_BLOCK:
 	case WIFIMGR_SUBCMD_ACL_UNBLOCK:
 	case WIFIMGR_SUBCMD_ACL_BLOCK_ALL:
 	case WIFIMGR_SUBCMD_ACL_UNBLOCK_ALL:
-		acl.subcmd = subcmd;
+		set_acl.subcmd = subcmd;
 		break;
 	default:
 		return -EINVAL;
 	}
 
 	if (mac && !is_zero_ether_addr(mac)) {
-		memcpy(acl.mac, mac, WIFIMGR_ETH_ALEN);
+		memcpy(set_acl.mac, mac, WIFIMGR_ETH_ALEN);
 	} else if (!mac) {
-		memset(acl.mac, 0xff, WIFIMGR_ETH_ALEN);
+		memset(set_acl.mac, 0xff, WIFIMGR_ETH_ALEN);
 	} else {
 		printf("invalid MAC address!");
 		return -EINVAL;
 	}
 
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_SET_MAC_ACL, &acl,
-					   sizeof(acl));
+	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_SET_MAC_ACL, &set_acl,
+					   sizeof(set_acl));
 }
 
 static const struct wifimgr_ctrl_ops wifimgr_ops = {

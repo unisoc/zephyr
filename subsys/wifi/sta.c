@@ -19,15 +19,15 @@ static int wifimgr_sta_close(void *handle);
 
 void wifimgr_sta_event_timeout(wifimgr_work *work)
 {
-	struct wifimgr_state_machine *sta_sm =
+	struct wifimgr_state_machine *sm =
 	    container_of(work, struct wifimgr_state_machine, work);
 	struct wifi_manager *mgr =
-	    container_of(sta_sm, struct wifi_manager, sta_sm);
+	    container_of(sm, struct wifi_manager, sta_sm);
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	unsigned int expected_evt;
 
 	/* Remove event receiver, notify the external caller */
-	switch (sta_sm->cur_cmd) {
+	switch (sm->cur_cmd) {
 	case WIFIMGR_CMD_SCAN:
 		expected_evt = WIFIMGR_EVT_SCAN_DONE;
 		wifimgr_err("[%s] timeout!\n", wifimgr_evt2str(expected_evt));
@@ -57,7 +57,7 @@ void wifimgr_sta_event_timeout(wifimgr_work *work)
 		break;
 	}
 
-	sm_sta_step_back(sta_sm);
+	sm_sta_step_back(sm);
 }
 
 static int wifimgr_sta_get_config(void *handle)
@@ -85,10 +85,7 @@ static int wifimgr_sta_get_config(void *handle)
 
 		if (!is_zero_ether_addr(conf->bssid)) {
 			bssid = conf->bssid;
-			wifimgr_info
-			    ("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-			     bssid[0], bssid[1], bssid[2], bssid[3], bssid[4],
-			     bssid[5]);
+			wifimgr_info("BSSID:\t\t" MACSTR "\n", MAC2STR(bssid));
 		}
 
 		if (strlen(conf->passphrase)) {
@@ -129,9 +126,7 @@ static int wifimgr_sta_set_config(void *handle)
 		wifimgr_info("SSID:\t\t%s\n", conf->ssid);
 
 	if (!is_zero_ether_addr(conf->bssid))
-		wifimgr_info("BSSID:\t\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-			     conf->bssid[0], conf->bssid[1], conf->bssid[2],
-			     conf->bssid[3], conf->bssid[4], conf->bssid[5]);
+		wifimgr_info("BSSID:\t\t" MACSTR "\n", MAC2STR(conf->bssid));
 
 	if (strlen(conf->passphrase))
 		wifimgr_info("Passphrase:\t%s\n", conf->passphrase);
@@ -165,12 +160,8 @@ static int wifimgr_sta_get_status(void *handle)
 
 	wifimgr_info("STA Status:\t%s\n", sta_sts2str(sm_sta_query(sm)));
 
-	if (is_zero_ether_addr(sts->own_mac))
-		if (wifi_drv_get_mac(mgr->sta_iface, sts->own_mac))
-			wifimgr_warn("failed to get Own MAC!\n");
-	wifimgr_info("Own MAC:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-		     sts->own_mac[0], sts->own_mac[1], sts->own_mac[2],
-		     sts->own_mac[3], sts->own_mac[4], sts->own_mac[5]);
+	if (!is_zero_ether_addr(sts->own_mac))
+		wifimgr_info("own MAC:\t" MACSTR "\n", MAC2STR(sts->own_mac));
 
 	if (sm_sta_connected(sm) == true) {
 		wifimgr_info("----------------\n");
@@ -182,10 +173,8 @@ static int wifimgr_sta_get_status(void *handle)
 
 		if (!is_zero_ether_addr(sts->u.sta.host_bssid)) {
 			bssid = sts->u.sta.host_bssid;
-			wifimgr_info
-			    ("Host BSSID:\t%02x:%02x:%02x:%02x:%02x:%02x\n",
-			     bssid[0], bssid[1], bssid[2],
-			     bssid[3], bssid[4], bssid[5]);
+			wifimgr_info("Host BSSID:\t" MACSTR "\n",
+				     MAC2STR(bssid));
 		}
 
 		if (sts->u.sta.host_channel)
@@ -241,14 +230,18 @@ static int wifimgr_sta_disconnect(void *handle)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
 
-	evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_DISCONNECT,
-				  true, wifimgr_sta_disconnect_event,
-				  &mgr->sta_evt);
+	ret = evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_DISCONNECT,
+					true, wifimgr_sta_disconnect_event,
+					&mgr->sta_evt);
+	if (ret)
+		return ret;
 
 	ret = wifi_drv_disconnect(mgr->sta_iface);
-	if (ret)
+	if (ret) {
+		wifimgr_err("failed to disconnect! %d\n", ret);
 		evt_listener_remove_receiver(&mgr->lsnr,
 					     WIFIMGR_EVT_DISCONNECT);
+	}
 
 	return ret;
 }
@@ -352,23 +345,21 @@ static int wifimgr_sta_scan_result_event(void *arg)
 
 	if (!is_zero_ether_addr(scan_res->bssid)) {
 		bssid = scan_res->bssid;
-		wifimgr_info("\t%02x:%02x:%02x:%02x:%02x:%02x",
-			     bssid[0], bssid[1], bssid[2],
-			     bssid[3], bssid[4], bssid[5]);
-		switch (scan_res->security) {
-		case WIFI_SECURITY_TYPE_NONE:
-			wifimgr_info("\t%s\t", "OPEN");
-			break;
-		case WIFI_SECURITY_TYPE_PSK:
-			wifimgr_info("\t%s", "WPA/WPA2");
-			break;
-		default:
-			wifimgr_info("\t%s\t", "OTHERS");
-			break;
-		}
-		wifimgr_info("\t%u\t%d\n", scan_res->channel, scan_res->rssi);
+		wifimgr_info("\t" MACSTR, MAC2STR(bssid));
 	}
 
+	switch (scan_res->security) {
+	case WIFI_SECURITY_TYPE_NONE:
+		wifimgr_info("\t%s\t", "OPEN");
+		break;
+	case WIFI_SECURITY_TYPE_PSK:
+		wifimgr_info("\t%s", "WPA/WPA2");
+		break;
+	default:
+		wifimgr_info("\t%s\t", "OTHERS");
+		break;
+	}
+	wifimgr_info("\t%u\t%d\n", scan_res->channel, scan_res->rssi);
 	fflush(stdout);
 
 	/* Found specified AP */
@@ -490,10 +481,36 @@ static int wifimgr_sta_close(void *handle)
 	return ret;
 }
 
-void wifimgr_sta_init(void *handle)
+static int wifimgr_sta_drv_init(struct wifi_manager *mgr)
+{
+	char *devname = WIFIMGR_DEV_NAME_STA;
+	struct net_if *iface = NULL;
+	int ret;
+
+	/* Intialize driver interface */
+	iface = wifi_drv_init(devname);
+	if (!iface) {
+		wifimgr_err("failed to init WiFi STA driver!\n");
+		return -ENODEV;
+	}
+	mgr->sta_iface = iface;
+
+	/* Get MAC address */
+	ret = wifi_drv_get_mac(iface, mgr->sta_sts.own_mac);
+	if (ret)
+		wifimgr_warn("failed to get Own MAC!\n");
+
+	wifimgr_info("interface %s(" MACSTR ") initialized!\n", devname,
+		     MAC2STR(mgr->sta_sts.own_mac));
+
+	return 0;
+}
+
+int wifimgr_sta_init(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct cmd_processor *prcs = &mgr->prcs;
+	int ret;
 
 	/* Register default STA commands */
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_SET_STA_CONFIG,
@@ -506,4 +523,34 @@ void wifimgr_sta_init(void *handle)
 				 wifimgr_sta_get_status, mgr);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_OPEN_STA,
 				 wifimgr_sta_open, mgr);
+
+	/* Initialize STA config */
+	ret = wifimgr_config_init(&mgr->sta_conf, WIFIMGR_SETTING_STA_PATH);
+	if (ret)
+		wifimgr_warn("failed to init WiFi STA config!\n");
+
+	/* Intialize STA driver */
+	ret = wifimgr_sta_drv_init(mgr);
+	if (ret) {
+		wifimgr_err("failed to init WiFi STA driver!\n");
+		return ret;
+	}
+
+	/* Initialize STA state machine */
+	ret = wifimgr_sm_init(&mgr->sta_sm, wifimgr_sta_event_timeout);
+	if (ret)
+		wifimgr_err("failed to init WiFi STA state machine!\n");
+
+	return ret;
+}
+
+void wifimgr_sta_exit(void *handle)
+{
+	struct wifi_manager *mgr = (struct wifi_manager *)handle;
+
+	/* Deinitialize STA state machine */
+	wifimgr_sm_exit(&mgr->sta_sm);
+
+	/* Deinitialize STA config */
+	wifimgr_config_exit(WIFIMGR_SETTING_STA_PATH);
 }
