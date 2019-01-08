@@ -32,7 +32,6 @@ struct cmd_processor {
 	sem_t exclsem;		/* exclusive access to the struct */
 	mqd_t mq;
 
-	bool is_setup:1;
 	bool is_started:1;
 	pthread_t pid;
 
@@ -53,5 +52,6 @@ int cmd_processor_add_sender(struct cmd_processor *handle, unsigned int cmd_id,
 int cmd_processor_remove_sender(struct cmd_processor *handle,
 				unsigned int cmd_id);
 int wifimgr_cmd_processor_init(struct cmd_processor *handle);
+void wifimgr_cmd_processor_exit(struct cmd_processor *handle);
 
 #endif
