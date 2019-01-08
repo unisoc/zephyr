@@ -24,6 +24,7 @@ sys_slist_t settings_handlers;
 
 static u8_t settings_cmd_inited;
 
+struct settings_handler *settings_handler_lookup(char *name);
 void settings_store_init(void);
 static void s64_to_dec(char *ptr, int buf_len, s64_t value, int base);
 static s64_t dec_to_s64(char *p_str, char **e_ptr);
@@ -40,7 +41,9 @@ void settings_init(void)
 
 int settings_register(struct settings_handler *handler)
 {
-	sys_slist_prepend(&settings_handlers, &handler->node);
+	if (!settings_handler_lookup(handler->name)) {
+		sys_slist_prepend(&settings_handlers, &handler->node);
+	}
 	return 0;
 }
 
