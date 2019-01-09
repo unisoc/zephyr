@@ -55,7 +55,11 @@ static void tcp_received(struct net_context *context,
 		shell_fprintf(shell, SHELL_WARNING, "Cannot get a session!\n");
 		return;
 	}
+	shell_fprintf(shell, SHELL_NORMAL, "Received data len: %u bytes\n",
+			net_pkt_appdatalen(pkt));
 
+
+#if 0
 	switch (session->state) {
 	case STATE_COMPLETED:
 		break;
@@ -114,6 +118,7 @@ static void tcp_received(struct net_context *context,
 	default:
 		shell_fprintf(shell, SHELL_WARNING, "Unsupported case\n");
 	}
+#endif
 
 	if (pkt) {
 		net_pkt_unref(pkt);

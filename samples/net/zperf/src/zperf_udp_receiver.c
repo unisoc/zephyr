@@ -67,9 +67,6 @@ static inline struct net_pkt *build_reply_pkt(const struct shell *shell,
 	struct net_pkt *reply_pkt;
 	struct net_buf *frag;
 
-	shell_fprintf(shell, SHELL_NORMAL,
-		      "Received %d bytes\n", net_pkt_appdatalen(pkt));
-
 	reply_pkt = net_pkt_get_tx(context, K_FOREVER);
 	frag = net_pkt_get_data(context, K_FOREVER);
 
@@ -146,12 +143,14 @@ static void udp_received(struct net_context *context,
 
 	frag = pkt->frags;
 
+#if 0
 	if (net_pkt_appdatalen(pkt) < sizeof(struct zperf_udp_datagram)) {
 		shell_fprintf(shell, SHELL_WARNING,
 			      "Short iperf packet!\n");
 		net_pkt_unref(pkt);
 		return;
 	}
+#endif
 
 	time = k_cycle_get_32();
 
