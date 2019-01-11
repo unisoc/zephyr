@@ -45,6 +45,14 @@ config WIFIMGR_DHCPC
 	help
 	  Start DHCP client by WiFi manger.
 
+config WIFIMGR_PSK
+	bool "Enable PSK calculation"
+	depends on MBEDTLS
+	depends on MBEDTLS_BUILTIN
+	default y
+	help
+	  Enable PSK calculation.
+
 config WIFIMGR_LED
 	bool "Enable LED indiction"
 	default n
