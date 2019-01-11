@@ -56,8 +56,7 @@ struct wifimgr_ctrl_cbs {
 	void (*notify_connect_timeout)(void);
 	void (*notify_disconnect_timeout)(void);
 	void (*notify_new_station)(char status, char *mac);
-	void (*notify_set_mac_acl)(char result);
-	void (*notify_set_mac_acl_timeout)(void);
+	void (*set_mac_acl_cb)(char result);
 };
 
 const
