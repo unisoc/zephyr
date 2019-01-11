@@ -36,7 +36,7 @@ struct wifi_drv_connect_params {
 	char ssid_length;	/* Max 32 */
 	char *bssid;
 	char *psk;
-	char psk_length;	/* Min 8 - Max 64 */
+	char psk_length;	/* 32 bytes */
 	unsigned char channel;
 	enum wifi_security_type security;
 };
@@ -45,7 +45,7 @@ struct wifi_drv_start_ap_params {
 	char *ssid;
 	char ssid_length;	/* Max 32 */
 	char *psk;
-	char psk_length;	/* Min 8 - Max 64 */
+	char psk_length;	/* 32 bytes */
 	unsigned char channel;
 	unsigned char ch_width;
 	enum wifi_security_type security;
