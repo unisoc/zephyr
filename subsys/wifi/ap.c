@@ -22,17 +22,13 @@ void wifimgr_ap_event_timeout(wifimgr_work *work)
 {
 	struct wifimgr_state_machine *ap_sm =
 	    container_of(work, struct wifimgr_state_machine, work);
-	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	unsigned int expected_evt;
 
 	/* Notify the external caller */
 	switch (ap_sm->cur_cmd) {
-	case WIFIMGR_CMD_SET_MAC_ACL:
+	case WIFIMGR_CMD_DEL_STA:
 		expected_evt = WIFIMGR_EVT_NEW_STATION;
 		wifimgr_err("[%s] timeout!\n", wifimgr_evt2str(expected_evt));
-
-		if (cbs && cbs->notify_set_mac_acl_timeout)
-			cbs->notify_set_mac_acl_timeout();
 		break;
 	default:
 		break;
@@ -379,8 +375,8 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 			wifimgr_info("(" MACSTR ")\n", MAC2STR(set_acl->mac));
 	}
 
-	if (cbs && cbs->notify_set_mac_acl)
-		cbs->notify_set_mac_acl(ret);
+	if (cbs && cbs->set_mac_acl_cb)
+		cbs->set_mac_acl_cb(ret);
 
 	return ret;
 }
@@ -489,7 +485,9 @@ static int wifimgr_ap_start(void *handle)
 	struct wifimgr_mac_list *mac_acl = &mgr->mac_acl;
 	struct wifimgr_status *sts = &mgr->ap_sts;
 	char *ssid = NULL;
-	char *passphrase = NULL;
+	char *psk = NULL;
+	char psk_len = 0;
+	char wpa_psk[WIFIMGR_PSK_LEN];
 	int size;
 	int ret;
 
@@ -531,9 +529,17 @@ static int wifimgr_ap_start(void *handle)
 
 	if (strlen(conf->ssid))
 		ssid = conf->ssid;
-	if (strlen(conf->passphrase))
-		passphrase = conf->passphrase;
-	ret = wifi_drv_start_ap(mgr->ap_iface, ssid, passphrase,
+	if (strlen(conf->passphrase)) {
+		ret = pbkdf2_sha1(conf->passphrase, ssid, WIFIMGR_PSK_ITER,
+				  wpa_psk, WIFIMGR_PSK_LEN);
+		if (ret) {
+			wifimgr_err("failed to calculate PSK! %d\n", ret);
+			return ret;
+		}
+		psk = wpa_psk;
+		psk_len = WIFIMGR_PSK_LEN;
+	}
+	ret = wifi_drv_start_ap(mgr->ap_iface, ssid, psk, psk_len,
 				conf->channel, conf->ch_width);
 
 	if (ret) {
