@@ -20,8 +20,9 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 #include "wifi_ipc.h"
 #include "wifi_cmdevt.h"
 
-#define RX_BUF_SIZE (2000)
-#define TXRX_STACK_SIZE (1024)
+#define RX_STACK_SIZE (1024)
+#define RX_DATA_SIZE (2000)
+#define RX_CMDEVT_SIZE (512)
 
 #define wifi_buf_slist_init(list) sys_slist_init(list)
 #define wifi_buf_slist_append(list, buf) net_buf_slist_put(list, buf)
@@ -31,11 +32,15 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 #define wifi_snode_t sys_snode_t
 #define wifi_slist_t sys_slist_t
 
-K_THREAD_STACK_MEMBER(txrx_stack, TXRX_STACK_SIZE);
-static struct k_thread txrx_thread_data;
+K_THREAD_STACK_MEMBER(rx_data_stack, RX_STACK_SIZE);
+K_THREAD_STACK_MEMBER(rx_cmdevt_stack, RX_STACK_SIZE);
+static struct k_thread rx_data;
+static struct k_thread rx_cmdevt;
 static struct k_sem event_sem;
+static struct k_sem data_sem;
 static struct k_mutex rx_buf_mutex;
-static u8_t rx_buf[RX_BUF_SIZE];
+static u8_t rx_data_buf[RX_DATA_SIZE];
+static u8_t rx_cmdevt_buf[RX_CMDEVT_SIZE];
 static wifi_slist_t rx_buf_list;
 
 
@@ -54,7 +59,7 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 	int i = 0;
 	u32_t data_len;
 
-	rx_pkt = net_pkt_get_reserve_rx(0, K_NO_WAIT);
+	rx_pkt = net_pkt_get_reserve_rx(0, K_FOREVER);
 	if (!rx_pkt) {
 		LOG_ERR("Could not allocate rx packet.");
 		return -ENOMEM;
@@ -92,14 +97,18 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 		net_pkt_frag_add(rx_pkt, pkt_buf);
 	}
 
-	iface = priv->wifi_dev[rx_complete_buf->common.interface].iface;
+	/**
+	 * FIXME: Find iface by ctx_id.
+	 * There could be different ctx_id of rx_msdu in rxc.
+	 */
+	iface = priv->wifi_dev[WIFI_DEV_STA].iface;
 
 	if (!iface) {
 		LOG_ERR("Iface null.");
 		net_pkt_unref(rx_pkt);
 	} else {
 		if (net_recv_data(iface, rx_pkt) < 0) {
-			LOG_ERR("pkt %p not received by L2 stack.", rx_pkt);
+			LOG_ERR("PKT %p not received by L2 stack.", rx_pkt);
 			net_pkt_unref(rx_pkt);
 		}
 	}
@@ -170,42 +179,51 @@ int wifi_data_process(struct wifi_priv *priv, char *data, int len)
 	return 0;
 }
 
-static void txrx_thread(void *p1)
+static void rx_data_thread(void *param)
 {
 	int ret;
-	struct wifi_priv *priv = (struct wifi_priv *)p1;
-	u8_t *addr = rx_buf;
+	struct wifi_priv *priv = (struct wifi_priv *)param;
+	u8_t *addr = rx_data_buf;
 	int len;
 
 	while (1) {
 		LOG_DBG("Wait for data.");
+		k_sem_take(&data_sem, K_FOREVER);
+
+		memset(addr, 0, RX_DATA_SIZE);
+		ret = wifi_ipc_recv(SMSG_CH_WIFI_DATA_NOR,
+				addr, &len, 0);
+		if (ret == 0) {
+			LOG_DBG("Receive data %p len %i",
+					addr, len);
+			wifi_data_process(priv, addr, len);
+		} else {
+			LOG_WRN("IPC recv data failed.");
+		}
+	}
+}
+
+static void rx_cmdevt_thread(void *param)
+{
+	int ret;
+	struct wifi_priv *priv = (struct wifi_priv *)param;
+	u8_t *addr = rx_cmdevt_buf;
+	int len;
+
+	while (1) {
+		LOG_DBG("Wait for cmdevt.");
 		k_sem_take(&event_sem, K_FOREVER);
 
-		while (1) {
-			memset(addr, 0, RX_BUF_SIZE);
-			ret = wifi_ipc_recv(SMSG_CH_WIFI_CTRL, addr, &len, 0);
-			if (ret == 0) {
-				LOG_DBG("Receive cmd/evt %p len %i",
-						addr, len);
+		memset(addr, 0, RX_CMDEVT_SIZE);
+		ret = wifi_ipc_recv(SMSG_CH_WIFI_CTRL, addr, &len, 0);
+		if (ret == 0) {
+			LOG_DBG("Receive cmd/evt %p len %i",
+					addr, len);
 
-				wifi_cmdevt_process(priv, addr, len);
-			} else {
-				break;
-			}
+			wifi_cmdevt_process(priv, addr, len);
+		} else {
+			LOG_WRN("IPC recv cmd/evt failed.");
 		}
-
-		while (1) {
-			ret = wifi_ipc_recv(SMSG_CH_WIFI_DATA_NOR,
-					addr, &len, 0);
-			if (ret == 0) {
-				LOG_DBG("Receive data %p len %i",
-						addr, len);
-				wifi_data_process(priv, addr, len);
-			} else {
-				break;
-			}
-		}
-
 	}
 }
 
@@ -253,7 +271,7 @@ static void wifi_rx_data(int ch)
 		LOG_ERR("Invalid data channel: %d.", ch);
 	}
 
-	k_sem_give(&event_sem);
+	k_sem_give(&data_sem);
 }
 
 static int wifi_tx_empty_buf_(int num)
@@ -268,7 +286,7 @@ static int wifi_tx_empty_buf_(int num)
 
 	for (i = 0; i < num; i++) {
 		/* Reserve a data frag to receive the frame. */
-		pkt_buf = net_pkt_get_reserve_rx_data(0, K_NO_WAIT);
+		pkt_buf = net_pkt_get_reserve_rx_data(0, K_FOREVER);
 		if (!pkt_buf) {
 			LOG_ERR("Could not allocate rx buf %d.", i);
 			return -ENOMEM;
@@ -360,6 +378,7 @@ int wifi_txrx_init(struct wifi_priv *priv)
 	int ret = 0;
 
 	k_sem_init(&event_sem, 0, 1);
+	k_sem_init(&data_sem, 0, 1);
 	k_mutex_init(&rx_buf_mutex);
 
 	wifi_buf_slist_init(&rx_buf_list);
@@ -385,9 +404,16 @@ int wifi_txrx_init(struct wifi_priv *priv)
 		return ret;
 	}
 
-	k_thread_create(&txrx_thread_data, txrx_stack,
-			TXRX_STACK_SIZE,
-			(k_thread_entry_t)txrx_thread, (void *) priv,
+	k_thread_create(&rx_cmdevt, rx_cmdevt_stack,
+			RX_STACK_SIZE,
+			(k_thread_entry_t)rx_cmdevt_thread, (void *) priv,
+			NULL, NULL,
+			K_PRIO_COOP(7),
+			0, K_NO_WAIT);
+
+	k_thread_create(&rx_data, rx_data_stack,
+			RX_STACK_SIZE,
+			(k_thread_entry_t)rx_data_thread, (void *) priv,
 			NULL, NULL,
 			K_PRIO_COOP(7),
 			0, K_NO_WAIT);
