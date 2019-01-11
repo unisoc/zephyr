@@ -151,8 +151,8 @@ static void wifi_drv_event_connect(void *iface, int status, char *bssid,
 	wifimgr_notify_event(WIFIMGR_EVT_CONNECT, &conn, sizeof(conn));
 }
 
-int wifi_drv_connect(void *iface, char *ssid, char *bssid, char *passwd,
-		     unsigned char channel)
+int wifi_drv_connect(void *iface, char *ssid, char *bssid, char *psk,
+		     unsigned char psk_len, unsigned char channel)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
 	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
@@ -172,11 +172,11 @@ int wifi_drv_connect(void *iface, char *ssid, char *bssid, char *passwd,
 		return -EINVAL;
 	params.bssid = bssid;
 
-	/* Passphrase only is valid for WPA/WPA2-PSK */
-	params.psk_length = strlen(passwd);
-	if (passwd && !params.psk_length)
+	/* Passphrase is only valid for WPA/WPA2-PSK */
+	params.psk_length = psk_len;
+	if (psk && !params.psk_length)
 		return -EINVAL;
-	params.psk = passwd;
+	params.psk = psk;
 
 	return drv_api->connect(dev, &params, wifi_drv_event_connect,
 				wifi_drv_event_disconnect);
@@ -222,7 +222,7 @@ static void wifi_drv_event_new_station(void *iface, int status, char *mac)
 			     sizeof(new_sta));
 }
 
-int wifi_drv_start_ap(void *iface, char *ssid, char *passwd,
+int wifi_drv_start_ap(void *iface, char *ssid, char *psk, unsigned char psk_len,
 		      unsigned char channel, unsigned char ch_width)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
@@ -238,11 +238,11 @@ int wifi_drv_start_ap(void *iface, char *ssid, char *passwd,
 		return -EINVAL;
 	params.ssid = ssid;
 
-	/* Passphrase only is valid for WPA/WPA2-PSK */
-	params.psk_length = strlen(passwd);
-	if (passwd && !params.psk_length)
+	/* Passphrase is only valid for WPA/WPA2-PSK */
+	params.psk_length = psk_len;
+	if (psk && !params.psk_length)
 		return -EINVAL;
-	params.psk = passwd;
+	params.psk = psk;
 
 	/* Channel & channel width are optional */
 	params.channel = channel;

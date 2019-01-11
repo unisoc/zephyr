@@ -32,13 +32,13 @@ int wifi_drv_get_capa(void *iface, struct wifi_drv_capa *capa);
 int wifi_drv_open(void *iface);
 int wifi_drv_close(void *iface);
 int wifi_drv_scan(void *iface, unsigned char band, unsigned char channel);
-int wifi_drv_connect(void *iface, char *ssid, char *bssid, char *passwd,
-			   unsigned char channel);
+int wifi_drv_connect(void *iface, char *ssid, char *bssid, char *psk,
+		     unsigned char psk_len, unsigned char channel);
 int wifi_drv_disconnect(void *iface);
 int wifi_drv_get_station(void *iface, char *rssi);
 int wifi_drv_notify_ip(void *iface, char *ipaddr, char len);
-int wifi_drv_start_ap(void *iface, char *ssid, char *passwd,
-			    unsigned char channel, unsigned char ch_width);
+int wifi_drv_start_ap(void *iface, char *ssid, char *psk, unsigned char psk_len,
+		      unsigned char channel, unsigned char ch_width);
 int wifi_drv_stop_ap(void *iface);
 int wifi_drv_del_station(void *iface, char *mac);
 int wifi_drv_set_mac_acl(void *iface, char subcmd, unsigned char acl_nr,

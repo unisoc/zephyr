@@ -298,7 +298,9 @@ static int wifimgr_sta_connect(void *handle)
 	struct wifimgr_config *conf = &mgr->sta_conf;
 	char *ssid = NULL;
 	char *bssid = NULL;
-	char *passphrase = NULL;
+	char *psk = NULL;
+	char psk_len = 0;
+	char wpa_psk[WIFIMGR_PSK_LEN];
 	int ret;
 
 	wifimgr_info("Connecting to %s\n", conf->ssid);
@@ -313,11 +315,19 @@ static int wifimgr_sta_connect(void *handle)
 		ssid = conf->ssid;
 	if (!is_zero_ether_addr(conf->bssid))
 		bssid = conf->bssid;
-	if (strlen(conf->passphrase))
-		passphrase = conf->passphrase;
-	ret = wifi_drv_connect(mgr->sta_iface, ssid, bssid, passphrase,
-			       conf->channel);
+	if (strlen(conf->passphrase)) {
+		ret = pbkdf2_sha1(conf->passphrase, ssid, WIFIMGR_PSK_ITER,
+				  wpa_psk, WIFIMGR_PSK_LEN);
+		if (ret) {
+			wifimgr_err("failed to calculate PSK! %d\n", ret);
+			return ret;
+		}
+		psk = wpa_psk;
+		psk_len = WIFIMGR_PSK_LEN;
+	}
 
+	ret = wifi_drv_connect(mgr->sta_iface, ssid, bssid, psk, psk_len,
+			       conf->channel);
 	if (ret) {
 		wifimgr_err("failed to connect! %d\n", ret);
 		evt_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_CONNECT);

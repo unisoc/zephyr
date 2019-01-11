@@ -22,6 +22,7 @@
 #include "cmd_prcs.h"
 #include "evt_lsnr.h"
 #include "sm.h"
+#include "psk.h"
 #include "dhcpc.h"
 #include "led.h"
 
