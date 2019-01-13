@@ -15,9 +15,15 @@
 #define WIFIMGR_IFACE_NAME_STA	"sta"
 #define WIFIMGR_IFACE_NAME_AP	"ap"
 
+enum wifimgr_security {
+	WIFIMGR_SECURITY_OPEN = 1,
+	WIFIMGR_SECURITY_PSK,
+	WIFIMGR_SECURITY_OTHERS,
+};
+
 struct wifimgr_ctrl_ops {
 	int (*set_conf)(char *iface_name, char *ssid, char *bssid,
-			char *passphrase, unsigned char band,
+			char security, char *passphrase, unsigned char band,
 			unsigned char channel, unsigned char channel_width,
 			char autorun);
 	int (*get_conf)(char *iface_name);
@@ -36,19 +42,19 @@ struct wifimgr_ctrl_ops {
 struct wifimgr_ctrl_cbs {
 	void (*get_sta_conf_cb)(char *ssid, char *bssid, char *passphrase,
 				unsigned char band, unsigned char channel,
-				char autorun);
-	void (*get_ap_conf_cb)(char *ssid, char *passphrase,
-			       unsigned char band, unsigned char channel,
-			       unsigned char channel_width, char autorun);
+				enum wifimgr_security security, char autorun);
+	void (*get_ap_conf_cb)(char *ssid, char *passphrase, unsigned char band,
+			       unsigned char channel, unsigned char ch_width,
+			       enum wifimgr_security security, char autorun);
 	void (*get_ap_capa_cb)(unsigned char max_sta, unsigned char max_acl);
-	void (*get_sta_status_cb)(unsigned char status, char *own_mac,
-				  char *host_ssid, char *host_bssid,
-				  char host_channel, signed char host_rssi);
-	void (*get_ap_status_cb)(unsigned char status, char *own_mac,
+	void (*get_sta_status_cb)(char status, char *own_mac,
+				  signed char host_rssi);
+	void (*get_ap_status_cb)(char status, char *own_mac,
 				 unsigned char sta_nr, char sta_mac_addrs[][6],
 				 unsigned char acl_nr, char acl_mac_addrs[][6]);
 	void (*notify_scan_res)(char *ssid, char *bssid, unsigned char band,
-				unsigned char channel, signed char rssi);
+				unsigned char channel, signed char rssi,
+				enum wifimgr_security security);
 	void (*notify_scan_done)(char result);
 	void (*notify_connect)(char result);
 	void (*notify_disconnect)(char reason);
