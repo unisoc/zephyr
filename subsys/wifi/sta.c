@@ -75,8 +75,7 @@ static int wifimgr_sta_get_config(void *handle)
 		wifimgr_info("No STA Config found!\n");
 	} else {
 		wifimgr_info("STA Config\n");
-		if (conf->autorun)
-			wifimgr_info("Autorun:\t%d\n", conf->autorun);
+		wifimgr_info("Autorun:\t%s\n", conf->autorun ? "on" : "off");
 
 		if (strlen(conf->ssid)) {
 			ssid = conf->ssid;
@@ -87,6 +86,8 @@ static int wifimgr_sta_get_config(void *handle)
 			bssid = conf->bssid;
 			wifimgr_info("BSSID:\t\t" MACSTR "\n", MAC2STR(bssid));
 		}
+
+		wifimgr_info("Security:\t%s\n", security2str(conf->security));
 
 		if (strlen(conf->passphrase)) {
 			passphrase = conf->passphrase;
@@ -102,7 +103,8 @@ static int wifimgr_sta_get_config(void *handle)
 	/* Notify the external caller */
 	if (cbs && cbs->get_sta_conf_cb)
 		cbs->get_sta_conf_cb(ssid, bssid, passphrase, conf->band,
-				     conf->channel, conf->autorun);
+				     conf->channel, conf->security,
+				     conf->autorun);
 
 	return 0;
 }
@@ -166,8 +168,8 @@ static int wifimgr_sta_get_status(void *handle)
 	if (sm_sta_connected(sm) == true) {
 		wifimgr_info("----------------\n");
 
-		if (strlen(sts->u.sta.host_ssid)) {
-			ssid = sts->u.sta.host_ssid;
+		if (strlen(sts->host_ssid)) {
+			ssid = sts->host_ssid;
 			wifimgr_info("Host SSID:\t%s\n", ssid);
 		}
 
@@ -177,9 +179,8 @@ static int wifimgr_sta_get_status(void *handle)
 				     MAC2STR(bssid));
 		}
 
-		if (sts->u.sta.host_channel)
-			wifimgr_info("Host Channel:\t%d\n",
-				     sts->u.sta.host_channel);
+		if (sts->host_channel)
+			wifimgr_info("Host Channel:\t%d\n", sts->host_channel);
 
 		if (wifi_drv_get_station(mgr->sta_iface, &sts->u.sta.host_rssi))
 			wifimgr_warn("failed to get Host RSSI!\n");
@@ -190,8 +191,9 @@ static int wifimgr_sta_get_status(void *handle)
 	/* Notify the external caller */
 	if (cbs && cbs->get_sta_status_cb)
 		cbs->get_sta_status_cb(sm_sta_query(sm), sts->own_mac,
-				       ssid, bssid, sts->u.sta.host_channel,
-				       sts->u.sta.host_rssi);
+				       ssid, bssid, sts->host_channel,
+				       sts->u.sta.host_rssi,
+				       mgr->sta_conf.autorun);
 
 	return 0;
 }
@@ -210,9 +212,9 @@ static int wifimgr_sta_disconnect_event(void *arg)
 	fflush(stdout);
 
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
-	memset(sts->u.sta.host_ssid, 0, WIFIMGR_MAX_SSID_LEN + 1);
+	memset(sts->host_ssid, 0, WIFIMGR_MAX_SSID_LEN + 1);
 	memset(sts->u.sta.host_bssid, 0, WIFIMGR_ETH_ALEN);
-	sts->u.sta.host_channel = 0;
+	sts->host_channel = 0;
 	sts->u.sta.host_rssi = 0;
 
 	if (iface)
@@ -270,12 +272,12 @@ static int wifimgr_sta_connect_event(void *arg)
 					 WIFIMGR_CMD_DISCONNECT,
 					 wifimgr_sta_disconnect, mgr);
 		if (strlen(conf->ssid))
-			strcpy(sts->u.sta.host_ssid, conf->ssid);
+			strcpy(sts->host_ssid, conf->ssid);
 		if (!is_zero_ether_addr(conn->bssid))
 			memcpy(sts->u.sta.host_bssid, conn->bssid,
 			       WIFIMGR_ETH_ALEN);
 		if (conn->channel)
-			sts->u.sta.host_channel = conn->channel;
+			sts->host_channel = conn->channel;
 
 		if (iface)
 			wifimgr_dhcp_start(iface);
@@ -351,24 +353,18 @@ static int wifimgr_sta_scan_result_event(void *arg)
 	if (strlen(scan_res->ssid)) {
 		ssid = scan_res->ssid;
 		wifimgr_info("\t%-32s", ssid);
+	} else {
+		wifimgr_info("\t\t\t\t\t");
 	}
 
 	if (!is_zero_ether_addr(scan_res->bssid)) {
 		bssid = scan_res->bssid;
 		wifimgr_info("\t" MACSTR, MAC2STR(bssid));
+	} else {
+		wifimgr_info("\t\t\t");
 	}
 
-	switch (scan_res->security) {
-	case WIFI_SECURITY_TYPE_NONE:
-		wifimgr_info("\t%s\t", "OPEN");
-		break;
-	case WIFI_SECURITY_TYPE_PSK:
-		wifimgr_info("\t%s", "WPA/WPA2");
-		break;
-	default:
-		wifimgr_info("\t%s\t", "OTHERS");
-		break;
-	}
+	wifimgr_info("\t%s", security2str(scan_res->security));
 	wifimgr_info("\t%u\t%d\n", scan_res->channel, scan_res->rssi);
 	fflush(stdout);
 
@@ -384,7 +380,8 @@ static int wifimgr_sta_scan_result_event(void *arg)
 	/* Notify the external caller */
 	if (cbs && cbs->notify_scan_res)
 		cbs->notify_scan_res(ssid, bssid, scan_res->band,
-				     scan_res->channel, scan_res->rssi);
+				     scan_res->channel, scan_res->rssi,
+				     scan_res->security);
 
 	return 0;
 }

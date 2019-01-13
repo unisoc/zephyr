@@ -19,13 +19,14 @@
 #define WIFIMGR_SETTING_NAME_LEN	63
 #define WIFIMGR_SETTING_VAL_LEN		(((((WIFIMGR_SETTING_NAME_LEN) / 3) * 4) + 4) + 1)	/*Due to base64 encoding*/
 
-#define WIFIMGR_SETTING_NAME_AUTORUN		"autorun"
 #define WIFIMGR_SETTING_NAME_SSID		"ssid"
 #define WIFIMGR_SETTING_NAME_BSSID		"bssid"
-#define WIFIMGR_SETTING_NAME_PSK		"psk"
+#define WIFIMGR_SETTING_NAME_SECURITY		"security"
+#define WIFIMGR_SETTING_NAME_PSPHR		"passphrase"
 #define WIFIMGR_SETTING_NAME_BAND		"band"
 #define WIFIMGR_SETTING_NAME_CHANNEL		"channel"
 #define WIFIMGR_SETTING_NAME_CHANNEL_WIDTH	"ch_width"
+#define WIFIMGR_SETTING_NAME_AUTORUN		"autorun"
 
 #define WIFIMGR_SETTING_PATH		"wifimgr"
 #define WIFIMGR_SETTING_STA_PATH	"wifimgr/sta"
