@@ -1,6 +1,6 @@
 /*
  * @file
- * @brief WiFi manager top layer implementation
+ * @brief initialization of WiFi manager
  */
 
 /*

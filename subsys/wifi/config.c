@@ -16,13 +16,14 @@ LOG_MODULE_DECLARE(wifimgr);
 #include "wifimgr.h"
 
 static const char *const wifimgr_setting_keynames[] = {
-	WIFIMGR_SETTING_NAME_AUTORUN,
 	WIFIMGR_SETTING_NAME_SSID,
 	WIFIMGR_SETTING_NAME_BSSID,
-	WIFIMGR_SETTING_NAME_PSK,
+	WIFIMGR_SETTING_NAME_SECURITY,
+	WIFIMGR_SETTING_NAME_PSPHR,
 	WIFIMGR_SETTING_NAME_BAND,
 	WIFIMGR_SETTING_NAME_CHANNEL,
 	WIFIMGR_SETTING_NAME_CHANNEL_WIDTH,
+	WIFIMGR_SETTING_NAME_AUTORUN,
 };
 
 static struct wifimgr_settings_map *wifimgr_sta_settings_map;
@@ -185,11 +186,6 @@ static int wifimgr_settings_init(struct wifimgr_config *conf, char *path)
 
 	memset(settings, 0, settings_size);
 
-	/* Initialize Autorun setting map */
-	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
-				  &conf->autorun, sizeof(conf->autorun),
-				  SETTINGS_INT8, false);
-	i++;
 	/* Initialize SSID setting map */
 	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
 				  conf->ssid, sizeof(conf->ssid),
@@ -204,7 +200,12 @@ static int wifimgr_settings_init(struct wifimgr_config *conf, char *path)
 				  conf->bssid, sizeof(conf->bssid),
 				  SETTINGS_STRING, mask);
 	i++;
-	/* Initialize PSK setting map */
+	/* Initialize Security setting map */
+	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
+				  &conf->security, sizeof(conf->security),
+				  SETTINGS_INT8, false);
+	i++;
+	/* Initialize Passphrase setting map */
 	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
 				  conf->passphrase, sizeof(conf->passphrase),
 				  SETTINGS_STRING, false);
@@ -226,6 +227,11 @@ static int wifimgr_settings_init(struct wifimgr_config *conf, char *path)
 		mask = true;
 	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
 				  &conf->ch_width, sizeof(conf->ch_width),
+				  SETTINGS_INT8, false);
+	i++;
+	/* Initialize Autorun setting map */
+	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
+				  &conf->autorun, sizeof(conf->autorun),
 				  SETTINGS_INT8, false);
 
 	return 0;
