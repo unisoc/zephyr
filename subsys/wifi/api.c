@@ -38,7 +38,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	/* Check SSID (mandatory) */
 	if (ssid) {
 		if (strlen(ssid) > sizeof(conf.ssid)) {
-			printf("Invalid SSID: %s!", ssid);
+			printf("Invalid SSID: %s!\n", ssid);
 			return -EINVAL;
 		}
 
@@ -48,7 +48,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	/* Check BSSID (optional) */
 	if (bssid) {
 		if (is_zero_ether_addr(bssid)) {
-			printf("Invalid BSSID!");
+			printf("Invalid BSSID!\n");
 			return -EINVAL;
 		}
 
@@ -58,7 +58,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	/* Check Passphrase (optional: valid only for WPA/WPA2-PSK) */
 	if (passphrase) {
 		if (strlen(passphrase) > sizeof(conf.passphrase)) {
-			printf("invalid PSK: %s!", passphrase);
+			printf("invalid PSK: %s!\n", passphrase);
 			return -EINVAL;
 		}
 
@@ -73,13 +73,13 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 		conf.band = band;
 		break;
 	default:
-		printf("invalid band: %d!", band);
+		printf("invalid band: %d!\n", band);
 		return -EINVAL;
 	}
 
 	/* Check channel */
 	if ((channel > 14 && channel < 34) || (channel > 196)) {
-		printf("invalid channel: %d!", channel);
+		printf("invalid channel: %d!\n", channel);
 		return -EINVAL;
 	}
 	conf.channel = channel;
@@ -94,7 +94,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 		conf.ch_width = ch_width;
 		break;
 	default:
-		printf("invalid channel width: %d!", ch_width);
+		printf("invalid channel width: %d!\n", ch_width);
 		return -EINVAL;
 	}
 
@@ -241,7 +241,7 @@ int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac)
 	} else if (!mac) {
 		memset(set_acl.mac, 0xff, WIFIMGR_ETH_ALEN);
 	} else {
-		printf("invalid MAC address!");
+		printf("invalid MAC address!\n");
 		return -EINVAL;
 	}
 

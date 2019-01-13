@@ -18,13 +18,14 @@
 #define WIFIMGR_MAX_PSPHR_LEN	63
 
 struct wifimgr_config {
-	char autorun;
 	char ssid[WIFIMGR_MAX_SSID_LEN + 1];
 	char bssid[WIFIMGR_ETH_ALEN];
+	char security;
 	char passphrase[WIFIMGR_MAX_PSPHR_LEN + 1];
 	unsigned char band;
 	unsigned char channel;
 	unsigned char ch_width;
+	char autorun;
 };
 
 struct wifimgr_set_mac_acl {
