@@ -38,7 +38,7 @@ struct wifi_drv_connect_params {
 	char *psk;
 	char psk_length;	/* 32 bytes */
 	unsigned char channel;
-	enum wifi_security_type security;
+	char security;
 };
 
 struct wifi_drv_start_ap_params {
@@ -48,7 +48,7 @@ struct wifi_drv_start_ap_params {
 	char psk_length;	/* 32 bytes */
 	unsigned char channel;
 	unsigned char ch_width;
-	enum wifi_security_type security;
+	char security;
 };
 
 struct wifi_drv_connect_evt {
@@ -72,7 +72,7 @@ struct wifi_drv_scan_result_evt {
 	unsigned char band;
 	unsigned char channel;
 	signed char rssi;
-	enum wifi_security_type security;
+	char security;
 };
 
 struct wifi_drv_new_station_evt {
@@ -115,9 +115,8 @@ struct wifi_drv_api {
 	int (*set_mac_acl)(struct device *dev, char subcmd,
 			   unsigned char acl_nr,
 			   char acl_mac_addrs[][NET_LINK_ADDR_MAX_LENGTH]);
-	int (*hw_test)(struct device *dev, int ictx_id,
-		       char *t_buf, unsigned int t_len, char *r_buf,
-		       unsigned int *r_len);
+	int (*hw_test)(struct device *dev, int ictx_id, char *t_buf,
+		       unsigned int t_len, char *r_buf, unsigned int *r_len);
 };
 
 #endif
