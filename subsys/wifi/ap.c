@@ -49,13 +49,14 @@ static int wifimgr_ap_get_config(void *handle)
 		wifimgr_info("No AP Config found!\n");
 	} else {
 		wifimgr_info("AP Config\n");
-		if (conf->autorun)
-			wifimgr_info("Autorun:\t%d\n", conf->autorun);
+		wifimgr_info("Autorun:\t%s\n", conf->autorun ? "on" : "off");
 
 		if (strlen(conf->ssid)) {
 			ssid = conf->ssid;
 			wifimgr_info("SSID:\t\t%s\n", ssid);
 		}
+
+		wifimgr_info("Security:\t%s\n", security2str(conf->security));
 
 		if (strlen(conf->passphrase)) {
 			passphrase = conf->passphrase;
@@ -74,7 +75,8 @@ static int wifimgr_ap_get_config(void *handle)
 	/* Notify the external caller */
 	if (cbs && cbs->get_ap_conf_cb)
 		cbs->get_ap_conf_cb(ssid, passphrase, conf->band, conf->channel,
-				    conf->ch_width, conf->autorun);
+				    conf->ch_width, conf->security,
+				    conf->autorun);
 
 	return 0;
 }
@@ -136,15 +138,32 @@ static int wifimgr_ap_get_status(void *handle)
 	struct wifimgr_status *sts = &mgr->ap_sts;
 	struct wifimgr_mac_list *assoc_list = &mgr->assoc_list;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
+	char *ssid = NULL;
 
 	wifimgr_info("AP Status:\t%s\n", ap_sts2str(sm_ap_query(sm)));
 
 	if (!is_zero_ether_addr(sts->own_mac))
-		wifimgr_info("Own MAC:\t" MACSTR "\n", MAC2STR(sts->own_mac));
+		wifimgr_info("BSSID:\t\t" MACSTR "\n", MAC2STR(sts->own_mac));
 
 	if (sm_ap_started(sm) == true) {
 		int i;
 		char (*mac_addrs)[WIFIMGR_ETH_ALEN];
+
+		if (strlen(sts->host_ssid)) {
+			ssid = sts->host_ssid;
+			wifimgr_info("SSID:\t\t%s\n", ssid);
+		}
+
+		if (!sts->host_channel)
+			wifimgr_info("Channel:\tauto\n");
+		else
+			wifimgr_info("Channel:\t%d\n", sts->host_channel);
+
+		if (!sts->u.ap.ch_width)
+			wifimgr_info("Channel Width:\tauto\n");
+		else
+			wifimgr_info("Channel Width:\t%d\n",
+				     sts->u.ap.ch_width);
 
 		wifimgr_info("----------------\n");
 		wifimgr_info("STA NR:\t%d\n", sts->u.ap.sta_nr);
@@ -170,10 +189,12 @@ static int wifimgr_ap_get_status(void *handle)
 	/* Notify the external caller */
 	if (cbs && cbs->get_ap_status_cb)
 		cbs->get_ap_status_cb(sm_ap_query(sm), sts->own_mac,
+				      sts->host_ssid, sts->host_channel,
 				      sts->u.ap.sta_nr,
 				      sts->u.ap.sta_mac_addrs,
 				      sts->u.ap.acl_nr,
-				      sts->u.ap.acl_mac_addrs);
+				      sts->u.ap.acl_mac_addrs,
+				      mgr->ap_conf.autorun);
 	fflush(stdout);
 
 	return 0;
@@ -551,14 +572,18 @@ static int wifimgr_ap_start(void *handle)
 		return ret;
 	}
 
-	wifimgr_ap_led_on();
-
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_START_AP);
 
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP,
 				 wifimgr_ap_stop, mgr);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_SET_MAC_ACL,
 				 wifimgr_ap_set_mac_acl, &mgr->set_acl);
+
+	if (strlen(conf->ssid))
+		strcpy(sts->host_ssid, conf->ssid);
+	sts->host_channel = conf->channel;
+	sts->u.ap.ch_width = conf->ch_width;
+	wifimgr_ap_led_on();
 
 	/* TODO: Start DHCP server */
 
@@ -596,12 +621,15 @@ static int wifimgr_ap_stop(void *handle)
 		return ret;
 	}
 
-	wifimgr_ap_led_off();
-
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_SET_MAC_ACL);
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_START_AP,
 				 wifimgr_ap_start, mgr);
+
+	memset(sts->host_ssid, 0, WIFIMGR_MAX_SSID_LEN + 1);
+	sts->host_channel = 0;
+	sts->u.ap.ch_width = 0;
+	wifimgr_ap_led_off();
 
 	return ret;
 }
