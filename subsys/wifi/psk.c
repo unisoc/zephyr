@@ -48,7 +48,7 @@ int pbkdf2_sha1(const char *passphrase, const char *ssid, int iterations,
 		goto exit;
 	}
 
-        ret = mbedtls_pkcs5_pbkdf2_hmac(&sha1_ctx, passphrase,
+	ret = mbedtls_pkcs5_pbkdf2_hmac(&sha1_ctx, passphrase,
 					strlen(passphrase), ssid, strlen(ssid),
 					iterations, buflen, buf);
 	if (ret) {
