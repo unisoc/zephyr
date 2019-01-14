@@ -78,8 +78,8 @@ static struct settings_handler wifimgr_settings_handler = {
 	.h_set = wifimgr_settings_set,
 };
 
-int wifimgr_settings_save_one(struct wifimgr_settings_map *setting, char *path,
-			      bool clear)
+static int wifimgr_settings_save_one(struct wifimgr_settings_map *setting,
+				     char *path, bool clear)
 {
 	char abs_path[WIFIMGR_SETTING_NAME_LEN + 1];
 	char val[WIFIMGR_SETTING_VAL_LEN];
@@ -93,8 +93,11 @@ int wifimgr_settings_save_one(struct wifimgr_settings_map *setting, char *path,
 		if (!strcmp(setting->name, WIFIMGR_SETTING_NAME_BSSID)
 		    && is_zero_ether_addr(setting->valptr) && !clear)
 			return 0;
-		else if (!strlen(setting->valptr) && !clear)
+		else if (strcmp(setting->name, WIFIMGR_SETTING_NAME_PSPHR)
+			 && !strlen(setting->valptr) && !clear) {
+			printk("setting->valptr %p\n", setting->valptr);
 			return 0;
+		}
 
 		wifimgr_dbg("name:%s, val:%s\n", setting->name,
 			    setting->valptr);

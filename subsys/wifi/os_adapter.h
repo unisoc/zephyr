@@ -91,7 +91,7 @@ static inline bool is_broadcast_ether_addr(const char *addr)
 
 /**
  *
- * @brief Check whether the memory area is zero
+ * @brief Check whether the memory area is zeroed
  *
  * @return 0 if <m> == 0, else non-zero
  */
@@ -99,8 +99,9 @@ static inline int memiszero(const void *m, size_t n)
 {
 	const char *c = m;
 
-	while (n-- && !(*c))
+	while ((--n > 0) && !(*c)) {
 		c++;
+	}
 
 	return *c;
 }

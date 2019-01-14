@@ -15,6 +15,151 @@
 
 #include "api.h"
 #include "os_adapter.h"
+#include "sm.h"
+
+static
+void wifimgr_cli_get_sta_conf_cb(char *ssid, char *bssid, char *passphrase,
+				 unsigned char band, unsigned char channel,
+				 enum wifimgr_security security, char autorun)
+{
+	printf("STA Config\n");
+
+	if (strlen(ssid))
+		printf("SSID:\t\t%s\n", ssid);
+
+	if (!is_zero_ether_addr(bssid))
+		printf("BSSID:\t\t" MACSTR "\n", MAC2STR(bssid));
+
+	printf("Security:\t%s\n", security2str(security));
+
+	if (strlen(passphrase))
+		printf("Passphrase:\t%s\n", passphrase);
+
+	if (channel)
+		printf("Channel:\t%d\n", channel);
+
+	printf("Autorun:\t%s\n", autorun ? "on" : "off");
+}
+
+static
+void wifimgr_cli_get_ap_conf_cb(char *ssid, char *passphrase,
+				unsigned char band, unsigned char channel,
+				unsigned char ch_width,
+				enum wifimgr_security security, char autorun)
+{
+	printf("AP Config\n");
+
+	if (strlen(ssid))
+		printf("SSID:\t\t%s\n", ssid);
+
+	printf("Security:\t%s\n", security2str(security));
+
+	if (strlen(passphrase))
+		printf("Passphrase:\t%s\n", passphrase);
+
+	if (!channel)
+		printf("Channel:\tauto\n");
+	else
+		printf("Channel:\t%d\n", channel);
+
+	if (!ch_width)
+		printf("Channel Width:\tauto\n");
+	else
+		printf("Channel Width:\t%d\n", ch_width);
+
+	printf("Autorun:\t%s\n", autorun ? "on" : "off");
+}
+
+static
+void wifimgr_cli_get_ap_capa_cb(unsigned char max_sta, unsigned char max_acl)
+{
+	printf("AP Capability\n");
+
+	if (max_sta)
+		printf("Max STA NR:\t%d\n", max_sta);
+	if (max_acl)
+		printf("Max ACL NR:\t%d\n", max_acl);
+}
+
+static
+void wifimgr_cli_get_sta_status_cb(char status, char *own_mac,
+				   signed char host_rssi)
+{
+	printf("STA Status:\t%s\n", sta_sts2str(status));
+
+	if (!is_zero_ether_addr(own_mac))
+		printf("own MAC:\t" MACSTR "\n", MAC2STR(own_mac));
+
+	if (status == WIFIMGR_SM_STA_CONNECTED) {
+		printf("----------------\n");
+		printf("Host RSSI:\t%d\n", host_rssi);
+	}
+}
+
+static
+void wifimgr_cli_get_ap_status_cb(char status, char *own_mac,
+				  unsigned char sta_nr,
+				  char sta_mac_addrs[][6],
+				  unsigned char acl_nr, char acl_mac_addrs[][6])
+{
+	printf("AP Status:\t%s\n", ap_sts2str(status));
+
+	if (!is_zero_ether_addr(own_mac))
+		printf("BSSID:\t\t" MACSTR "\n", MAC2STR(own_mac));
+
+	if (status == WIFIMGR_SM_AP_STARTED) {
+		int i;
+		char (*mac_addrs)[WIFIMGR_ETH_ALEN];
+
+		printf("----------------\n");
+		printf("STA NR:\t%d\n", sta_nr);
+		if (sta_nr) {
+			printf("STA:\n");
+			mac_addrs = sta_mac_addrs;
+			for (i = 0; i < sta_nr; i++)
+				printf("\t\t" MACSTR "\n",
+				       MAC2STR(mac_addrs[i]));
+		}
+
+		printf("----------------\n");
+		printf("ACL NR:\t%d\n", acl_nr);
+		if (acl_nr) {
+			printf("ACL:\n");
+			mac_addrs = acl_mac_addrs;
+			for (i = 0; i < acl_nr; i++)
+				printf("\t\t" MACSTR "\n",
+				       MAC2STR(mac_addrs[i]));
+		}
+	}
+}
+
+static
+void wifimgr_cli_notify_scan_res(char *ssid, char *bssid, unsigned char band,
+				 unsigned char channel, signed char rssi,
+				 enum wifimgr_security security)
+{
+	if (strlen(ssid))
+		printf("\t%-32s", ssid);
+	else
+		printf("\t\t\t\t\t");
+
+	if (!is_zero_ether_addr(bssid))
+		printf("\t" MACSTR, MAC2STR(bssid));
+	else
+		printf("\t\t\t");
+
+	printf("\t%s", security2str(security));
+	printf("\t%u\t%d\n", channel, rssi);
+}
+
+static struct wifimgr_ctrl_cbs wifimgr_cli_cbs = {
+	.get_sta_conf_cb = wifimgr_cli_get_sta_conf_cb,
+	.get_ap_conf_cb = wifimgr_cli_get_ap_conf_cb,
+	.get_ap_capa_cb = wifimgr_cli_get_ap_capa_cb,
+	.get_sta_status_cb = wifimgr_cli_get_sta_status_cb,
+	.get_ap_status_cb = wifimgr_cli_get_ap_status_cb,
+	.notify_scan_res = wifimgr_cli_notify_scan_res,
+};
 
 static int strtomac(char *mac_str, char *mac_addr)
 {
@@ -46,11 +191,15 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 	char *bssid = NULL;
 	char *ssid = NULL;
 	char *passphrase = NULL;
+	char security = 0;
 	char autorun = 0;
 	unsigned char band = 0;
 	unsigned char channel = 0;
 	unsigned char ch_width = 0;
 	int choice;
+
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->set_conf)
+		return -EOPNOTSUPP;
 
 	if (!argv[1])
 		return -EINVAL;
@@ -92,6 +241,10 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 			break;
 		case 'p':
 			passphrase = optarg;
+			if (strlen(passphrase))
+				security = WIFIMGR_SECURITY_PSK;
+			else
+				security = WIFIMGR_SECURITY_OPEN;
 			break;
 		case 'w':
 			if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP)) {
@@ -107,8 +260,13 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 		}
 	}
 
-	return wifimgr_ctrl_iface_set_conf(iface_name, ssid, bssid, passphrase,
-					   band, channel, ch_width, autorun);
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->set_conf(iface_name,
+								ssid, bssid,
+								security,
+								passphrase,
+								band, channel,
+								ch_width,
+								autorun);
 }
 
 static int wifimgr_cmd_get_config(const struct shell *shell, size_t argc,
@@ -116,11 +274,14 @@ static int wifimgr_cmd_get_config(const struct shell *shell, size_t argc,
 {
 	char *iface_name;
 
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->get_conf)
+		return -EOPNOTSUPP;
+
 	if (argc != 2 || !argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
-	return wifimgr_ctrl_iface_get_conf(iface_name);
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->get_conf(iface_name);
 }
 
 static int wifimgr_cmd_capa(const struct shell *shell, size_t argc,
@@ -128,11 +289,14 @@ static int wifimgr_cmd_capa(const struct shell *shell, size_t argc,
 {
 	char *iface_name;
 
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->get_capa)
+		return -EOPNOTSUPP;
+
 	if (argc != 2 || !argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
-	return wifimgr_ctrl_iface_get_capa(iface_name);
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->get_capa(iface_name);
 }
 
 static int wifimgr_cmd_status(const struct shell *shell, size_t argc,
@@ -140,11 +304,14 @@ static int wifimgr_cmd_status(const struct shell *shell, size_t argc,
 {
 	char *iface_name;
 
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->get_status)
+		return -EOPNOTSUPP;
+
 	if (argc != 2 || !argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
-	return wifimgr_ctrl_iface_get_status(iface_name);
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->get_status(iface_name);
 }
 
 static int wifimgr_cmd_open(const struct shell *shell, size_t argc,
@@ -152,11 +319,14 @@ static int wifimgr_cmd_open(const struct shell *shell, size_t argc,
 {
 	char *iface_name;
 
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->open)
+		return -EOPNOTSUPP;
+
 	if (argc != 2 || !argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
-	return wifimgr_ctrl_iface_open(iface_name);
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->open(iface_name);
 }
 
 static int wifimgr_cmd_close(const struct shell *shell, size_t argc,
@@ -164,41 +334,59 @@ static int wifimgr_cmd_close(const struct shell *shell, size_t argc,
 {
 	char *iface_name;
 
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->close)
+		return -EOPNOTSUPP;
+
 	if (argc != 2 || !argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
-	return wifimgr_ctrl_iface_close(iface_name);
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->close(iface_name);
 }
 
 static int wifimgr_cmd_scan(const struct shell *shell, size_t argc,
 			    char *argv[])
 {
-	return wifimgr_ctrl_iface_scan();
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->scan)
+		return -EOPNOTSUPP;
+
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->scan();
 }
 
 static int wifimgr_cmd_connect(const struct shell *shell, size_t argc,
 			       char *argv[])
 {
-	return wifimgr_ctrl_iface_connect();
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->connect)
+		return -EOPNOTSUPP;
+
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->connect();
 }
 
 static int wifimgr_cmd_disconnect(const struct shell *shell, size_t argc,
 				  char *argv[])
 {
-	return wifimgr_ctrl_iface_disconnect();
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->disconnect)
+		return -EOPNOTSUPP;
+
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->disconnect();
 }
 
 static int wifimgr_cmd_start_ap(const struct shell *shell, size_t argc,
 				char *argv[])
 {
-	return wifimgr_ctrl_iface_start_ap();
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->start_ap)
+		return -EOPNOTSUPP;
+
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->start_ap();
 }
 
 static int wifimgr_cmd_stop_ap(const struct shell *shell, size_t argc,
 			       char *argv[])
 {
-	return wifimgr_ctrl_iface_stop_ap();
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->stop_ap)
+		return -EOPNOTSUPP;
+
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->stop_ap();
 }
 
 static int wifimgr_cmd_set_mac_acl(const struct shell *shell, size_t argc,
@@ -207,6 +395,9 @@ static int wifimgr_cmd_set_mac_acl(const struct shell *shell, size_t argc,
 	int choice;
 	char subcmd = 0;
 	char *mac = NULL;
+
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->set_mac_acl)
+		return -EOPNOTSUPP;
 
 	optind = 0;
 	while ((choice = getopt(argc, argv, "ab:cu:")) != -1) {
@@ -248,14 +439,18 @@ static int wifimgr_cmd_set_mac_acl(const struct shell *shell, size_t argc,
 		}
 	}
 
-	return wifimgr_ctrl_iface_set_mac_acl(subcmd, mac);
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->set_mac_acl(subcmd, mac);
 }
 
 SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
 	SHELL_CMD(set_config, NULL,
-	 "<sta> -n <SSID> -m <BSSID> -c <channel> -p <PSK (WPA/WPA2)>\n-a <0: disable, 1: enable>"
+	 "<sta> -n <SSID> -m <BSSID> -c <channel>"
+	 "\n<sta> -p <passphrase (\"\" for OPEN)>"
+	 "\n<sta> -a <autorun (1: enable; 0: disable)>"
 	 "\n<sta> (clear all STA configs)"
-	 "\n<ap> -n <SSID> -c <channel> -w <ch_width> -p <PSK (WPA/WPA2)>\n-a <0: disable, 1: enable>"
+	 "\n<ap> -n <SSID> -c <channel> -w <channel_width>"
+	 "\n<ap> -p <passphrase (\"\" for OPEN)>"
+	 "\n<ap> -a <autorun (1: enable; 0: disable)>"
 	 "\n<ap> (clear all AP configs)",
 	 wifimgr_cmd_set_config),
 	SHELL_CMD(get_config, NULL,
