@@ -145,8 +145,10 @@ static void *cmd_processor(void *handle)
 
 	wifimgr_dbg("starting %s, pid=%p\n", __func__, pthread_self());
 
-	if (!prcs)
+	if (!prcs) {
+		pthread_exit(handle);
 		return NULL;
+	}
 
 	while (prcs->is_started) {
 		/* Wait for commands */
@@ -198,6 +200,7 @@ static void *cmd_processor(void *handle)
 		cmd_processor_post_process(prcs, &msg, ret);
 	}
 
+	pthread_exit(handle);
 	return NULL;
 }
 

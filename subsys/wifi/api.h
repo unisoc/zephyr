@@ -66,22 +66,24 @@ enum wifimgr_cmd {
 
 int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len);
 
-int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
-				char *passphrase, unsigned char band,
-				unsigned char channel, unsigned char ch_width,
-				char autorun);
-int wifimgr_ctrl_iface_get_conf(char *iface_name);
-int wifimgr_ctrl_iface_get_capa(char *iface_name);
-int wifimgr_ctrl_iface_get_status(char *iface_name);
-int wifimgr_ctrl_iface_open(char *iface_name);
-int wifimgr_ctrl_iface_close(char *iface_name);
-int wifimgr_ctrl_iface_scan(void);
-int wifimgr_ctrl_iface_connect(void);
-int wifimgr_ctrl_iface_disconnect(void);
-int wifimgr_ctrl_iface_start_ap(void);
-int wifimgr_ctrl_iface_stop_ap(void);
-int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac);
-
 struct wifimgr_ctrl_cbs *wifimgr_get_ctrl_cbs(void);
+
+static inline const char *security2str(int security)
+{
+	char *str = NULL;
+
+	switch (security) {
+	case WIFIMGR_SECURITY_OPEN:
+		str = "OPEN\t";
+		break;
+	case WIFIMGR_SECURITY_PSK:
+		str = "WPA/WPA2";
+		break;
+	default:
+		str = "OTHERS\t";
+		break;
+	}
+	return str;
+}
 
 #endif

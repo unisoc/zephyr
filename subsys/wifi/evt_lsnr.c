@@ -166,8 +166,10 @@ static void *evt_listener(void *handle)
 
 	wifimgr_dbg("starting %s, pid=%p\n", __func__, pthread_self());
 
-	if (!lsnr)
+	if (!lsnr) {
+		pthread_exit(handle);
 		return NULL;
+	}
 
 	while (lsnr->is_started) {
 		bool match = false;
@@ -215,6 +217,7 @@ static void *evt_listener(void *handle)
 		free(msg.buf);
 	}
 
+	pthread_exit(handle);
 	return NULL;
 }
 

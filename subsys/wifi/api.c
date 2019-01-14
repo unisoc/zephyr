@@ -17,9 +17,9 @@
 static struct wifimgr_ctrl_cbs *wifimgr_cbs;
 
 int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
-				char *passphrase, unsigned char band,
-				unsigned char channel, unsigned char ch_width,
-				char autorun)
+				char security, char *passphrase,
+				unsigned char band, unsigned char channel,
+				unsigned char ch_width, char autorun)
 {
 	struct wifimgr_config conf;
 	unsigned int cmd_id;
@@ -37,11 +37,12 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 
 	/* Check SSID (mandatory) */
 	if (ssid) {
-		if (strlen(ssid) > sizeof(conf.ssid)) {
+		if (!strlen(ssid) || (strlen(ssid) > sizeof(conf.ssid))) {
 			printf("Invalid SSID: %s!\n", ssid);
 			return -EINVAL;
 		}
 
+		printf("SSID:\t\t%s\n", ssid);
 		strcpy(conf.ssid, ssid);
 	}
 
@@ -52,7 +53,21 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 			return -EINVAL;
 		}
 
+		printf("BSSID:\t\t" MACSTR "\n", MAC2STR(bssid));
 		memcpy(conf.bssid, bssid, WIFIMGR_ETH_ALEN);
+	}
+
+	/* Check Security */
+	switch (security) {
+	case WIFIMGR_SECURITY_OPEN:
+	case WIFIMGR_SECURITY_PSK:
+		printf("Security:\t%s\n", security2str(security));
+	case 0:
+		conf.security = security;
+		break;
+	default:
+		printf("invalid security: %d!\n", security);
+		return -EINVAL;
 	}
 
 	/* Check Passphrase (optional: valid only for WPA/WPA2-PSK) */
@@ -62,14 +77,17 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 			return -EINVAL;
 		}
 
+		if (strlen(passphrase))
+			printf("Passphrase:\t%s\n", passphrase);
 		strcpy(conf.passphrase, passphrase);
 	}
 
 	/* Check band */
 	switch (band) {
-	case 0:
 	case 2:
 	case 5:
+		printf("Band:\t%d\n", band);
+	case 0:
 		conf.band = band;
 		break;
 	default:
@@ -82,15 +100,18 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 		printf("invalid channel: %d!\n", channel);
 		return -EINVAL;
 	}
+	if (channel)
+		printf("Channel:\t%d\n", channel);
 	conf.channel = channel;
 
 	/* Check channel width */
 	switch (ch_width) {
-	case 0:
 	case 20:
 	case 40:
 	case 80:
 	case 160:
+		wifimgr_info("Channel Width:\t%d\n", ch_width);
+	case 0:
 		conf.ch_width = ch_width;
 		break;
 	default:
@@ -103,6 +124,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	case 0:
 	case 1:
 		conf.autorun = autorun;
+		printf("Autorun:\t%s\n", conf.autorun ? "on" : "off");
 		break;
 	default:
 		return -EINVAL;
@@ -111,7 +133,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, &conf, sizeof(conf));
 }
 
-int wifimgr_ctrl_iface_get_conf(char *iface_name)
+static int wifimgr_ctrl_iface_get_conf(char *iface_name)
 {
 	unsigned int cmd_id = 0;
 
@@ -128,7 +150,7 @@ int wifimgr_ctrl_iface_get_conf(char *iface_name)
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_get_capa(char *iface_name)
+static int wifimgr_ctrl_iface_get_capa(char *iface_name)
 {
 	unsigned int cmd_id = 0;
 
@@ -145,7 +167,7 @@ int wifimgr_ctrl_iface_get_capa(char *iface_name)
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_get_status(char *iface_name)
+static int wifimgr_ctrl_iface_get_status(char *iface_name)
 {
 	unsigned int cmd_id = 0;
 
@@ -162,7 +184,7 @@ int wifimgr_ctrl_iface_get_status(char *iface_name)
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_open(char *iface_name)
+static int wifimgr_ctrl_iface_open(char *iface_name)
 {
 	unsigned int cmd_id = 0;
 
@@ -179,7 +201,7 @@ int wifimgr_ctrl_iface_open(char *iface_name)
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_close(char *iface_name)
+static int wifimgr_ctrl_iface_close(char *iface_name)
 {
 	unsigned int cmd_id = 0;
 
@@ -196,32 +218,32 @@ int wifimgr_ctrl_iface_close(char *iface_name)
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_scan(void)
+static int wifimgr_ctrl_iface_scan(void)
 {
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_SCAN, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_connect(void)
+static int wifimgr_ctrl_iface_connect(void)
 {
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_CONNECT, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_disconnect(void)
+static int wifimgr_ctrl_iface_disconnect(void)
 {
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_DISCONNECT, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_start_ap(void)
+static int wifimgr_ctrl_iface_start_ap(void)
 {
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_START_AP, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_stop_ap(void)
+static int wifimgr_ctrl_iface_stop_ap(void)
 {
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_STOP_AP, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac)
+static int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac)
 {
 	struct wifimgr_set_mac_acl set_acl;
 
@@ -252,6 +274,7 @@ int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac)
 static const struct wifimgr_ctrl_ops wifimgr_ops = {
 	.set_conf = wifimgr_ctrl_iface_set_conf,
 	.get_conf = wifimgr_ctrl_iface_get_conf,
+	.get_capa = wifimgr_ctrl_iface_get_capa,
 	.get_status = wifimgr_ctrl_iface_get_status,
 	.open = wifimgr_ctrl_iface_open,
 	.close = wifimgr_ctrl_iface_close,
