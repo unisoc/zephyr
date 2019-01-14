@@ -39,16 +39,12 @@
 
 struct wifimgr_status {
 	char own_mac[WIFIMGR_ETH_ALEN];
-	char host_ssid[WIFIMGR_MAX_SSID_LEN + 1];
-	unsigned char host_channel;
 	union {
 		struct {
 			bool host_found;
-			char host_bssid[WIFIMGR_ETH_ALEN];
 			signed char host_rssi;
 		} sta;
 		struct {
-			unsigned char ch_width;
 			unsigned char sta_nr;
 			char (*sta_mac_addrs)[WIFIMGR_ETH_ALEN];
 			unsigned char acl_nr;
@@ -109,23 +105,5 @@ int wifimgr_sta_init(void *handle);
 void wifimgr_sta_exit(void *handle);
 int wifimgr_ap_init(void *handle);
 void wifimgr_ap_exit(void *handle);
-
-static inline const char *security2str(int security)
-{
-	char *str = NULL;
-
-	switch (security) {
-	case WIFI_SECURITY_TYPE_NONE:
-		str = "OPEN\t";
-		break;
-	case WIFI_SECURITY_TYPE_PSK:
-		str = "WPA/WPA2";
-		break;
-	default:
-		str = "OTHERS\t";
-		break;
-	}
-	return str;
-}
 
 #endif
