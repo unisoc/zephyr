@@ -616,7 +616,7 @@ static int wifi_evt_scan_result(struct wifi_device *wifi_dev,
 	if (wifi_dev->scan_result_cb) {
 		wifi_dev->scan_result_cb(wifi_dev->iface, 0, &scan_result);
 	} else {
-		LOG_WRN("No scan_result callback.");
+		LOG_DBG("No scan_result callback.");
 	}
 
 	k_yield();
