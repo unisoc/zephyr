@@ -190,15 +190,17 @@ static void rx_data_thread(void *param)
 		LOG_DBG("Wait for data.");
 		k_sem_take(&data_sem, K_FOREVER);
 
-		memset(addr, 0, RX_DATA_SIZE);
-		ret = wifi_ipc_recv(SMSG_CH_WIFI_DATA_NOR,
-				addr, &len, 0);
-		if (ret == 0) {
-			LOG_DBG("Receive data %p len %i",
-					addr, len);
-			wifi_data_process(priv, addr, len);
-		} else {
-			LOG_WRN("IPC recv data failed.");
+		while (1) {
+			memset(addr, 0, RX_DATA_SIZE);
+			ret = wifi_ipc_recv(SMSG_CH_WIFI_DATA_NOR,
+					addr, &len, 0);
+			if (ret == 0) {
+				LOG_DBG("Receive data %p len %i",
+						addr, len);
+				wifi_data_process(priv, addr, len);
+			} else {
+				break;
+			}
 		}
 	}
 }
@@ -214,15 +216,17 @@ static void rx_cmdevt_thread(void *param)
 		LOG_DBG("Wait for cmdevt.");
 		k_sem_take(&event_sem, K_FOREVER);
 
-		memset(addr, 0, RX_CMDEVT_SIZE);
-		ret = wifi_ipc_recv(SMSG_CH_WIFI_CTRL, addr, &len, 0);
-		if (ret == 0) {
-			LOG_DBG("Receive cmd/evt %p len %i",
-					addr, len);
+		while (1) {
+			memset(addr, 0, RX_CMDEVT_SIZE);
+			ret = wifi_ipc_recv(SMSG_CH_WIFI_CTRL, addr, &len, 0);
+			if (ret == 0) {
+				LOG_DBG("Receive cmd/evt %p len %i",
+						addr, len);
 
-			wifi_cmdevt_process(priv, addr, len);
-		} else {
-			LOG_WRN("IPC recv cmd/evt failed.");
+				wifi_cmdevt_process(priv, addr, len);
+			} else {
+				break;
+			}
 		}
 	}
 }
