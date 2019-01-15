@@ -369,10 +369,6 @@ static int uwp_mgmt_scan(struct device *dev,
 		return -EINVAL;
 	}
 
-	if (wifi_dev->scan_result_cb) {
-		return -EAGAIN;
-	}
-
 	wifi_dev->scan_result_cb = cb;
 
 	return wifi_cmd_scan(wifi_dev, params);
