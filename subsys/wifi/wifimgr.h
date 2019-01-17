@@ -42,6 +42,7 @@ struct wifimgr_status {
 	union {
 		struct {
 			bool host_found;
+			char host_bssid[WIFIMGR_ETH_ALEN];
 			signed char host_rssi;
 		} sta;
 		struct {
