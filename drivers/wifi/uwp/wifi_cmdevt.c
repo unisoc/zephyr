@@ -19,7 +19,7 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 
 #define RECV_BUF_SIZE (128)
 #define GET_STA_BUF_SIZE (12)
-#define ALL_2_4_GHZ_CHANNELS (0X3FFF)
+#define ALL_2_4_GHZ_CHANNELS (0x3FFF)
 #define CHANNEL_2_4_GHZ_BIT(n) (1 << (n - 1))
 
 extern struct wifi_priv uwp_wifi_ap_priv;
@@ -134,14 +134,14 @@ int wifi_cmd_scan(struct wifi_device *wifi_dev,
 			return -ENOMEM;
 		}
 
-		if (channel == 0) { /* All 2.4GH channel */
+		if (channel == 0) { /* All 2.4GHz channel */
 			cmd->channels_2g = ALL_2_4_GHZ_CHANNELS;
 		} else { /* One channel */
 			cmd->channels_2g = CHANNEL_2_4_GHZ_BIT(channel);
 		}
 		break;
 	case WIFI_BAND_5G:
-		if (channel == 0) { /* All 5GHZ channel */
+		if (channel == 0) { /* All 5GHz channel */
 			cmd_len +=  sizeof(channels_5g_scan_table);
 
 			cmd = k_malloc(cmd_len);

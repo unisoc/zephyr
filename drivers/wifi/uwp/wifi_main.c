@@ -184,23 +184,6 @@ static int uwp_mgmt_close(struct device *dev)
 		wifi_release_rx_buf();
 	}
 
-	/* Flush all callbacks */
-	if (wifi_dev->new_station_cb) {
-		wifi_dev->new_station_cb = NULL;
-	}
-
-	if (wifi_dev->scan_result_cb) {
-		wifi_dev->scan_result_cb = NULL;
-	}
-
-	if (wifi_dev->connect_cb) {
-		wifi_dev->connect_cb = NULL;
-	}
-
-	if (wifi_dev->disconnect_cb) {
-		wifi_dev->disconnect_cb = NULL;
-	}
-
 	return 0;
 }
 
@@ -226,10 +209,6 @@ static int uwp_mgmt_start_ap(struct device *dev,
 		return -EINVAL;
 	}
 
-	if (wifi_dev->new_station_cb) {
-		return -EAGAIN;
-	}
-
 	wifi_dev->new_station_cb = cb;
 
 	return wifi_cmd_start_ap(wifi_dev, params);
@@ -253,10 +232,6 @@ static int uwp_mgmt_stop_ap(struct device *dev)
 		LOG_WRN("Improper mode %d to stop_ap.",
 				wifi_dev->mode);
 		return -EINVAL;
-	}
-
-	if (wifi_dev->new_station_cb) {
-		wifi_dev->new_station_cb = NULL;
 	}
 
 	return wifi_cmd_stop_ap(wifi_dev);
@@ -380,7 +355,7 @@ static int uwp_mgmt_get_station(struct device *dev,
 {
 	struct wifi_device *wifi_dev;
 
-	if (!dev) {
+	if (!dev || !rssi) {
 		return -EINVAL;
 	}
 
