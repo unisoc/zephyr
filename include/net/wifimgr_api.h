@@ -47,7 +47,7 @@ struct wifimgr_ctrl_cbs {
 			       unsigned char channel, unsigned char ch_width,
 			       enum wifimgr_security security, char autorun);
 	void (*get_ap_capa_cb)(unsigned char max_sta, unsigned char max_acl);
-	void (*get_sta_status_cb)(char status, char *own_mac,
+	void (*get_sta_status_cb)(char status, char *own_mac, char *host_bssid,
 				  signed char host_rssi);
 	void (*get_ap_status_cb)(char status, char *own_mac,
 				 unsigned char sta_nr, char sta_mac_addrs[][6],
