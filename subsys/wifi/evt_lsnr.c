@@ -144,7 +144,8 @@ int evt_listener_remove_receiver(struct evt_listener *handle,
 	rcvr = search_event(lsnr, evt_id);
 	sem_post(&lsnr->exclsem);
 	if (!rcvr) {
-		wifimgr_err("no matched receiver to remove!\n");
+		wifimgr_warn("no [%s] receiver to remove!\n",
+			     wifimgr_evt2str(evt_id));
 		return -ENOENT;
 	}
 

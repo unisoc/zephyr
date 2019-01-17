@@ -82,7 +82,7 @@ void wifimgr_cli_get_ap_capa_cb(unsigned char max_sta, unsigned char max_acl)
 }
 
 static
-void wifimgr_cli_get_sta_status_cb(char status, char *own_mac,
+void wifimgr_cli_get_sta_status_cb(char status, char *own_mac, char *host_bssid,
 				   signed char host_rssi)
 {
 	printf("STA Status:\t%s\n", sta_sts2str(status));
@@ -92,6 +92,9 @@ void wifimgr_cli_get_sta_status_cb(char status, char *own_mac,
 
 	if (status == WIFIMGR_SM_STA_CONNECTED) {
 		printf("----------------\n");
+		if (!is_zero_ether_addr(host_bssid))
+			wifimgr_info("Host BSSID:\t" MACSTR "\n",
+				     MAC2STR(host_bssid));
 		printf("Host RSSI:\t%d\n", host_rssi);
 	}
 }

@@ -129,6 +129,7 @@ static int wifimgr_sta_get_status(void *handle)
 	/* Notify the external caller */
 	if (cbs && cbs->get_sta_status_cb)
 		cbs->get_sta_status_cb(sm_sta_query(sm), sts->own_mac,
+				       sts->u.sta.host_bssid,
 				       sts->u.sta.host_rssi);
 
 	return 0;
@@ -147,6 +148,7 @@ static int wifimgr_sta_disconnect_event(void *arg)
 	wifimgr_info("disconnect! reason: %d\n", disc->reason_code);
 
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
+	memset(sts->u.sta.host_bssid, 0, WIFIMGR_ETH_ALEN);
 	sts->u.sta.host_rssi = 0;
 
 	if (iface)
@@ -186,7 +188,7 @@ static int wifimgr_sta_connect_event(void *arg)
 	struct wifi_drv_connect_evt *conn = &sta_evt->u.conn;
 	struct wifi_manager *mgr =
 	    container_of(sta_evt, struct wifi_manager, sta_evt);
-	struct wifimgr_config *conf = &mgr->sta_conf;
+	struct wifimgr_status *sts = &mgr->sta_sts;
 	struct net_if *iface = (struct net_if *)mgr->sta_iface;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
 	int ret = conn->status;
@@ -203,11 +205,9 @@ static int wifimgr_sta_connect_event(void *arg)
 					 WIFIMGR_CMD_DISCONNECT,
 					 wifimgr_sta_disconnect, mgr);
 
-		if (is_zero_ether_addr(conf->bssid)
-		    && !is_zero_ether_addr(conn->bssid))
-			memcpy(conf->bssid, conn->bssid, WIFIMGR_ETH_ALEN);
-		if (!conf->channel && conn->channel)
-			conf->channel = conn->channel;
+		if (!is_zero_ether_addr(conn->bssid))
+			memcpy(sts->u.sta.host_bssid, conn->bssid,
+			       WIFIMGR_ETH_ALEN);
 
 		if (iface)
 			wifimgr_dhcp_start(iface);
