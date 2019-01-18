@@ -218,6 +218,7 @@ static int wifimgr_ctrl_iface_close(char *iface_name)
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
 }
 
+#ifdef CONFIG_WIFIMGR_STA
 static int wifimgr_ctrl_iface_scan(void)
 {
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_SCAN, NULL, 0);
@@ -232,7 +233,9 @@ static int wifimgr_ctrl_iface_disconnect(void)
 {
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_DISCONNECT, NULL, 0);
 }
+#endif
 
+#ifdef CONFIG_WIFIMGR_AP
 static int wifimgr_ctrl_iface_start_ap(void)
 {
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_START_AP, NULL, 0);
@@ -270,6 +273,7 @@ static int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac)
 	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_SET_MAC_ACL, &set_acl,
 					   sizeof(set_acl));
 }
+#endif
 
 static const struct wifimgr_ctrl_ops wifimgr_ops = {
 	.set_conf = wifimgr_ctrl_iface_set_conf,
@@ -278,12 +282,16 @@ static const struct wifimgr_ctrl_ops wifimgr_ops = {
 	.get_status = wifimgr_ctrl_iface_get_status,
 	.open = wifimgr_ctrl_iface_open,
 	.close = wifimgr_ctrl_iface_close,
+#ifdef CONFIG_WIFIMGR_STA
 	.scan = wifimgr_ctrl_iface_scan,
 	.connect = wifimgr_ctrl_iface_connect,
 	.disconnect = wifimgr_ctrl_iface_disconnect,
+#endif
+#ifdef CONFIG_WIFIMGR_AP
 	.start_ap = wifimgr_ctrl_iface_start_ap,
 	.stop_ap = wifimgr_ctrl_iface_stop_ap,
 	.set_mac_acl = wifimgr_ctrl_iface_set_mac_acl,
+#endif
 };
 
 const

@@ -80,6 +80,7 @@ int wifi_drv_close(void *iface)
 	return drv_api->close(dev);
 }
 
+#ifdef CONFIG_WIFIMGR_STA
 static
 void wifi_drv_event_iface_scan_result(void *iface, int status,
 				      struct wifi_drv_scan_result_evt *entry)
@@ -209,7 +210,9 @@ int wifi_drv_notify_ip(void *iface, char *ipaddr, char len)
 
 	return drv_api->notify_ip(dev, ipaddr, len);
 }
+#endif
 
+#ifdef CONFIG_WIFIMGR_AP
 static void wifi_drv_event_new_station(void *iface, int status, char *mac)
 {
 	struct wifi_drv_new_station_evt new_sta;
@@ -293,3 +296,4 @@ int wifi_drv_set_mac_acl(void *iface, char subcmd, unsigned char acl_nr,
 
 	return drv_api->set_mac_acl(dev, subcmd, acl_nr, acl_mac_addrs);
 }
+#endif

@@ -11,7 +11,7 @@
 
 #include "led.h"
 
-static int wifimgr_led_on(const char *name, int pin)
+int wifimgr_led_on(const char *name, int pin)
 {
 	struct device *led;
 	int ret = -1;
@@ -25,7 +25,7 @@ static int wifimgr_led_on(const char *name, int pin)
 	return ret;
 }
 
-static int wifimgr_led_off(const char *name, int pin)
+int wifimgr_led_off(const char *name, int pin)
 {
 	struct device *led;
 	int ret = -1;
@@ -37,24 +37,4 @@ static int wifimgr_led_off(const char *name, int pin)
 	}
 
 	return ret;
-}
-
-int wifimgr_sta_led_on(void)
-{
-	return wifimgr_led_on(CONFIG_WIFIMGR_LED_NAME, CONFIG_WIFIMGR_LED_STA);
-}
-
-int wifimgr_ap_led_on(void)
-{
-	return wifimgr_led_on(CONFIG_WIFIMGR_LED_NAME, CONFIG_WIFIMGR_LED_AP);
-}
-
-int wifimgr_sta_led_off(void)
-{
-	return wifimgr_led_off(CONFIG_WIFIMGR_LED_NAME, CONFIG_WIFIMGR_LED_STA);
-}
-
-int wifimgr_ap_led_off(void)
-{
-	return wifimgr_led_off(CONFIG_WIFIMGR_LED_NAME, CONFIG_WIFIMGR_LED_AP);
 }
