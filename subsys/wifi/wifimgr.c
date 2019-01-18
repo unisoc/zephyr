@@ -13,6 +13,8 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(wifimgr);
 
+#if defined(CONFIG_WIFIMGR_STA) || defined(CONFIG_WIFIMGR_AP)
+
 #include <init.h>
 #include <shell/shell.h>
 
@@ -29,19 +31,20 @@ static int wifimgr_init(struct device *unused)
 
 	/*setlogmask(~(LOG_MASK(LOG_DEBUG))); */
 	memset(mgr, 0, sizeof(struct wifi_manager));
-
+#ifdef CONFIG_WIFIMGR_STA
 	ret = wifimgr_sta_init(mgr);
 	if (ret) {
 		wifimgr_err("failed to init WiFi STA!\n");
 		goto err;
 	}
-
+#endif
+#ifdef CONFIG_WIFIMGR_AP
 	ret = wifimgr_ap_init(mgr);
 	if (ret) {
 		wifimgr_err("failed to init WiFi AP!\n");
 		goto err;
 	}
-
+#endif
 	ret = wifimgr_evt_listener_init(&mgr->lsnr);
 	if (ret) {
 		wifimgr_err("failed to init WiFi event listener!\n");
@@ -60,9 +63,14 @@ static int wifimgr_init(struct device *unused)
 err:
 	wifimgr_cmd_processor_exit(&mgr->prcs);
 	wifimgr_evt_listener_exit(&mgr->lsnr);
+#ifdef CONFIG_WIFIMGR_AP
 	wifimgr_ap_exit(mgr);
+#endif
+#ifdef CONFIG_WIFIMGR_STA
 	wifimgr_sta_exit(mgr);
+#endif
 	return ret;
 }
 
 SYS_INIT(wifimgr_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
+#endif

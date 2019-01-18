@@ -15,10 +15,22 @@
 #include <led.h>
 
 #ifdef CONFIG_WIFIMGR_LED
-int wifimgr_sta_led_on(void);
-int wifimgr_sta_led_off(void);
-int wifimgr_ap_led_on(void);
-int wifimgr_ap_led_off(void);
+int wifimgr_led_on(const char *name, int pin);
+int wifimgr_led_off(const char *name, int pin);
+#ifdef CONFIG_WIFIMGR_STA
+#define wifimgr_sta_led_on(...) \
+	wifimgr_led_on(CONFIG_WIFIMGR_LED_NAME, CONFIG_WIFIMGR_LED_STA)
+
+#define wifimgr_sta_led_off(...) \
+	wifimgr_led_off(CONFIG_WIFIMGR_LED_NAME, CONFIG_WIFIMGR_LED_STA)
+#endif
+#ifdef CONFIG_WIFIMGR_AP
+#define wifimgr_ap_led_on(...) \
+	wifimgr_led_on(CONFIG_WIFIMGR_LED_NAME, CONFIG_WIFIMGR_LED_AP)
+
+#define wifimgr_ap_led_off(...) \
+	wifimgr_led_off(CONFIG_WIFIMGR_LED_NAME, CONFIG_WIFIMGR_LED_AP)
+#endif
 #else
 #define wifimgr_sta_led_on(...)
 #define wifimgr_sta_led_off(...)
