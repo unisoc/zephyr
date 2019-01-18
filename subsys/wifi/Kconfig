@@ -36,15 +36,6 @@ config WIFIMGR_CONFIG_SAVING
 	help
 	  Enable Saving & Cleaning WiFi Configuration.
 
-config WIFIMGR_DHCPC
-	bool "Enable DHCP client"
-	select NETWORKING
-	select NET_IPV4
-	select NET_DHCPV4
-	default y
-	help
-	  Start DHCP client by WiFi manger.
-
 config WIFIMGR_PSK
 	bool "Enable PSK calculation"
 	depends on MBEDTLS
@@ -67,12 +58,39 @@ config WIFIMGR_LED_NAME
         help
           Specify the LED device name.
 
+config WIFIMGR_STA
+	bool "Enable STA mode"
+	default n
+        help
+          Enable STA mode.
+
+config WIFIMGR_AP
+	bool "Enable AP mode"
+	default n
+        help
+          Enable AP mode.
+
+if WIFIMGR_STA
+
 config WIFIMGR_LED_STA
 	int "STA LED"
 	default 2
         depends on WIFIMGR_LED
         help
           Specify the STA LED.
+
+config WIFIMGR_DHCPC
+	bool "Enable DHCP client"
+	select NETWORKING
+	select NET_IPV4
+	select NET_DHCPV4
+	default y
+	help
+	  Start DHCP client by WiFi manger.
+
+endif # WIFIMGR_STA
+
+if WIFIMGR_AP
 
 config WIFIMGR_LED_AP
 	int "AP LED"
@@ -81,10 +99,12 @@ config WIFIMGR_LED_AP
         help
           Specify the AP LED.
 
+endif # WIFIMGR_AP
+
 module = WIFIMGR
 module-str = Log for wifi manager
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # WiFi
+endif # WIFIMGR
 
 endmenu

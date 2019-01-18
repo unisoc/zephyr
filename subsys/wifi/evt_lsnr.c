@@ -210,9 +210,9 @@ static void *evt_listener(void *handle)
 			/* Trigger state machine */
 			wifimgr_sm_evt_step(mgr, msg.evt_id, ret);
 		} else {
-			wifimgr_err("unexpected [%s] under %s!\n",
-				    wifimgr_evt2str(msg.evt_id),
-				    wifimgr_sts2str_evt(mgr, msg.evt_id));
+			wifimgr_warn("unexpected [%s] under %s!\n",
+				     wifimgr_evt2str(msg.evt_id),
+				     wifimgr_sts2str_evt(mgr, msg.evt_id));
 		}
 
 		free(msg.buf);

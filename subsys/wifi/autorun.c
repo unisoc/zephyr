@@ -9,6 +9,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#if defined(CONFIG_WIFIMGR_STA) || defined(CONFIG_WIFIMGR_AP)
+
 #include <init.h>
 #include <net/wifimgr_api.h>
 
@@ -17,27 +19,29 @@
 
 #define WIFIMGR_AUTORUN_PRIORITY	91
 
+#ifdef CONFIG_WIFIMGR_STA
 #define WIFIMGR_AUTORUN_STACKSIZE	(4096)
 #define WIFIMGR_AUTORUN_STA		"wifimgr_autorun_sta"
 #define WIFIMGR_AUTORUN_STA_PRIORITY	(1)
-#define WIFIMGR_AUTORUN_AP		"wifimgr_autorun_ap"
-#define WIFIMGR_AUTORUN_AP_PRIORITY	(1)
-
 #define WIFIMGR_AUTORUN_STA_RETRY	(3)
-
-K_THREAD_STACK_ARRAY_DEFINE(sta_stacks, 1, WIFIMGR_AUTORUN_STACKSIZE);
-K_THREAD_STACK_ARRAY_DEFINE(ap_stacks, 1, WIFIMGR_AUTORUN_STACKSIZE);
-
 static sem_t sta_sem;
 static char sta_autorun;
 static char sta_state;
 static bool host_found;
 static char sta_connected;
+K_THREAD_STACK_ARRAY_DEFINE(sta_stacks, 1, WIFIMGR_AUTORUN_STACKSIZE);
+#endif
 
+#ifdef CONFIG_WIFIMGR_AP
+#define WIFIMGR_AUTORUN_AP		"wifimgr_autorun_ap"
+#define WIFIMGR_AUTORUN_AP_PRIORITY	(1)
 static sem_t ap_sem;
 static char ap_autorun;
 static char ap_state;
+K_THREAD_STACK_ARRAY_DEFINE(ap_stacks, 1, WIFIMGR_AUTORUN_STACKSIZE);
+#endif
 
+#ifdef CONFIG_WIFIMGR_STA
 static
 void wifimgr_autorun_get_sta_conf_cb(char *ssid, char *bssid, char *passphrase,
 				     unsigned char band, unsigned char channel,
@@ -49,33 +53,11 @@ void wifimgr_autorun_get_sta_conf_cb(char *ssid, char *bssid, char *passphrase,
 }
 
 static
-void wifimgr_autorun_get_ap_conf_cb(char *ssid, char *passphrase,
-				    unsigned char band, unsigned char channel,
-				    unsigned char ch_width,
-				    enum wifimgr_security security,
-				    char autorun)
-{
-	ap_autorun = autorun;
-	sem_post(&ap_sem);
-}
-
-static
 void wifimgr_autorun_get_sta_status_cb(char status, char *own_mac,
-				       signed char host_rssi)
+				       char *host_bssid, signed char host_rssi)
 {
 	sta_state = status;
 	sem_post(&sta_sem);
-}
-
-static
-void wifimgr_autorun_get_ap_status_cb(char status, char *own_mac,
-				      unsigned char sta_nr,
-				      char sta_mac_addrs[][6],
-				      unsigned char acl_nr,
-				      char acl_mac_addrs[][6])
-{
-	ap_state = status;
-	sem_post(&ap_sem);
 }
 
 static void wifimgr_autorun_notify_scan_done(char result)
@@ -102,18 +84,48 @@ static void wifimgr_autorun_notify_connect_timeout(void)
 	sta_connected = 0;
 	sem_post(&sta_sem);
 }
+#endif
+
+#ifdef CONFIG_WIFIMGR_AP
+static
+void wifimgr_autorun_get_ap_conf_cb(char *ssid, char *passphrase,
+				    unsigned char band, unsigned char channel,
+				    unsigned char ch_width,
+				    enum wifimgr_security security,
+				    char autorun)
+{
+	ap_autorun = autorun;
+	sem_post(&ap_sem);
+}
+
+static
+void wifimgr_autorun_get_ap_status_cb(char status, char *own_mac,
+				      unsigned char sta_nr,
+				      char sta_mac_addrs[][6],
+				      unsigned char acl_nr,
+				      char acl_mac_addrs[][6])
+{
+	ap_state = status;
+	sem_post(&ap_sem);
+}
+#endif
 
 static struct wifimgr_ctrl_cbs wifimgr_autorun_cbs = {
+#ifdef CONFIG_WIFIMGR_STA
 	.get_sta_conf_cb = wifimgr_autorun_get_sta_conf_cb,
-	.get_ap_conf_cb = wifimgr_autorun_get_ap_conf_cb,
 	.get_sta_status_cb = wifimgr_autorun_get_sta_status_cb,
-	.get_ap_status_cb = wifimgr_autorun_get_ap_status_cb,
 	.notify_scan_done = wifimgr_autorun_notify_scan_done,
 	.notify_connect = wifimgr_autorun_notify_connect,
 	.notify_scan_timeout = wifimgr_autorun_notify_scan_timeout,
 	.notify_connect_timeout = wifimgr_autorun_notify_connect_timeout,
+#endif
+#ifdef CONFIG_WIFIMGR_AP
+	.get_ap_conf_cb = wifimgr_autorun_get_ap_conf_cb,
+	.get_ap_status_cb = wifimgr_autorun_get_ap_status_cb,
+#endif
 };
 
+#ifdef CONFIG_WIFIMGR_STA
 static void *wifimgr_autorun_sta(void *handle)
 {
 	char *iface_name = WIFIMGR_IFACE_NAME_STA;
@@ -210,7 +222,9 @@ exit:
 	pthread_exit(handle);
 	return NULL;
 }
+#endif
 
+#ifdef CONFIG_WIFIMGR_AP
 static void *wifimgr_autorun_ap(void *handle)
 {
 	char *iface_name = WIFIMGR_IFACE_NAME_AP;
@@ -275,6 +289,7 @@ exit:
 	pthread_exit(handle);
 	return NULL;
 }
+#endif
 
 static int wifimgr_autorun_init(struct device *unused)
 {
@@ -283,7 +298,7 @@ static int wifimgr_autorun_init(struct device *unused)
 	pthread_t pid;
 	void *retval;
 	int ret;
-
+#ifdef CONFIG_WIFIMGR_STA
 	sem_init(&sta_sem, 0, 0);
 	pthread_attr_init(&tattr);
 	sparam.priority = WIFIMGR_AUTORUN_STA_PRIORITY;
@@ -298,7 +313,8 @@ static int wifimgr_autorun_init(struct device *unused)
 		return ret;
 	}
 	pthread_join(pid, &retval);
-
+#endif
+#ifdef CONFIG_WIFIMGR_AP
 	sem_init(&ap_sem, 0, 0);
 	pthread_attr_init(&tattr);
 	sparam.priority = WIFIMGR_AUTORUN_AP_PRIORITY;
@@ -312,8 +328,9 @@ static int wifimgr_autorun_init(struct device *unused)
 		printf("failed to start %s!\n", WIFIMGR_AUTORUN_AP);
 		return ret;
 	}
-
+#endif
 	return 0;
 }
 
 SYS_INIT(wifimgr_autorun_init, APPLICATION, WIFIMGR_AUTORUN_PRIORITY);
+#endif
