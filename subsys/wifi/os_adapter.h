@@ -49,9 +49,11 @@
 #define wifimgr_slist_peek_next(node)		sys_slist_peek_next(node)
 #define wifimgr_slist_prepend(list, node)	sys_slist_prepend(list, node)
 #define wifimgr_slist_append(list, node)	sys_slist_append(list, node)
-#define wifimgr_slist_merge(list_a, list_b)	sys_slist_merge_slist(list_a, list_b)
+#define wifimgr_slist_merge(list_a, list_b) \
+	sys_slist_merge_slist(list_a, list_b)
 #define wifimgr_slist_remove_first(list)	sys_slist_get(list)
-#define wifimgr_slist_remove(list, node)	sys_slist_find_and_remove(list, node)
+#define wifimgr_slist_remove(list, node) \
+	sys_slist_find_and_remove(list, node)
 
 typedef sys_snode_t wifimgr_snode_t;
 typedef sys_slist_t wifimgr_slist_t;

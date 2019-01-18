@@ -9,6 +9,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#if defined(CONFIG_WIFIMGR_STA) || defined(CONFIG_WIFIMGR_AP)
+
 #include <init.h>
 #include <shell/shell.h>
 #include <net/wifimgr_api.h>
@@ -17,6 +19,17 @@
 #include "os_adapter.h"
 #include "sm.h"
 
+#if defined(CONFIG_WIFIMGR_STA) && defined(CONFIG_WIFIMGR_AP)
+#define WIFIMGR_CMD_COMMON_HELP	"<iface: sta or ap>"
+#elif defined(CONFIG_WIFIMGR_STA) && !defined(CONFIG_WIFIMGR_AP)
+#define WIFIMGR_CMD_COMMON_HELP	"<iface: sta>"
+#elif defined(CONFIG_WIFIMGR_STA) && !defined(CONFIG_WIFIMGR_AP)
+#define WIFIMGR_CMD_COMMON_HELP	"<iface: ap>"
+#else
+#define WIFIMGR_CMD_COMMON_HELP	NULL
+#endif
+
+#ifdef CONFIG_WIFIMGR_STA
 static
 void wifimgr_cli_get_sta_conf_cb(char *ssid, char *bssid, char *passphrase,
 				 unsigned char band, unsigned char channel,
@@ -41,6 +54,45 @@ void wifimgr_cli_get_sta_conf_cb(char *ssid, char *bssid, char *passphrase,
 	printf("Autorun:\t%s\n", autorun ? "on" : "off");
 }
 
+static
+void wifimgr_cli_get_sta_status_cb(char status, char *own_mac, char *host_bssid,
+				   signed char host_rssi)
+{
+	printf("STA Status:\t%s\n", sta_sts2str(status));
+
+	if (!is_zero_ether_addr(own_mac))
+		printf("own MAC:\t" MACSTR "\n", MAC2STR(own_mac));
+
+	if (status == WIFIMGR_SM_STA_CONNECTED) {
+		printf("----------------\n");
+		if (!is_zero_ether_addr(host_bssid))
+			wifimgr_info("Host BSSID:\t" MACSTR "\n",
+				     MAC2STR(host_bssid));
+		printf("Host RSSI:\t%d\n", host_rssi);
+	}
+}
+
+static
+void wifimgr_cli_notify_scan_res(char *ssid, char *bssid, unsigned char band,
+				 unsigned char channel, signed char rssi,
+				 enum wifimgr_security security)
+{
+	if (strlen(ssid))
+		printf("\t%-32s", ssid);
+	else
+		printf("\t\t\t\t\t");
+
+	if (!is_zero_ether_addr(bssid))
+		printf("\t" MACSTR, MAC2STR(bssid));
+	else
+		printf("\t\t\t");
+
+	printf("\t%s", security2str(security));
+	printf("\t%u\t%d\n", channel, rssi);
+}
+#endif
+
+#ifdef CONFIG_WIFIMGR_AP
 static
 void wifimgr_cli_get_ap_conf_cb(char *ssid, char *passphrase,
 				unsigned char band, unsigned char channel,
@@ -82,24 +134,6 @@ void wifimgr_cli_get_ap_capa_cb(unsigned char max_sta, unsigned char max_acl)
 }
 
 static
-void wifimgr_cli_get_sta_status_cb(char status, char *own_mac, char *host_bssid,
-				   signed char host_rssi)
-{
-	printf("STA Status:\t%s\n", sta_sts2str(status));
-
-	if (!is_zero_ether_addr(own_mac))
-		printf("own MAC:\t" MACSTR "\n", MAC2STR(own_mac));
-
-	if (status == WIFIMGR_SM_STA_CONNECTED) {
-		printf("----------------\n");
-		if (!is_zero_ether_addr(host_bssid))
-			wifimgr_info("Host BSSID:\t" MACSTR "\n",
-				     MAC2STR(host_bssid));
-		printf("Host RSSI:\t%d\n", host_rssi);
-	}
-}
-
-static
 void wifimgr_cli_get_ap_status_cb(char status, char *own_mac,
 				  unsigned char sta_nr,
 				  char sta_mac_addrs[][6],
@@ -135,33 +169,19 @@ void wifimgr_cli_get_ap_status_cb(char status, char *own_mac,
 		}
 	}
 }
-
-static
-void wifimgr_cli_notify_scan_res(char *ssid, char *bssid, unsigned char band,
-				 unsigned char channel, signed char rssi,
-				 enum wifimgr_security security)
-{
-	if (strlen(ssid))
-		printf("\t%-32s", ssid);
-	else
-		printf("\t\t\t\t\t");
-
-	if (!is_zero_ether_addr(bssid))
-		printf("\t" MACSTR, MAC2STR(bssid));
-	else
-		printf("\t\t\t");
-
-	printf("\t%s", security2str(security));
-	printf("\t%u\t%d\n", channel, rssi);
-}
+#endif
 
 static struct wifimgr_ctrl_cbs wifimgr_cli_cbs = {
+#ifdef CONFIG_WIFIMGR_STA
 	.get_sta_conf_cb = wifimgr_cli_get_sta_conf_cb,
+	.get_sta_status_cb = wifimgr_cli_get_sta_status_cb,
+	.notify_scan_res = wifimgr_cli_notify_scan_res,
+#endif
+#ifdef CONFIG_WIFIMGR_AP
 	.get_ap_conf_cb = wifimgr_cli_get_ap_conf_cb,
 	.get_ap_capa_cb = wifimgr_cli_get_ap_capa_cb,
-	.get_sta_status_cb = wifimgr_cli_get_sta_status_cb,
 	.get_ap_status_cb = wifimgr_cli_get_ap_status_cb,
-	.notify_scan_res = wifimgr_cli_notify_scan_res,
+#endif
 };
 
 static int strtomac(char *mac_str, char *mac_addr)
@@ -346,7 +366,9 @@ static int wifimgr_cmd_close(const struct shell *shell, size_t argc,
 
 	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->close(iface_name);
 }
+#endif
 
+#ifdef CONFIG_WIFIMGR_STA
 static int wifimgr_cmd_scan(const struct shell *shell, size_t argc,
 			    char *argv[])
 {
@@ -374,6 +396,7 @@ static int wifimgr_cmd_disconnect(const struct shell *shell, size_t argc,
 	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->disconnect();
 }
 
+#ifdef CONFIG_WIFIMGR_AP
 static int wifimgr_cmd_start_ap(const struct shell *shell, size_t argc,
 				char *argv[])
 {
@@ -444,33 +467,40 @@ static int wifimgr_cmd_set_mac_acl(const struct shell *shell, size_t argc,
 
 	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->set_mac_acl(subcmd, mac);
 }
+#endif
 
 SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
 	SHELL_CMD(set_config, NULL,
+#ifdef CONFIG_WIFIMGR_STA
 	 "<sta> -n <SSID> -m <BSSID> -c <channel>"
 	 "\n<sta> -p <passphrase (\"\" for OPEN)>"
 	 "\n<sta> -a <autorun (1: enable; 0: disable)>"
 	 "\n<sta> (clear all STA configs)"
+#endif
+#ifdef CONFIG_WIFIMGR_AP
 	 "\n<ap> -n <SSID> -c <channel> -w <channel_width>"
 	 "\n<ap> -p <passphrase (\"\" for OPEN)>"
 	 "\n<ap> -a <autorun (1: enable; 0: disable)>"
-	 "\n<ap> (clear all AP configs)",
+	 "\n<ap> (clear all AP configs)"
+#endif
+	 ,
 	 wifimgr_cmd_set_config),
 	SHELL_CMD(get_config, NULL,
-	 "<iface, sta or ap>",
+	 WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cmd_get_config),
 	SHELL_CMD(capa, NULL,
-	 "<iface, sta or ap>",
+	 WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cmd_capa),
 	SHELL_CMD(status, NULL,
-	 "<iface, sta or ap>",
+	 WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cmd_status),
 	SHELL_CMD(open, NULL,
-	 "<iface, sta or ap>",
+	 WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cmd_open),
 	SHELL_CMD(close, NULL,
-	 "<iface, sta or ap>",
+	 WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cmd_close),
+#ifdef CONFIG_WIFIMGR_STA
 	SHELL_CMD(scan, NULL,
 	 "<band (optional)> <channel (optional)>",
 	 wifimgr_cmd_scan),
@@ -480,6 +510,8 @@ SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
 	SHELL_CMD(disconnect, NULL,
 	 NULL,
 	 wifimgr_cmd_disconnect),
+#endif
+#ifdef CONFIG_WIFIMGR_AP
 	SHELL_CMD(start_ap, NULL,
 	 NULL,
 	 wifimgr_cmd_start_ap),
@@ -492,7 +524,9 @@ SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
 	 "\n-c (clear all blocked stations)"
 	 "\n-u <MAC address (to be unblocked)>",
 	 wifimgr_cmd_set_mac_acl),
+#endif
 	SHELL_SUBCMD_SET_END
 };
 
 SHELL_CMD_REGISTER(wifimgr, &wifimgr_commands, "WiFi Manager commands", NULL);
+#endif
