@@ -17,7 +17,8 @@
 #include "os_adapter.h"
 
 #define WIFIMGR_SETTING_NAME_LEN	63
-#define WIFIMGR_SETTING_VAL_LEN		(((((WIFIMGR_SETTING_NAME_LEN) / 3) * 4) + 4) + 1)	/*Due to base64 encoding*/
+#define WIFIMGR_SETTING_VAL_LEN	\
+	(((((WIFIMGR_SETTING_NAME_LEN) / 3) * 4) + 4) + 1) /*base64 encoding*/
 
 #define WIFIMGR_SETTING_NAME_SSID		"ssid"
 #define WIFIMGR_SETTING_NAME_BSSID		"bssid"
@@ -45,8 +46,10 @@ int wifimgr_config_init(void *handle, char *path);
 void wifimgr_config_exit(char *path);
 int wifimgr_config_load(void *handle, char *path);
 int wifimgr_settings_save(void *handle, char *path, bool clear);
-#define wifimgr_config_save(...)	wifimgr_settings_save(__VA_ARGS__, false)
-#define wifimgr_config_clear(...)	wifimgr_settings_save(__VA_ARGS__, true)
+#define wifimgr_config_save(...) \
+	wifimgr_settings_save(__VA_ARGS__, false)
+#define wifimgr_config_clear(...) \
+	wifimgr_settings_save(__VA_ARGS__, true)
 #else
 #define wifimgr_config_init(...)
 #define wifimgr_config_exit(...)
