@@ -25,7 +25,7 @@ struct wifimgr_config {
 	unsigned char band;
 	unsigned char channel;
 	unsigned char ch_width;
-	char autorun;
+	int autorun;
 };
 
 struct wifimgr_set_mac_acl {
@@ -79,8 +79,10 @@ static inline const char *security2str(int security)
 	case WIFIMGR_SECURITY_PSK:
 		str = "WPA/WPA2";
 		break;
-	default:
+	case WIFIMGR_SECURITY_OTHERS:
 		str = "OTHERS\t";
+		break;
+	default:
 		break;
 	}
 	return str;

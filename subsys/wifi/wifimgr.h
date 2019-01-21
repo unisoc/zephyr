@@ -21,6 +21,7 @@
 #include "drv_iface.h"
 #include "cmd_prcs.h"
 #include "evt_lsnr.h"
+#include "timer.h"
 #include "sm.h"
 #include "psk.h"
 #include "dhcpc.h"

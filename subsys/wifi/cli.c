@@ -33,25 +33,24 @@
 static
 void wifimgr_cli_get_sta_conf_cb(char *ssid, char *bssid, char *passphrase,
 				 unsigned char band, unsigned char channel,
-				 enum wifimgr_security security, char autorun)
+				 enum wifimgr_security security, int autorun)
 {
 	printf("STA Config\n");
-
-	if (strlen(ssid))
+	if (ssid && strlen(ssid))
 		printf("SSID:\t\t%s\n", ssid);
-
-	if (!is_zero_ether_addr(bssid))
+	if (bssid && !is_zero_ether_addr(bssid))
 		printf("BSSID:\t\t" MACSTR "\n", MAC2STR(bssid));
-
-	printf("Security:\t%s\n", security2str(security));
-
-	if (strlen(passphrase))
+	if (security)
+		printf("Security:\t%s\n", security2str(security));
+	if (passphrase && strlen(passphrase))
 		printf("Passphrase:\t%s\n", passphrase);
-
 	if (channel)
-		printf("Channel:\t%d\n", channel);
+		printf("Channel:\t%u\n", channel);
 
-	printf("Autorun:\t%s\n", autorun ? "on" : "off");
+	if (autorun > 0)
+		printf("Autorun:\t%ds\n", autorun);
+	else
+		printf("Autorun:\toff\n");
 }
 
 static
@@ -60,12 +59,12 @@ void wifimgr_cli_get_sta_status_cb(char status, char *own_mac, char *host_bssid,
 {
 	printf("STA Status:\t%s\n", sta_sts2str(status));
 
-	if (!is_zero_ether_addr(own_mac))
+	if (own_mac && !is_zero_ether_addr(own_mac))
 		printf("own MAC:\t" MACSTR "\n", MAC2STR(own_mac));
 
 	if (status == WIFIMGR_SM_STA_CONNECTED) {
 		printf("----------------\n");
-		if (!is_zero_ether_addr(host_bssid))
+		if (host_bssid && !is_zero_ether_addr(host_bssid))
 			wifimgr_info("Host BSSID:\t" MACSTR "\n",
 				     MAC2STR(host_bssid));
 		printf("Host RSSI:\t%d\n", host_rssi);
@@ -77,12 +76,12 @@ void wifimgr_cli_notify_scan_res(char *ssid, char *bssid, unsigned char band,
 				 unsigned char channel, signed char rssi,
 				 enum wifimgr_security security)
 {
-	if (strlen(ssid))
+	if (ssid && strlen(ssid))
 		printf("\t%-32s", ssid);
 	else
 		printf("\t\t\t\t\t");
 
-	if (!is_zero_ether_addr(bssid))
+	if (bssid && !is_zero_ether_addr(bssid))
 		printf("\t" MACSTR, MAC2STR(bssid));
 	else
 		printf("\t\t\t");
@@ -97,29 +96,26 @@ static
 void wifimgr_cli_get_ap_conf_cb(char *ssid, char *passphrase,
 				unsigned char band, unsigned char channel,
 				unsigned char ch_width,
-				enum wifimgr_security security, char autorun)
+				enum wifimgr_security security, int autorun)
 {
 	printf("AP Config\n");
-
-	if (strlen(ssid))
+	if (ssid && strlen(ssid))
 		printf("SSID:\t\t%s\n", ssid);
-
-	printf("Security:\t%s\n", security2str(security));
-
-	if (strlen(passphrase))
+	if (security)
+		printf("Security:\t%s\n", security2str(security));
+	if (passphrase && strlen(passphrase))
 		printf("Passphrase:\t%s\n", passphrase);
 
-	if (!channel)
-		printf("Channel:\tauto\n");
-	else
-		printf("Channel:\t%d\n", channel);
+	if (channel)
+		printf("Channel:\t%u\n", channel);
 
-	if (!ch_width)
-		printf("Channel Width:\tauto\n");
-	else
-		printf("Channel Width:\t%d\n", ch_width);
+	if (ch_width)
+		printf("Channel Width:\t%u\n", ch_width);
 
-	printf("Autorun:\t%s\n", autorun ? "on" : "off");
+	if (autorun > 0)
+		printf("Autorun:\t%ds\n", autorun);
+	else
+		printf("Autorun:\toff\n");
 }
 
 static
@@ -128,9 +124,9 @@ void wifimgr_cli_get_ap_capa_cb(unsigned char max_sta, unsigned char max_acl)
 	printf("AP Capability\n");
 
 	if (max_sta)
-		printf("Max STA NR:\t%d\n", max_sta);
+		printf("Max STA NR:\t%u\n", max_sta);
 	if (max_acl)
-		printf("Max ACL NR:\t%d\n", max_acl);
+		printf("Max ACL NR:\t%u\n", max_acl);
 }
 
 static
@@ -141,7 +137,7 @@ void wifimgr_cli_get_ap_status_cb(char status, char *own_mac,
 {
 	printf("AP Status:\t%s\n", ap_sts2str(status));
 
-	if (!is_zero_ether_addr(own_mac))
+	if (own_mac && !is_zero_ether_addr(own_mac))
 		printf("BSSID:\t\t" MACSTR "\n", MAC2STR(own_mac));
 
 	if (status == WIFIMGR_SM_AP_STARTED) {
@@ -149,7 +145,7 @@ void wifimgr_cli_get_ap_status_cb(char status, char *own_mac,
 		char (*mac_addrs)[WIFIMGR_ETH_ALEN];
 
 		printf("----------------\n");
-		printf("STA NR:\t%d\n", sta_nr);
+		printf("STA NR:\t%u\n", sta_nr);
 		if (sta_nr) {
 			printf("STA:\n");
 			mac_addrs = sta_mac_addrs;
@@ -159,7 +155,7 @@ void wifimgr_cli_get_ap_status_cb(char status, char *own_mac,
 		}
 
 		printf("----------------\n");
-		printf("ACL NR:\t%d\n", acl_nr);
+		printf("ACL NR:\t%u\n", acl_nr);
 		if (acl_nr) {
 			printf("ACL:\n");
 			mac_addrs = acl_mac_addrs;
@@ -215,7 +211,7 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 	char *ssid = NULL;
 	char *passphrase = NULL;
 	char security = 0;
-	char autorun = 0;
+	int autorun = 0;
 	unsigned char band = 0;
 	unsigned char channel = 0;
 	unsigned char ch_width = 0;
@@ -290,6 +286,21 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 								band, channel,
 								ch_width,
 								autorun);
+}
+
+static int wifimgr_cmd_clear_config(const struct shell *shell, size_t argc,
+				    char *argv[])
+{
+	char *iface_name;
+
+	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->clear_conf)
+		return -EOPNOTSUPP;
+
+	if (argc != 2 || !argv[1])
+		return -EINVAL;
+	iface_name = argv[1];
+
+	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->clear_conf(iface_name);
 }
 
 static int wifimgr_cmd_get_config(const struct shell *shell, size_t argc,
@@ -470,24 +481,25 @@ static int wifimgr_cmd_set_mac_acl(const struct shell *shell, size_t argc,
 #endif
 
 SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
+	SHELL_CMD(get_config, NULL,
+	 WIFIMGR_CMD_COMMON_HELP,
+	 wifimgr_cmd_get_config),
 	SHELL_CMD(set_config, NULL,
 #ifdef CONFIG_WIFIMGR_STA
 	 "<sta> -n <SSID> -m <BSSID> -c <channel>"
 	 "\n<sta> -p <passphrase (\"\" for OPEN)>"
-	 "\n<sta> -a <autorun (1: enable; 0: disable)>"
-	 "\n<sta> (clear all STA configs)"
+	 "\n<sta> -a <autorun interval sec (<0: disable)>"
 #endif
 #ifdef CONFIG_WIFIMGR_AP
 	 "\n<ap> -n <SSID> -c <channel> -w <channel_width>"
 	 "\n<ap> -p <passphrase (\"\" for OPEN)>"
-	 "\n<ap> -a <autorun (1: enable; 0: disable)>"
-	 "\n<ap> (clear all AP configs)"
+	 "\n<ap> -a <autorun interval sec (<0: disable)>"
 #endif
 	 ,
 	 wifimgr_cmd_set_config),
-	SHELL_CMD(get_config, NULL,
+	SHELL_CMD(clear_config, NULL,
 	 WIFIMGR_CMD_COMMON_HELP,
-	 wifimgr_cmd_get_config),
+	 wifimgr_cmd_clear_config),
 	SHELL_CMD(capa, NULL,
 	 WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cmd_capa),
