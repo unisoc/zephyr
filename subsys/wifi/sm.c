@@ -15,70 +15,6 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
 
-#define sm_timer_stop(timerid) sm_timer_start(timerid, 0)
-
-static void sm_timeout(void *sival_ptr)
-{
-	struct wifimgr_state_machine *sm =
-	    (struct wifimgr_state_machine *)sival_ptr;
-
-	wifimgr_queue_work(&sm->work);
-}
-
-static int sm_timer_start(timer_t timerid, unsigned int sec)
-{
-	struct itimerspec todelay;
-	int ret;
-
-	/* Start, restart, or stop the timer */
-	todelay.it_interval.tv_sec = 0;	/* Nonrepeating */
-	todelay.it_interval.tv_nsec = 0;
-	todelay.it_value.tv_sec = sec;
-	todelay.it_value.tv_nsec = 0;
-
-	ret = timer_settime(timerid, 0, &todelay, NULL);
-	if (ret == -1) {
-		wifimgr_err("failed to set the timer! %d\n", errno);
-		ret = -errno;
-	}
-
-	return ret;
-}
-
-static int sm_timer_init(struct wifimgr_state_machine *sm, void *sighand)
-{
-	struct sigevent toevent;
-	int ret;
-
-	/* Create a POSIX timer to handle timeouts */
-	toevent.sigev_value.sival_ptr = sm;
-	toevent.sigev_notify = SIGEV_SIGNAL;
-	toevent.sigev_notify_function = sighand;
-	toevent.sigev_notify_attributes = NULL;
-
-	ret = timer_create(CLOCK_MONOTONIC, &toevent, &sm->timerid);
-	if (ret == -1) {
-		wifimgr_err("failed to create a timer! %d\n", -errno);
-		return -errno;
-	}
-
-	return ret;
-}
-
-static int sm_timer_release(timer_t timerid)
-{
-	int ret;
-
-	/* Delete the POSIX timer */
-	ret = timer_delete(timerid);
-	if (ret == -1) {
-		wifimgr_err("failed to create a timer! %d\n", -errno);
-		return -errno;
-	}
-
-	return ret;
-}
-
 static int sm_sta_timer_start(struct wifimgr_state_machine *sta_sm,
 			      unsigned int cmd_id)
 {
@@ -86,15 +22,20 @@ static int sm_sta_timer_start(struct wifimgr_state_machine *sta_sm,
 
 	switch (cmd_id) {
 	case WIFIMGR_CMD_SCAN:
-		ret = sm_timer_start(sta_sm->timerid, WIFIMGR_SCAN_TIMEOUT);
+		ret =
+		    wifimgr_timer_start(sta_sm->timerid, WIFIMGR_SCAN_TIMEOUT);
 		break;
 	case WIFIMGR_CMD_CONNECT:
 	case WIFIMGR_CMD_DISCONNECT:
-		ret = sm_timer_start(sta_sm->timerid, WIFIMGR_EVENT_TIMEOUT);
+		ret =
+		    wifimgr_timer_start(sta_sm->timerid, WIFIMGR_EVENT_TIMEOUT);
 		break;
 	default:
 		break;
 	}
+
+	if (ret)
+		wifimgr_err("failed to start STA timer! %d\n", ret);
 
 	return ret;
 }
@@ -107,15 +48,18 @@ static int sm_sta_timer_stop(struct wifimgr_state_machine *sta_sm,
 	switch (evt_id) {
 	case WIFIMGR_EVT_SCAN_DONE:
 	case WIFIMGR_EVT_CONNECT:
-		ret = sm_timer_stop(sta_sm->timerid);
+		ret = wifimgr_timer_stop(sta_sm->timerid);
 		break;
 	case WIFIMGR_EVT_DISCONNECT:
 		if (sta_sm->cur_cmd == WIFIMGR_CMD_DISCONNECT)
-			ret = sm_timer_stop(sta_sm->timerid);
+			ret = wifimgr_timer_stop(sta_sm->timerid);
 		break;
 	default:
 		break;
 	}
+
+	if (ret)
+		wifimgr_err("failed to stop STA timer! %d\n", ret);
 
 	return ret;
 }
@@ -127,11 +71,15 @@ static int sm_ap_timer_start(struct wifimgr_state_machine *ap_sm,
 
 	switch (cmd_id) {
 	case WIFIMGR_CMD_DEL_STA:
-		ret = sm_timer_start(ap_sm->timerid, WIFIMGR_EVENT_TIMEOUT);
+		ret =
+		    wifimgr_timer_start(ap_sm->timerid, WIFIMGR_EVENT_TIMEOUT);
 		break;
 	default:
 		break;
 	}
+
+	if (ret)
+		wifimgr_err("failed to start AP timer! %d\n", ret);
 
 	return ret;
 }
@@ -144,11 +92,14 @@ static int sm_ap_timer_stop(struct wifimgr_state_machine *ap_sm,
 	switch (evt_id) {
 	case WIFIMGR_EVT_NEW_STATION:
 		if (ap_sm->cur_cmd == WIFIMGR_CMD_DEL_STA)
-			ret = sm_timer_stop(ap_sm->timerid);
+			ret = wifimgr_timer_stop(ap_sm->timerid);
 		break;
 	default:
 		break;
 	}
+
+	if (ret)
+		wifimgr_err("failed to stop AP timer! %d\n", ret);
 
 	return ret;
 }
@@ -181,6 +132,12 @@ const char *sta_sts2str(int state)
 		break;
 	}
 	return str;
+}
+
+static bool is_sta_common_cmd(unsigned int cmd_id)
+{
+	return ((cmd_id >= WIFIMGR_CMD_GET_STA_CONFIG)
+		&& (cmd_id <= WIFIMGR_CMD_GET_STA_CAPA));
 }
 
 static bool is_sta_cmd(unsigned int cmd_id)
@@ -326,6 +283,12 @@ const char *ap_sts2str(int state)
 	return str;
 }
 
+static bool is_ap_common_cmd(unsigned int cmd_id)
+{
+	return ((cmd_id >= WIFIMGR_CMD_GET_AP_CONFIG)
+		&& (cmd_id <= WIFIMGR_CMD_GET_AP_CAPA));
+}
+
 static bool is_ap_cmd(unsigned int cmd_id)
 {
 	return ((cmd_id >= WIFIMGR_CMD_OPEN_AP)
@@ -395,8 +358,8 @@ const char *wifimgr_cmd2str(int cmd)
 	C2S(WIFIMGR_CMD_SET_STA_CONFIG)
 	C2S(WIFIMGR_CMD_GET_STA_STATUS)
 	C2S(WIFIMGR_CMD_GET_STA_CAPA)
-	C2S(WIFIMGR_CMD_SET_AP_CONFIG)
 	C2S(WIFIMGR_CMD_GET_AP_CONFIG)
+	C2S(WIFIMGR_CMD_SET_AP_CONFIG)
 	C2S(WIFIMGR_CMD_GET_AP_STATUS)
 	C2S(WIFIMGR_CMD_GET_AP_CAPA)
 	C2S(WIFIMGR_CMD_OPEN_STA)
@@ -432,9 +395,9 @@ const char *wifimgr_sts2str_cmd(void *handle, unsigned int cmd_id)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 
-	if (is_sta_cmd(cmd_id) == true)
+	if (is_sta_cmd(cmd_id) || is_sta_common_cmd(cmd_id) == true)
 		return sta_sts2str(mgr->sta_sm.state);
-	else if (is_ap_cmd(cmd_id) == true)
+	else if (is_ap_cmd(cmd_id) == true || is_ap_common_cmd(cmd_id))
 		return ap_sts2str(mgr->ap_sm.state);
 
 	return NULL;
@@ -530,9 +493,9 @@ int wifimgr_sm_init(struct wifimgr_state_machine *sm, void *work_handler)
 	sem_init(&sm->exclsem, 0, 1);
 	wifimgr_init_work(&sm->work, work_handler);
 
-	ret = sm_timer_init(sm, sm_timeout);
+	ret = wifimgr_timer_init(&sm->work, wifimgr_timeout, &sm->timerid);
 	if (ret < 0)
-		wifimgr_err("failed to init WiFi STA timer!\n");
+		wifimgr_err("failed to init WiFi timer! %d\n", ret);
 
 	return ret;
 }
@@ -540,5 +503,5 @@ int wifimgr_sm_init(struct wifimgr_state_machine *sm, void *work_handler)
 void wifimgr_sm_exit(struct wifimgr_state_machine *sm)
 {
 	if (sm->timerid)
-		sm_timer_release(sm->timerid);
+		wifimgr_timer_release(sm->timerid);
 }
