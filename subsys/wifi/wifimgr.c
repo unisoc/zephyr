@@ -1,6 +1,6 @@
 /*
  * @file
- * @brief initialization of WiFi manager
+ * @brief Initialization of WiFi manager
  */
 
 /*
