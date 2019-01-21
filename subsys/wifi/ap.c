@@ -424,6 +424,10 @@ static int wifimgr_ap_start(void *handle)
 	if (ret)
 		return ret;
 
+	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
+		wifimgr_info("No AP Config found!\n");
+		return -EINVAL;
+	}
 	/* Initialize the associated station table */
 	if (!capa->max_ap_assoc_sta)
 		capa->max_ap_assoc_sta = WIFIMGR_MAX_STA_NR;
@@ -616,10 +620,10 @@ int wifimgr_ap_init(void *handle)
 	int ret;
 
 	/* Register default AP commands */
-	cmd_processor_add_sender(prcs, WIFIMGR_CMD_SET_AP_CONFIG,
-				 wifimgr_ap_set_config, &mgr->ap_conf);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_AP_CONFIG,
 				 wifimgr_ap_get_config, &mgr->ap_conf);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_SET_AP_CONFIG,
+				 wifimgr_ap_set_config, &mgr->ap_conf);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_AP_CAPA,
 				 wifimgr_ap_get_capa, mgr);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_AP_STATUS,
