@@ -9,6 +9,7 @@ zephyr_sources_ifdef(
   drv_iface.c
   evt_lsnr.c
   sm.c
+  timer.c
   wifimgr.c
   )
 zephyr_sources_ifdef(CONFIG_WIFIMGR_AP ap.c)

@@ -35,7 +35,7 @@
 
 struct wifimgr_settings_map {
 	char name[WIFIMGR_SETTING_NAME_LEN + 1];
-	char *valptr;
+	void *valptr;
 	int vallen;
 	enum settings_type type;
 	bool mask;

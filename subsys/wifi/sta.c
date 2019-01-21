@@ -240,6 +240,10 @@ static int wifimgr_sta_connect(void *handle)
 	if (ret)
 		return ret;
 
+	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
+		wifimgr_info("No STA Config found!\n");
+		return -EINVAL;
+	}
 	if (strlen(conf->ssid))
 		ssid = conf->ssid;
 	if (!is_zero_ether_addr(conf->bssid))
@@ -437,10 +441,10 @@ int wifimgr_sta_init(void *handle)
 	int ret;
 
 	/* Register default STA commands */
-	cmd_processor_add_sender(prcs, WIFIMGR_CMD_SET_STA_CONFIG,
-				 wifimgr_sta_set_config, &mgr->sta_conf);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_STA_CONFIG,
 				 wifimgr_sta_get_config, &mgr->sta_conf);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_SET_STA_CONFIG,
+				 wifimgr_sta_set_config, &mgr->sta_conf);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_STA_CAPA,
 				 wifimgr_sta_get_capa, mgr);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_STA_STATUS,

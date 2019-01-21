@@ -13,25 +13,50 @@
 
 #include "api.h"
 #include "config.h"
+#include "timer.h"
+
+extern timer_t sta_autorun_timerid;
+extern timer_t ap_autorun_timerid;
 
 static struct wifimgr_ctrl_cbs *wifimgr_cbs;
+
+static int wifimgr_ctrl_iface_get_conf(char *iface_name)
+{
+	unsigned int cmd_id = 0;
+
+	if (!iface_name)
+		return -EINVAL;
+
+	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
+		cmd_id = WIFIMGR_CMD_GET_STA_CONFIG;
+	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
+		cmd_id = WIFIMGR_CMD_GET_AP_CONFIG;
+	else
+		return -EINVAL;
+
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
+}
 
 int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 				char security, char *passphrase,
 				unsigned char band, unsigned char channel,
-				unsigned char ch_width, char autorun)
+				unsigned char ch_width, int autorun)
 {
 	struct wifimgr_config conf;
+	timer_t autorun_timerid;
 	unsigned int cmd_id;
 
 	if (!iface_name)
 		return -EINVAL;
-	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
+	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
 		cmd_id = WIFIMGR_CMD_SET_STA_CONFIG;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
+		autorun_timerid = sta_autorun_timerid;
+	} else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP)) {
 		cmd_id = WIFIMGR_CMD_SET_AP_CONFIG;
-	else
+		autorun_timerid = ap_autorun_timerid;
+	} else {
 		return -EINVAL;
+	}
 
 	memset(&conf, 0, sizeof(conf));
 
@@ -41,9 +66,8 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 			printf("Invalid SSID: %s!\n", ssid);
 			return -EINVAL;
 		}
-
-		printf("SSID:\t\t%s\n", ssid);
 		strcpy(conf.ssid, ssid);
+		printf("SSID:\t\t%s\n", ssid);
 	}
 
 	/* Check BSSID (optional) */
@@ -52,9 +76,8 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 			printf("Invalid BSSID!\n");
 			return -EINVAL;
 		}
-
-		printf("BSSID:\t\t" MACSTR "\n", MAC2STR(bssid));
 		memcpy(conf.bssid, bssid, WIFIMGR_ETH_ALEN);
+		printf("BSSID:\t\t" MACSTR "\n", MAC2STR(bssid));
 	}
 
 	/* Check Security */
@@ -76,33 +99,32 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 			printf("invalid PSK: %s!\n", passphrase);
 			return -EINVAL;
 		}
-
+		strcpy(conf.passphrase, passphrase);
 		if (strlen(passphrase))
 			printf("Passphrase:\t%s\n", passphrase);
-		strcpy(conf.passphrase, passphrase);
 	}
 
 	/* Check band */
 	switch (band) {
 	case 2:
 	case 5:
-		printf("Band:\t%d\n", band);
+		printf("Band:\t%u\n", band);
 	case 0:
 		conf.band = band;
 		break;
 	default:
-		printf("invalid band: %d!\n", band);
+		printf("invalid band: %u!\n", band);
 		return -EINVAL;
 	}
 
 	/* Check channel */
 	if ((channel > 14 && channel < 34) || (channel > 196)) {
-		printf("invalid channel: %d!\n", channel);
+		printf("invalid channel: %u!\n", channel);
 		return -EINVAL;
 	}
-	if (channel)
-		printf("Channel:\t%d\n", channel);
 	conf.channel = channel;
+	if (channel)
+		printf("Channel:\t%u\n", channel);
 
 	/* Check channel width */
 	switch (ch_width) {
@@ -110,44 +132,46 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	case 40:
 	case 80:
 	case 160:
-		wifimgr_info("Channel Width:\t%d\n", ch_width);
+		printf("Channel Width:\t%u\n", ch_width);
 	case 0:
 		conf.ch_width = ch_width;
 		break;
 	default:
-		printf("invalid channel width: %d!\n", ch_width);
+		printf("invalid channel width: %u!\n", ch_width);
 		return -EINVAL;
 	}
 
 	/* Check autorun */
-	switch (autorun) {
-	case 0:
-	case 1:
-		conf.autorun = autorun;
-		printf("Autorun:\t%s\n", conf.autorun ? "on" : "off");
-		break;
-	default:
-		return -EINVAL;
+	conf.autorun = autorun;
+	if (autorun > 0) {
+		printf("Autorun:\t%ds\n", autorun);
+		wifimgr_timer_start(autorun_timerid, autorun);
+	} else if (autorun < 0) {
+		printf("Autorun:\toff\n");
+		wifimgr_timer_stop(autorun_timerid);
 	}
 
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, &conf, sizeof(conf));
 }
 
-static int wifimgr_ctrl_iface_get_conf(char *iface_name)
+static int wifimgr_ctrl_iface_clear_conf(char *iface_name)
 {
-	unsigned int cmd_id = 0;
+	struct wifimgr_config conf;
+	unsigned int cmd_id;
+
+	memset(&conf, 0, sizeof(conf));
 
 	if (!iface_name)
 		return -EINVAL;
 
 	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		cmd_id = WIFIMGR_CMD_GET_STA_CONFIG;
+		cmd_id = WIFIMGR_CMD_SET_STA_CONFIG;
 	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		cmd_id = WIFIMGR_CMD_GET_AP_CONFIG;
+		cmd_id = WIFIMGR_CMD_SET_AP_CONFIG;
 	else
 		return -EINVAL;
 
-	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, &conf, sizeof(conf));
 }
 
 static int wifimgr_ctrl_iface_get_capa(char *iface_name)
@@ -276,8 +300,9 @@ static int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac)
 #endif
 
 static const struct wifimgr_ctrl_ops wifimgr_ops = {
-	.set_conf = wifimgr_ctrl_iface_set_conf,
 	.get_conf = wifimgr_ctrl_iface_get_conf,
+	.set_conf = wifimgr_ctrl_iface_set_conf,
+	.clear_conf = wifimgr_ctrl_iface_clear_conf,
 	.get_capa = wifimgr_ctrl_iface_get_capa,
 	.get_status = wifimgr_ctrl_iface_get_status,
 	.open = wifimgr_ctrl_iface_open,
