@@ -230,12 +230,24 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 		switch (choice) {
 		case 'a':
 			autorun = atoi(optarg);
+			if (!autorun) {
+				printf("invalid autorun!\n");
+				return -EINVAL;
+			}
 			break;
 		case 'b':
 			band = atoi(optarg);
+			if (!band) {
+				printf("invalid band!\n");
+				return -EINVAL;
+			}
 			break;
 		case 'c':
 			channel = atoi(optarg);
+			if (!channel) {
+				printf("invalid channel!\n");
+				return -EINVAL;
+			}
 			break;
 		case 'm':
 			if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
@@ -258,17 +270,25 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 			break;
 		case 'n':
 			ssid = optarg;
+			if (!strlen(ssid)) {
+				printf("invalid SSID!\n");
+				return -EINVAL;
+			}
 			break;
 		case 'p':
 			passphrase = optarg;
-			if (strlen(passphrase))
-				security = WIFIMGR_SECURITY_PSK;
-			else
+			if (!strlen(passphrase))
 				security = WIFIMGR_SECURITY_OPEN;
+			else
+				security = WIFIMGR_SECURITY_PSK;
 			break;
 		case 'w':
 			if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP)) {
 				ch_width = atoi(optarg);
+				if (!ch_width) {
+					printf("invalid channel width!\n");
+					return -EINVAL;
+				}
 			} else {
 				printf("invalid option '-%c' for '%s'\n",
 				       choice, iface_name);
