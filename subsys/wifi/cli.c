@@ -47,9 +47,11 @@ void wifimgr_cli_get_sta_conf_cb(char *ssid, char *bssid, char *passphrase,
 	if (channel)
 		printf("Channel:\t%u\n", channel);
 
+	if (autorun)
+		printf("----------------\n");
 	if (autorun > 0)
 		printf("Autorun:\t%ds\n", autorun);
-	else
+	else if (autorun < 0)
 		printf("Autorun:\toff\n");
 }
 
@@ -105,16 +107,16 @@ void wifimgr_cli_get_ap_conf_cb(char *ssid, char *passphrase,
 		printf("Security:\t%s\n", security2str(security));
 	if (passphrase && strlen(passphrase))
 		printf("Passphrase:\t%s\n", passphrase);
-
 	if (channel)
 		printf("Channel:\t%u\n", channel);
-
 	if (ch_width)
 		printf("Channel Width:\t%u\n", ch_width);
 
+	if (autorun)
+		printf("----------------\n");
 	if (autorun > 0)
 		printf("Autorun:\t%ds\n", autorun);
-	else
+	else if (autorun < 0)
 		printf("Autorun:\toff\n");
 }
 
@@ -122,7 +124,6 @@ static
 void wifimgr_cli_get_ap_capa_cb(unsigned char max_sta, unsigned char max_acl)
 {
 	printf("AP Capability\n");
-
 	if (max_sta)
 		printf("Max STA NR:\t%u\n", max_sta);
 	if (max_acl)

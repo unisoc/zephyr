@@ -143,6 +143,8 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 
 	/* Check autorun */
 	conf.autorun = autorun;
+	if (autorun)
+		printf("----------------\n");
 	if (autorun > 0) {
 		printf("Autorun:\t%ds\n", autorun);
 		wifimgr_timer_start(autorun_timerid, autorun);
