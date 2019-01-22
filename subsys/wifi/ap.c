@@ -99,10 +99,14 @@ static int wifimgr_ap_get_status(void *handle)
 	struct wifimgr_state_machine *sm = &mgr->ap_sm;
 	struct wifimgr_status *sts = &mgr->ap_sts;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
+	char *own_mac = NULL;
+
+	if (!is_zero_ether_addr(sts->own_mac))
+		own_mac = sts->own_mac;
 
 	/* Notify the external caller */
 	if (cbs && cbs->get_ap_status_cb)
-		cbs->get_ap_status_cb(sm_ap_query(sm), sts->own_mac,
+		cbs->get_ap_status_cb(sm_ap_query(sm), own_mac,
 				      sts->u.ap.sta_nr,
 				      sts->u.ap.sta_mac_addrs,
 				      sts->u.ap.acl_nr,

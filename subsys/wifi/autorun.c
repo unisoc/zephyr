@@ -178,6 +178,7 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 		ret =
 		    wifimgr_get_ctrl_ops(&wifimgr_autorun_cbs)->open
 		    (iface_name);
+		     (iface_name);
 		if (ret) {
 			wifimgr_err("%s: failed to open! %d\n", __func__, ret);
 			goto exit;
@@ -303,9 +304,8 @@ static int wifimgr_autorun_init(struct device *unused)
 #ifdef CONFIG_WIFIMGR_STA
 	sem_init(&sta_sem, 0, 0);
 	wifimgr_init_work(&sta_work, (void *)wifimgr_autorun_sta);
-	ret =
-	    wifimgr_timer_init(&sta_work, wifimgr_timeout,
-			       &sta_autorun_timerid);
+	ret = wifimgr_timer_init(&sta_work, wifimgr_timeout,
+				 &sta_autorun_timerid);
 	if (ret < 0)
 		wifimgr_err("failed to init STA autorun!\n");
 	ret = wifimgr_timer_start(sta_autorun_timerid, 1);
@@ -315,8 +315,8 @@ static int wifimgr_autorun_init(struct device *unused)
 #ifdef CONFIG_WIFIMGR_AP
 	sem_init(&ap_sem, 0, 0);
 	wifimgr_init_work(&ap_work, (void *)wifimgr_autorun_ap);
-	ret =
-	    wifimgr_timer_init(&ap_work, wifimgr_timeout, &ap_autorun_timerid);
+	ret = wifimgr_timer_init(&ap_work, wifimgr_timeout,
+				 &ap_autorun_timerid);
 	if (ret < 0)
 		wifimgr_err("failed to init AP autorun!\n");
 	ret = wifimgr_timer_start(ap_autorun_timerid, 1);
