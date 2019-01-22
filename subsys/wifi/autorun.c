@@ -97,6 +97,7 @@ void wifimgr_autorun_get_ap_conf_cb(char *ssid, char *passphrase,
 				    unsigned char ch_width,
 				    enum wifimgr_security security, int autorun)
 {
+	ap_ssid = ssid;
 	ap_autorun = autorun;
 	sem_post(&ap_sem);
 }
@@ -178,7 +179,6 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 		ret =
 		    wifimgr_get_ctrl_ops(&wifimgr_autorun_cbs)->open
 		    (iface_name);
-		     (iface_name);
 		if (ret) {
 			wifimgr_err("%s: failed to open! %d\n", __func__, ret);
 			goto exit;
