@@ -20,10 +20,6 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
 
-/*#include "os_adapter.h"
-#include "sm.h"
-#include "timer.h"*/
-
 #define WIFIMGR_AUTORUN_PRIORITY       91
 
 #ifdef CONFIG_WIFIMGR_STA
@@ -192,22 +188,24 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 			ret =
 			    wifimgr_get_ctrl_ops(&wifimgr_autorun_cbs)->scan();
 			if (ret)
-				wifimgr_err("%s: failed to scan! %d\n", __func__,
-				       ret);
+				wifimgr_err("%s: failed to scan! %d\n",
+					    __func__, ret);
 			else
 				sem_wait(&sta_sem);
 			if (host_found)
 				break;
 		}
 		if (cnt == WIFIMGR_AUTORUN_STA_RETRY) {
-			wifimgr_err("%s: maximum scan retry reached!\n", __func__);
+			wifimgr_err("%s: maximum scan retry reached!\n",
+				    __func__);
 			goto exit;
 		}
 
 		/* Connect the AP */
 		ret = wifimgr_get_ctrl_ops(&wifimgr_autorun_cbs)->connect();
 		if (ret) {
-			wifimgr_err("%s: failed to connect! %d\n", __func__, ret);
+			wifimgr_err("%s: failed to connect! %d\n", __func__,
+				    ret);
 			goto exit;
 		}
 		sem_wait(&sta_sem);
@@ -217,7 +215,7 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 		break;
 	default:
 		wifimgr_dbg("%s: nothing else to do under %s!\n", __func__,
-		       sta_sts2str(sta_state));
+			    sta_sts2str(sta_state));
 		goto exit;
 	}
 exit:
@@ -248,8 +246,9 @@ static void wifimgr_autorun_ap(wifimgr_work *work)
 	}
 	sem_wait(&ap_sem);
 	if (ap_autorun <= 0) {
-		wifimgr_warn("%s: autorun disabled!\n", __func__);
 		ap_autorun = 0;
+		if (ap_autorun < 0)
+			wifimgr_warn("%s: autorun disabled!\n", __func__);
 		goto exit;
 	}
 	if (!ap_ssid || !strlen(ap_ssid)) {
@@ -280,7 +279,8 @@ static void wifimgr_autorun_ap(wifimgr_work *work)
 		/* Start AP */
 		ret = wifimgr_get_ctrl_ops(&wifimgr_autorun_cbs)->start_ap();
 		if (ret) {
-			wifimgr_err("%s: failed to start AP! %d\n", __func__, ret);
+			wifimgr_err("%s: failed to start AP! %d\n", __func__,
+				    ret);
 			goto exit;
 		}
 		wifimgr_info("%s: done!\n", __func__);
@@ -288,7 +288,7 @@ static void wifimgr_autorun_ap(wifimgr_work *work)
 		break;
 	default:
 		wifimgr_dbg("%s: nothing else to do under %s!\n", __func__,
-		       ap_sts2str(ap_state));
+			    ap_sts2str(ap_state));
 		goto exit;
 	}
 
