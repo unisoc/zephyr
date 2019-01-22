@@ -121,15 +121,22 @@ static int wifimgr_sta_get_status(void *handle)
 	struct wifimgr_state_machine *sm = &mgr->sta_sm;
 	struct wifimgr_status *sts = &mgr->sta_sts;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
+	char *own_mac = NULL;
+	char *host_bssid = NULL;
 
 	if (sm_sta_connected(sm) == true)
 		if (wifi_drv_get_station(mgr->sta_iface, &sts->u.sta.host_rssi))
 			wifimgr_warn("failed to get Host RSSI!\n");
 
+	if (!is_zero_ether_addr(sts->own_mac))
+		own_mac = sts->own_mac;
+
+	if (!is_zero_ether_addr(sts->u.sta.host_bssid))
+		host_bssid = sts->u.sta.host_bssid;
+
 	/* Notify the external caller */
 	if (cbs && cbs->get_sta_status_cb)
-		cbs->get_sta_status_cb(sm_sta_query(sm), sts->own_mac,
-				       sts->u.sta.host_bssid,
+		cbs->get_sta_status_cb(sm_sta_query(sm), own_mac, host_bssid,
 				       sts->u.sta.host_rssi);
 
 	return 0;
