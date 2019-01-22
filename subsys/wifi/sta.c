@@ -71,9 +71,6 @@ static int wifimgr_sta_get_config(void *handle)
 	/* Load config form non-volatile memory */
 	wifimgr_config_load(conf, WIFIMGR_SETTING_STA_PATH);
 
-	if (!memiszero(conf, sizeof(struct wifimgr_config)))
-		wifimgr_info("No STA Config found!\n");
-
 	if (strlen(conf->ssid))
 		ssid = conf->ssid;
 
@@ -88,6 +85,9 @@ static int wifimgr_sta_get_config(void *handle)
 		cbs->get_sta_conf_cb(ssid, bssid, passphrase, conf->band,
 				     conf->channel, conf->security,
 				     conf->autorun);
+
+	if (!memiszero(conf, sizeof(struct wifimgr_config)))
+		wifimgr_info("No STA config found!\n");
 
 	return 0;
 }
@@ -241,7 +241,7 @@ static int wifimgr_sta_connect(void *handle)
 		return ret;
 
 	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
-		wifimgr_info("No STA Config found!\n");
+		wifimgr_info("No STA config found!\n");
 		return -EINVAL;
 	}
 	if (strlen(conf->ssid))
