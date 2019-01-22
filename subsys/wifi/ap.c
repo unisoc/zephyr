@@ -45,9 +45,6 @@ static int wifimgr_ap_get_config(void *handle)
 	/* Load config form non-volatile memory */
 	wifimgr_config_load(conf, WIFIMGR_SETTING_AP_PATH);
 
-	if (!memiszero(conf, sizeof(struct wifimgr_config)))
-		wifimgr_info("No AP Config found!\n");
-
 	if (strlen(conf->ssid))
 		ssid = conf->ssid;
 
@@ -59,6 +56,9 @@ static int wifimgr_ap_get_config(void *handle)
 		cbs->get_ap_conf_cb(ssid, passphrase, conf->band, conf->channel,
 				    conf->ch_width, conf->security,
 				    conf->autorun);
+
+	if (!memiszero(conf, sizeof(struct wifimgr_config)))
+		wifimgr_info("No AP config found!\n");
 
 	return 0;
 }
@@ -425,7 +425,7 @@ static int wifimgr_ap_start(void *handle)
 		return ret;
 
 	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
-		wifimgr_info("No AP Config found!\n");
+		wifimgr_info("No AP config found!\n");
 		return -EINVAL;
 	}
 	/* Initialize the associated station table */
