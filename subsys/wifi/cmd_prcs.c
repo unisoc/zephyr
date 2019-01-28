@@ -173,7 +173,8 @@ static void *cmd_processor(void *handle)
 			cmd_processor_post_process(prcs, &msg, ret);
 
 			if (ret == -EBUSY)
-				wifimgr_err("Busy! try again later\n");
+				wifimgr_err("Busy(%s)! try again later\n",
+					    wifimgr_sts2str_cmd(mgr, msg.cmd_id));
 			continue;
 		}
 
