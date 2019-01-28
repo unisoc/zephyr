@@ -328,6 +328,7 @@ static int wifimgr_sta_scan_done_event(void *arg)
 		wifimgr_info("scan done!\n");
 	else
 		wifimgr_err("scan abort!\n");
+	fflush(stdout);
 
 	/* Notify the external caller */
 	if (cbs && cbs->notify_scan_done)
