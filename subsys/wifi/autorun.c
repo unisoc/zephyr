@@ -185,6 +185,7 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 		}
 	case WIFIMGR_SM_STA_READY:
 		/* Trigger STA scan */
+		host_found = 0;
 		for (cnt = 0; cnt < WIFIMGR_AUTORUN_STA_RETRY; cnt++) {
 			ret =
 			    wifimgr_get_ctrl_ops(&wifimgr_autorun_cbs)->scan();
@@ -203,6 +204,7 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 		}
 
 		/* Connect the AP */
+		sta_connected = 0;
 		ret = wifimgr_get_ctrl_ops(&wifimgr_autorun_cbs)->connect();
 		if (ret) {
 			wifimgr_err("%s: failed to connect! %d\n", __func__,
