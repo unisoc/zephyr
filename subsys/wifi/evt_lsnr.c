@@ -281,9 +281,11 @@ void wifimgr_evt_listener_exit(struct evt_listener *handle)
 {
 	struct evt_listener *lsnr = (struct evt_listener *)handle;
 
-	lsnr->is_started = false;
 	if (lsnr->mq && (lsnr->mq != (mqd_t)-1)) {
 		mq_close(lsnr->mq);
 		mq_unlink(WIFIMGR_CMD_MQUEUE);
 	}
+
+	sem_destroy(&lsnr->exclsem);
+	lsnr->is_started = false;
 }

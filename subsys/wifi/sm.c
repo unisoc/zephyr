@@ -9,12 +9,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#if defined(CONFIG_WIFIMGR_STA) || defined(CONFIG_WIFIMGR_AP)
+
 #define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
 #include <logging/log.h>
 LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
 
+#ifdef CONFIG_WIFIMGR_STA
 static int sm_sta_timer_start(struct wifimgr_state_machine *sta_sm,
 			      unsigned int cmd_id)
 {
@@ -64,46 +67,6 @@ static int sm_sta_timer_stop(struct wifimgr_state_machine *sta_sm,
 	return ret;
 }
 
-static int sm_ap_timer_start(struct wifimgr_state_machine *ap_sm,
-			     unsigned int cmd_id)
-{
-	int ret = 0;
-
-	switch (cmd_id) {
-	case WIFIMGR_CMD_DEL_STA:
-		ret =
-		    wifimgr_timer_start(ap_sm->timerid, WIFIMGR_EVENT_TIMEOUT);
-		break;
-	default:
-		break;
-	}
-
-	if (ret)
-		wifimgr_err("failed to start AP timer! %d\n", ret);
-
-	return ret;
-}
-
-static int sm_ap_timer_stop(struct wifimgr_state_machine *ap_sm,
-			    unsigned int evt_id)
-{
-	int ret = 0;
-
-	switch (evt_id) {
-	case WIFIMGR_EVT_NEW_STATION:
-		if (ap_sm->cur_cmd == WIFIMGR_CMD_DEL_STA)
-			ret = wifimgr_timer_stop(ap_sm->timerid);
-		break;
-	default:
-		break;
-	}
-
-	if (ret)
-		wifimgr_err("failed to stop AP timer! %d\n", ret);
-
-	return ret;
-}
-
 const char *sta_sts2str(int state)
 {
 	char *str = NULL;
@@ -137,13 +100,13 @@ const char *sta_sts2str(int state)
 static bool is_sta_common_cmd(unsigned int cmd_id)
 {
 	return ((cmd_id >= WIFIMGR_CMD_GET_STA_CONFIG)
-		&& (cmd_id <= WIFIMGR_CMD_GET_STA_CAPA));
+		&& (cmd_id < WIFIMGR_CMD_OPEN_STA));
 }
 
 static bool is_sta_cmd(unsigned int cmd_id)
 {
 	return ((cmd_id >= WIFIMGR_CMD_OPEN_STA)
-		&& (cmd_id < WIFIMGR_CMD_OPEN_AP));
+		&& (cmd_id < WIFIMGR_CMD_GET_AP_CONFIG));
 }
 
 static bool is_sta_evt(unsigned int evt_id)
@@ -261,6 +224,47 @@ static void sm_sta_evt_step(struct wifimgr_state_machine *sta_sm,
 
 	sem_post(&sta_sm->exclsem);
 }
+#endif
+
+static int sm_ap_timer_start(struct wifimgr_state_machine *ap_sm,
+			     unsigned int cmd_id)
+{
+	int ret = 0;
+
+	switch (cmd_id) {
+	case WIFIMGR_CMD_DEL_STA:
+		ret =
+		    wifimgr_timer_start(ap_sm->timerid, WIFIMGR_EVENT_TIMEOUT);
+		break;
+	default:
+		break;
+	}
+
+	if (ret)
+		wifimgr_err("failed to start AP timer! %d\n", ret);
+
+	return ret;
+}
+
+static int sm_ap_timer_stop(struct wifimgr_state_machine *ap_sm,
+			    unsigned int evt_id)
+{
+	int ret = 0;
+
+	switch (evt_id) {
+	case WIFIMGR_EVT_NEW_STATION:
+		if (ap_sm->cur_cmd == WIFIMGR_CMD_DEL_STA)
+			ret = wifimgr_timer_stop(ap_sm->timerid);
+		break;
+	default:
+		break;
+	}
+
+	if (ret)
+		wifimgr_err("failed to stop AP timer! %d\n", ret);
+
+	return ret;
+}
 
 const char *ap_sts2str(int state)
 {
@@ -286,7 +290,7 @@ const char *ap_sts2str(int state)
 static bool is_ap_common_cmd(unsigned int cmd_id)
 {
 	return ((cmd_id >= WIFIMGR_CMD_GET_AP_CONFIG)
-		&& (cmd_id <= WIFIMGR_CMD_GET_AP_CAPA));
+		&& (cmd_id < WIFIMGR_CMD_OPEN_AP));
 }
 
 static bool is_ap_cmd(unsigned int cmd_id)
@@ -358,15 +362,19 @@ const char *wifimgr_cmd2str(int cmd)
 	C2S(WIFIMGR_CMD_SET_STA_CONFIG)
 	C2S(WIFIMGR_CMD_GET_STA_STATUS)
 	C2S(WIFIMGR_CMD_GET_STA_CAPA)
-	C2S(WIFIMGR_CMD_GET_AP_CONFIG)
-	C2S(WIFIMGR_CMD_SET_AP_CONFIG)
-	C2S(WIFIMGR_CMD_GET_AP_STATUS)
-	C2S(WIFIMGR_CMD_GET_AP_CAPA)
+	C2S(WIFIMGR_CMD_GET_STA_CTRL)
+	C2S(WIFIMGR_CMD_RELEASE_STA_CTRL)
 	C2S(WIFIMGR_CMD_OPEN_STA)
 	C2S(WIFIMGR_CMD_CLOSE_STA)
 	C2S(WIFIMGR_CMD_SCAN)
 	C2S(WIFIMGR_CMD_CONNECT)
 	C2S(WIFIMGR_CMD_DISCONNECT)
+	C2S(WIFIMGR_CMD_GET_AP_CONFIG)
+	C2S(WIFIMGR_CMD_SET_AP_CONFIG)
+	C2S(WIFIMGR_CMD_GET_AP_STATUS)
+	C2S(WIFIMGR_CMD_GET_AP_CAPA)
+	C2S(WIFIMGR_CMD_GET_AP_CTRL)
+	C2S(WIFIMGR_CMD_RELEASE_AP_CTRL)
 	C2S(WIFIMGR_CMD_OPEN_AP)
 	C2S(WIFIMGR_CMD_CLOSE_AP)
 	C2S(WIFIMGR_CMD_START_AP)
@@ -505,3 +513,5 @@ void wifimgr_sm_exit(struct wifimgr_state_machine *sm)
 	if (sm->timerid)
 		wifimgr_timer_release(sm->timerid);
 }
+
+#endif

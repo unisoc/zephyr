@@ -20,6 +20,10 @@
 #define WIFIMGR_CMD_MQUEUE_NR	WIFIMGR_CMD_MAX
 #define WIFIMGR_CMD_SENDER_NR	WIFIMGR_CMD_MAX
 
+#if CONFIG_MSG_COUNT_MAX < WIFIMGR_CMD_MAX
+#error "Please increase CONFIG_MSG_COUNT_MAX!"
+#endif
+
 /* Function pointer prototype for commands */
 typedef int (*cmd_func_t) (void *arg);
 

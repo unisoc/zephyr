@@ -9,6 +9,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#if defined(CONFIG_WIFIMGR_STA) || defined(CONFIG_WIFIMGR_AP)
+
 #include <net/wifimgr_api.h>
 
 #include "api.h"
@@ -19,6 +21,40 @@ extern timer_t sta_autorun_timerid;
 extern timer_t ap_autorun_timerid;
 
 static struct wifimgr_ctrl_cbs *wifimgr_cbs;
+
+int wifimgr_get_ctrl(char *iface_name)
+{
+	unsigned int cmd_id = 0;
+
+	if (!iface_name)
+		return -EINVAL;
+
+	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
+		cmd_id = WIFIMGR_CMD_GET_STA_CTRL;
+	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
+		cmd_id = WIFIMGR_CMD_GET_AP_CTRL;
+	else
+		return -EINVAL;
+
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
+}
+
+int wifimgr_release_ctrl(char *iface_name)
+{
+	unsigned int cmd_id = 0;
+
+	if (!iface_name)
+		return -EINVAL;
+
+	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
+		cmd_id = WIFIMGR_CMD_RELEASE_STA_CTRL;
+	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
+		cmd_id = WIFIMGR_CMD_RELEASE_AP_CTRL;
+	else
+		return -EINVAL;
+
+	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
+}
 
 static int wifimgr_ctrl_iface_get_conf(char *iface_name)
 {
@@ -305,8 +341,8 @@ static const struct wifimgr_ctrl_ops wifimgr_ops = {
 	.get_conf = wifimgr_ctrl_iface_get_conf,
 	.set_conf = wifimgr_ctrl_iface_set_conf,
 	.clear_conf = wifimgr_ctrl_iface_clear_conf,
-	.get_capa = wifimgr_ctrl_iface_get_capa,
 	.get_status = wifimgr_ctrl_iface_get_status,
+	.get_capa = wifimgr_ctrl_iface_get_capa,
 	.open = wifimgr_ctrl_iface_open,
 	.close = wifimgr_ctrl_iface_close,
 #ifdef CONFIG_WIFIMGR_STA
@@ -321,8 +357,13 @@ static const struct wifimgr_ctrl_ops wifimgr_ops = {
 #endif
 };
 
+const struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops(void)
+{
+	return &wifimgr_ops;
+}
+
 const
-struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops(struct wifimgr_ctrl_cbs *cbs)
+struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops_cbs(struct wifimgr_ctrl_cbs *cbs)
 {
 	wifimgr_cbs = cbs;
 
@@ -333,3 +374,5 @@ struct wifimgr_ctrl_cbs *wifimgr_get_ctrl_cbs(void)
 {
 	return wifimgr_cbs;
 }
+
+#endif

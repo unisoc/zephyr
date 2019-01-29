@@ -21,6 +21,10 @@
 #define WIFIMGR_EVT_RECEIVER_NR	WIFIMGR_EVT_MAX
 #define WIFIMGR_FRM_RECEIVER_NR	(1)
 
+#if CONFIG_MSG_COUNT_MAX < WIFIMGR_EVT_MAX
+#error "Please increase CONFIG_MSG_COUNT_MAX!"
+#endif
+
 /* CallBack function pointer prototype for notifing events */
 typedef int (*evt_cb_t) (void *arg);
 typedef int (*frm_cb_t) (void *arg);
