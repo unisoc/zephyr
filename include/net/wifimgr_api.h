@@ -28,8 +28,8 @@ struct wifimgr_ctrl_ops {
 			unsigned char channel, unsigned char channel_width,
 			int autorun);
 	int (*clear_conf)(char *iface_name);
-	int (*get_capa)(char *iface_name);
 	int (*get_status)(char *iface_name);
+	int (*get_capa)(char *iface_name);
 	int (*open)(char *iface_name);
 	int (*close)(char *iface_name);
 	int (*scan)(void);
@@ -47,12 +47,12 @@ struct wifimgr_ctrl_cbs {
 	void (*get_ap_conf_cb)(char *ssid, char *passphrase, unsigned char band,
 			       unsigned char channel, unsigned char ch_width,
 			       enum wifimgr_security security, int autorun);
-	void (*get_ap_capa_cb)(unsigned char max_sta, unsigned char max_acl);
 	void (*get_sta_status_cb)(char status, char *own_mac, char *host_bssid,
 				  signed char host_rssi);
 	void (*get_ap_status_cb)(char status, char *own_mac,
 				 unsigned char sta_nr, char sta_mac_addrs[][6],
 				 unsigned char acl_nr, char acl_mac_addrs[][6]);
+	void (*get_ap_capa_cb)(unsigned char max_sta, unsigned char max_acl);
 	void (*notify_scan_res)(char *ssid, char *bssid, unsigned char band,
 				unsigned char channel, signed char rssi,
 				enum wifimgr_security security);
@@ -63,10 +63,12 @@ struct wifimgr_ctrl_cbs {
 	void (*notify_connect_timeout)(void);
 	void (*notify_disconnect_timeout)(void);
 	void (*notify_new_station)(char status, char *mac);
-	void (*set_mac_acl_cb)(char result);
 };
 
+int wifimgr_get_ctrl(char *iface_name);
+int wifimgr_release_ctrl(char *iface_name);
+const struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops(void);
 const
-struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops(struct wifimgr_ctrl_cbs *cbs);
+struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops_cbs(struct wifimgr_ctrl_cbs *cbs);
 
 #endif
