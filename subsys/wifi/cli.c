@@ -181,6 +181,28 @@ static struct wifimgr_ctrl_cbs wifimgr_cli_cbs = {
 #endif
 };
 
+static int wifimgr_cli_get_ctrl(char *iface_name)
+{
+	int ret;
+
+	ret = wifimgr_get_ctrl(iface_name);
+	if (ret)
+		printf("failed to get ctrl! %d\n", ret);
+
+	return ret;
+}
+
+static int wifimgr_cli_release_ctrl(char *iface_name)
+{
+	int ret;
+
+	ret = wifimgr_release_ctrl(iface_name);
+	if (ret)
+		printf("failed to give_ctrl! %d\n", ret);
+
+	return ret;
+}
+
 static int strtomac(char *mac_str, char *mac_addr)
 {
 	char *mac;
@@ -218,7 +240,7 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 	unsigned char ch_width = 0;
 	int choice;
 
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->set_conf)
+	if (!wifimgr_get_ctrl_ops()->set_conf)
 		return -EOPNOTSUPP;
 
 	if (!argv[1])
@@ -300,13 +322,12 @@ static int wifimgr_cmd_set_config(const struct shell *shell, size_t argc,
 		}
 	}
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->set_conf(iface_name,
-								ssid, bssid,
-								security,
-								passphrase,
-								band, channel,
-								ch_width,
-								autorun);
+	return wifimgr_get_ctrl_ops()->set_conf(iface_name,
+						ssid, bssid,
+						security,
+						passphrase,
+						band, channel,
+						ch_width, autorun);
 }
 
 static int wifimgr_cmd_clear_config(const struct shell *shell, size_t argc,
@@ -314,14 +335,14 @@ static int wifimgr_cmd_clear_config(const struct shell *shell, size_t argc,
 {
 	char *iface_name;
 
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->clear_conf)
+	if (!wifimgr_get_ctrl_ops()->clear_conf)
 		return -EOPNOTSUPP;
 
 	if (argc != 2 || !argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->clear_conf(iface_name);
+	return wifimgr_get_ctrl_ops()->clear_conf(iface_name);
 }
 
 static int wifimgr_cmd_get_config(const struct shell *shell, size_t argc,
@@ -329,14 +350,14 @@ static int wifimgr_cmd_get_config(const struct shell *shell, size_t argc,
 {
 	char *iface_name;
 
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->get_conf)
+	if (!wifimgr_get_ctrl_ops()->get_conf)
 		return -EOPNOTSUPP;
 
 	if (argc != 2 || !argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->get_conf(iface_name);
+	return wifimgr_get_ctrl_ops_cbs(&wifimgr_cli_cbs)->get_conf(iface_name);
 }
 
 static int wifimgr_cmd_capa(const struct shell *shell, size_t argc,
@@ -344,14 +365,14 @@ static int wifimgr_cmd_capa(const struct shell *shell, size_t argc,
 {
 	char *iface_name;
 
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->get_capa)
+	if (!wifimgr_get_ctrl_ops()->get_capa)
 		return -EOPNOTSUPP;
 
 	if (argc != 2 || !argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->get_capa(iface_name);
+	return wifimgr_get_ctrl_ops_cbs(&wifimgr_cli_cbs)->get_capa(iface_name);
 }
 
 static int wifimgr_cmd_status(const struct shell *shell, size_t argc,
@@ -359,44 +380,61 @@ static int wifimgr_cmd_status(const struct shell *shell, size_t argc,
 {
 	char *iface_name;
 
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->get_status)
+	if (!wifimgr_get_ctrl_ops()->get_status)
 		return -EOPNOTSUPP;
 
 	if (argc != 2 || !argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->get_status(iface_name);
+	return wifimgr_get_ctrl_ops_cbs(&wifimgr_cli_cbs)->
+	    get_status(iface_name);
 }
 
 static int wifimgr_cmd_open(const struct shell *shell, size_t argc,
 			    char *argv[])
 {
 	char *iface_name;
+	int ret;
 
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->open)
+	if (!wifimgr_get_ctrl_ops()->open)
 		return -EOPNOTSUPP;
 
 	if (argc != 2 || !argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->open(iface_name);
+	ret = wifimgr_cli_get_ctrl(iface_name);
+	if (ret)
+		return ret;
+
+	ret = wifimgr_get_ctrl_ops()->open(iface_name);
+	wifimgr_cli_release_ctrl(iface_name);
+
+	return ret;
 }
 
 static int wifimgr_cmd_close(const struct shell *shell, size_t argc,
 			     char *argv[])
 {
 	char *iface_name;
+	int ret;
 
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->close)
+	if (!wifimgr_get_ctrl_ops()->close)
 		return -EOPNOTSUPP;
 
 	if (argc != 2 || !argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->close(iface_name);
+	ret = wifimgr_cli_get_ctrl(iface_name);
+	if (ret)
+		return ret;
+
+	ret = wifimgr_get_ctrl_ops()->close(iface_name);
+	wifimgr_cli_release_ctrl(iface_name);
+
+	return ret;
 }
 #endif
 
@@ -404,47 +442,92 @@ static int wifimgr_cmd_close(const struct shell *shell, size_t argc,
 static int wifimgr_cmd_scan(const struct shell *shell, size_t argc,
 			    char *argv[])
 {
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->scan)
+	int ret;
+
+	if (!wifimgr_get_ctrl_ops()->scan)
 		return -EOPNOTSUPP;
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->scan();
+	ret = wifimgr_cli_get_ctrl(WIFIMGR_IFACE_NAME_STA);
+	if (ret)
+		return ret;
+
+	ret = wifimgr_get_ctrl_ops_cbs(&wifimgr_cli_cbs)->scan();
+	wifimgr_cli_release_ctrl(WIFIMGR_IFACE_NAME_STA);
+
+	return ret;
 }
 
 static int wifimgr_cmd_connect(const struct shell *shell, size_t argc,
 			       char *argv[])
 {
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->connect)
+	int ret;
+
+	if (!wifimgr_get_ctrl_ops()->connect)
 		return -EOPNOTSUPP;
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->connect();
+	ret = wifimgr_cli_get_ctrl(WIFIMGR_IFACE_NAME_STA);
+	if (ret)
+		return ret;
+
+	ret = wifimgr_get_ctrl_ops_cbs(&wifimgr_cli_cbs)->connect();
+	wifimgr_cli_release_ctrl(WIFIMGR_IFACE_NAME_STA);
+
+	return ret;
 }
 
 static int wifimgr_cmd_disconnect(const struct shell *shell, size_t argc,
 				  char *argv[])
 {
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->disconnect)
+	int ret;
+
+	if (!wifimgr_get_ctrl_ops()->disconnect)
 		return -EOPNOTSUPP;
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->disconnect();
+	ret = wifimgr_cli_get_ctrl(WIFIMGR_IFACE_NAME_STA);
+	if (ret)
+		return ret;
+
+	ret = wifimgr_get_ctrl_ops_cbs(&wifimgr_cli_cbs)->disconnect();
+	wifimgr_cli_release_ctrl(WIFIMGR_IFACE_NAME_STA);
+
+	return ret;
 }
 
 #ifdef CONFIG_WIFIMGR_AP
 static int wifimgr_cmd_start_ap(const struct shell *shell, size_t argc,
 				char *argv[])
 {
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->start_ap)
+	int ret;
+
+	if (!wifimgr_get_ctrl_ops()->start_ap)
 		return -EOPNOTSUPP;
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->start_ap();
+	ret = wifimgr_cli_get_ctrl(WIFIMGR_IFACE_NAME_AP);
+	if (ret)
+		return ret;
+
+	ret = wifimgr_get_ctrl_ops()->start_ap();
+	wifimgr_cli_release_ctrl(WIFIMGR_IFACE_NAME_AP);
+
+	return ret;
 }
 
 static int wifimgr_cmd_stop_ap(const struct shell *shell, size_t argc,
 			       char *argv[])
 {
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->stop_ap)
+	int ret;
+
+	if (!wifimgr_get_ctrl_ops()->stop_ap)
 		return -EOPNOTSUPP;
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->stop_ap();
+	ret = wifimgr_cli_get_ctrl(WIFIMGR_IFACE_NAME_AP);
+	if (ret)
+		return ret;
+
+	ret = wifimgr_get_ctrl_ops()->stop_ap();
+	wifimgr_cli_release_ctrl(WIFIMGR_IFACE_NAME_AP);
+
+	return ret;
 }
 
 static int wifimgr_cmd_set_mac_acl(const struct shell *shell, size_t argc,
@@ -453,8 +536,9 @@ static int wifimgr_cmd_set_mac_acl(const struct shell *shell, size_t argc,
 	int choice;
 	char subcmd = 0;
 	char *mac = NULL;
+	int ret;
 
-	if (!wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->set_mac_acl)
+	if (!wifimgr_get_ctrl_ops()->set_mac_acl)
 		return -EOPNOTSUPP;
 
 	optind = 0;
@@ -482,8 +566,8 @@ static int wifimgr_cmd_set_mac_acl(const struct shell *shell, size_t argc,
 				mac = NULL;
 			} else {
 				char mac_addr[WIFIMGR_ETH_ALEN];
-				int ret = strtomac(optarg, mac_addr);
 
+				ret = strtomac(optarg, mac_addr);
 				if (!ret) {
 					mac = mac_addr;
 				} else {
@@ -497,7 +581,14 @@ static int wifimgr_cmd_set_mac_acl(const struct shell *shell, size_t argc,
 		}
 	}
 
-	return wifimgr_get_ctrl_ops(&wifimgr_cli_cbs)->set_mac_acl(subcmd, mac);
+	ret = wifimgr_cli_get_ctrl(WIFIMGR_IFACE_NAME_AP);
+	if (ret)
+		return ret;
+
+	ret = wifimgr_get_ctrl_ops()->set_mac_acl(subcmd, mac);
+	wifimgr_cli_release_ctrl(WIFIMGR_IFACE_NAME_AP);
+
+	return ret;
 }
 #endif
 
