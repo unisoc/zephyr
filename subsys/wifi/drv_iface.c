@@ -9,6 +9,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#if defined(CONFIG_WIFIMGR_STA) || defined(CONFIG_WIFIMGR_AP)
+
 #include <net/wifimgr_drv.h>
 
 #include "os_adapter.h"
@@ -296,4 +298,6 @@ int wifi_drv_set_mac_acl(void *iface, char subcmd, unsigned char acl_nr,
 
 	return drv_api->set_mac_acl(dev, subcmd, acl_nr, acl_mac_addrs);
 }
+#endif
+
 #endif

@@ -81,10 +81,12 @@ struct wifimgr_ap_event {
 };
 
 struct wifi_manager {
+	sem_t sta_ctrl;			/* STA global control */
 	struct wifimgr_config sta_conf;
 	struct wifimgr_status sta_sts;
 	struct wifimgr_state_machine sta_sm;
 
+	sem_t ap_ctrl;			/* AP global control */
 	struct wifi_drv_capa ap_capa;
 	struct wifimgr_config ap_conf;
 	struct wifimgr_status ap_sts;
