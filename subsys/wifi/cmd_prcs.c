@@ -174,7 +174,8 @@ static void *cmd_processor(void *handle)
 
 			if (ret == -EBUSY)
 				wifimgr_err("Busy(%s)! try again later\n",
-					    wifimgr_sts2str_cmd(mgr, msg.cmd_id));
+					    wifimgr_sts2str_cmd(mgr,
+								msg.cmd_id));
 			continue;
 		}
 
@@ -255,9 +256,11 @@ void wifimgr_cmd_processor_exit(struct cmd_processor *handle)
 {
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
 
-	prcs->is_started = false;
 	if (prcs->mq && (prcs->mq != (mqd_t)-1)) {
 		mq_close(prcs->mq);
 		mq_unlink(WIFIMGR_CMD_MQUEUE);
 	}
+
+	sem_destroy(&prcs->exclsem);
+	prcs->is_started = false;
 }
