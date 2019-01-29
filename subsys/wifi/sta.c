@@ -108,13 +108,6 @@ static int wifimgr_sta_set_config(void *handle)
 	return 0;
 }
 
-static int wifimgr_sta_get_capa(void *handle)
-{
-	/* TODO */
-
-	return 0;
-}
-
 static int wifimgr_sta_get_status(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
@@ -140,6 +133,37 @@ static int wifimgr_sta_get_status(void *handle)
 				       sts->u.sta.host_rssi);
 
 	return 0;
+}
+
+static int wifimgr_sta_get_capa(void *handle)
+{
+	/* TODO */
+
+	return 0;
+}
+
+static int wifimgr_sta_get_ctrl(void *handle)
+{
+	struct wifi_manager *mgr = (struct wifi_manager *)handle;
+	int ret;
+
+	ret = sem_trywait(&mgr->sta_ctrl);
+	if (ret == -1)
+		ret = -errno;
+
+	return ret;
+}
+
+static int wifimgr_sta_release_ctrl(void *handle)
+{
+	struct wifi_manager *mgr = (struct wifi_manager *)handle;
+	int ret;
+
+	ret = sem_post(&mgr->sta_ctrl);
+	if (ret == -1)
+		ret = -errno;
+
+	return ret;
 }
 
 static int wifimgr_sta_disconnect_event(void *arg)
@@ -453,12 +477,19 @@ int wifimgr_sta_init(void *handle)
 				 wifimgr_sta_get_config, &mgr->sta_conf);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_SET_STA_CONFIG,
 				 wifimgr_sta_set_config, &mgr->sta_conf);
-	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_STA_CAPA,
-				 wifimgr_sta_get_capa, mgr);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_STA_STATUS,
 				 wifimgr_sta_get_status, mgr);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_STA_CAPA,
+				 wifimgr_sta_get_capa, mgr);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_STA_CTRL,
+				 wifimgr_sta_get_ctrl, mgr);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_RELEASE_STA_CTRL,
+				 wifimgr_sta_release_ctrl, mgr);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_OPEN_STA,
 				 wifimgr_sta_open, mgr);
+
+	/* Initialize STA global control */
+	sem_init(&mgr->sta_ctrl, 0, 1);
 
 	/* Initialize STA config */
 	ret = wifimgr_config_init(&mgr->sta_conf, WIFIMGR_SETTING_STA_PATH);
@@ -489,4 +520,7 @@ void wifimgr_sta_exit(void *handle)
 
 	/* Deinitialize STA config */
 	wifimgr_config_exit(WIFIMGR_SETTING_STA_PATH);
+
+	/* Deinitialize STA global control */
+	sem_destroy(&mgr->sta_ctrl);
 }
