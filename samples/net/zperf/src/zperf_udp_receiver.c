@@ -12,6 +12,7 @@
 
 #include <zephyr.h>
 #include <misc/printk.h>
+#include <stdio.h>
 
 #include <net/net_core.h>
 #include <net/net_pkt.h>
@@ -134,6 +135,7 @@ static void udp_received(struct net_context *context,
 	s32_t transit_time;
 	u32_t time;
 	s32_t id;
+	u32_t sent_pkt_num = 0;
 
 	if (!pkt) {
 		return;
@@ -167,11 +169,10 @@ static void udp_received(struct net_context *context,
 
 	id = hdr.id;
 
-	/* Check last packet flags */
-	if (id < 0) {
-		shell_fprintf(shell, SHELL_NORMAL, "End of session!\n");
-
-		if (session->state == STATE_COMPLETED) {
+	switch (session->state) {
+	case STATE_COMPLETED:
+	case STATE_NULL:
+		if (id < 0) {
 			/* Session is already completed: Resend the stat packet
 			 * and continue
 			 */
@@ -179,73 +180,41 @@ static void udp_received(struct net_context *context,
 						     &session->stat) < 0) {
 				shell_fprintf(shell, SHELL_WARNING,
 					      "Failed to send the packet\n");
-
-				net_pkt_unref(pkt);
 			}
 		} else {
-			session->state = STATE_LAST_PACKET_RECEIVED;
-			id = -id;
+			/* Start a new session! */
+			shell_fprintf(shell, SHELL_NORMAL,
+				      "New session started.\n");
+
+			zperf_reset_session_stats(session);
+			session->state = STATE_ONGOING;
+			session->start_time = time;
+
+			sent_pkt_num = 0;
 		}
+		break;
+	case STATE_ONGOING:
+		if (id < 0) {
+			sent_pkt_num = session->counter + session->error;
 
-	} else if (session->state != STATE_ONGOING) {
-		/* Start a new session! */
-		shell_fprintf(shell, SHELL_NORMAL,
-			      "New session started.\n");
+			shell_fprintf(shell, SHELL_NORMAL, "End of session!\n");
 
-		zperf_reset_session_stats(session);
-		session->state = STATE_ONGOING;
-		session->start_time = time;
-	}
+			u32_t rate_in_kbps;
+			u32_t duration = HW_CYCLES_TO_USEC(
+				time_delta(session->start_time, time));
 
-	/* Check header id */
-	if (id != session->next_id) {
-		if (id < session->next_id) {
-			session->outorder++;
-		} else {
-			session->error += id - session->next_id;
-			session->next_id = id + 1;
-		}
-	} else {
-		session->next_id++;
-	}
+			/* Update state machine */
+			session->state = STATE_COMPLETED;
 
-	/* Update counter */
-	session->counter++;
-	session->length += net_pkt_appdatalen(pkt);
-
-	/* Compute jitter */
-	transit_time = time_delta(HW_CYCLES_TO_USEC(time),
-				  hdr.tv_sec * USEC_PER_SEC +
-				  hdr.tv_usec);
-	if (session->last_transit_time != 0) {
-		s32_t delta_transit = transit_time -
-			session->last_transit_time;
-
-		delta_transit =
-			(delta_transit < 0) ? -delta_transit : delta_transit;
-
-		session->jitter += (delta_transit - session->jitter) / 16;
-	}
-
-	session->last_transit_time = transit_time;
-
-	/* If necessary send statistics */
-	if (session->state == STATE_LAST_PACKET_RECEIVED) {
-		u32_t rate_in_kbps;
-		u32_t duration = HW_CYCLES_TO_USEC(
-			time_delta(session->start_time, time));
-
-		/* Update state machine */
-		session->state = STATE_COMPLETED;
-
-		/* Compute baud rate */
-		if (duration != 0) {
-			rate_in_kbps = (u32_t)
-				(((u64_t)session->length * (u64_t)8 *
-				  (u64_t)USEC_PER_SEC) /
-				 ((u64_t)duration * 1024));
-		} else {
-			rate_in_kbps = 0U;
+			/* Compute baud rate */
+			if (duration != 0) {
+				rate_in_kbps = (u32_t)
+					(((u64_t)session->length * (u64_t)8 *
+					  (u64_t)USEC_PER_SEC) /
+					 ((u64_t)duration * 1024));
+			} else {
+				rate_in_kbps = 0U;
+			}
 
 			/* Fill statistics */
 			session->stat.flags = 0x80000000;
@@ -256,7 +225,7 @@ static void udp_received(struct net_context *context,
 			session->stat.stop_usec = duration % USEC_PER_SEC;
 			session->stat.error_cnt = session->error;
 			session->stat.outorder_cnt = session->outorder;
-			session->stat.datagrams = session->counter;
+			session->stat.datagrams = sent_pkt_num;
 			session->stat.jitter1 = 0;
 			session->stat.jitter2 = session->jitter;
 
@@ -264,39 +233,70 @@ static void udp_received(struct net_context *context,
 						     &session->stat) < 0) {
 				shell_fprintf(shell, SHELL_WARNING,
 					    "Failed to send the packet\n");
-
-				net_pkt_unref(pkt);
 			}
 
-			shell_fprintf(shell, SHELL_NORMAL,
-				      " duration:\t\t");
+			printf(" duration:\t\t");
 			print_number(shell, duration, TIME_US, TIME_US_UNIT);
-			shell_fprintf(shell, SHELL_NORMAL, "\n");
+			printf("\n");
 
-			shell_fprintf(shell, SHELL_NORMAL,
-				      " received packets:\t%u\n",
+			printf(" total packets:\t\t%u\n",
+				      sent_pkt_num);
+			printf(" received packets:\t%u\n",
 				      session->counter);
-			shell_fprintf(shell, SHELL_NORMAL,
-				      " nb packets lost:\t%u\n",
-				      session->outorder);
-			shell_fprintf(shell, SHELL_NORMAL,
-				      " nb packets outorder:\t%u\n",
+			printf(" nb packets lost:\t%u\n",
 				      session->error);
+			printf(" nb packets outorder:\t%u\n",
+				      session->outorder);
 
-			shell_fprintf(shell, SHELL_NORMAL,
-				      " jitter:\t\t\t");
+			printf(" jitter:\t\t\t");
 			print_number(shell, session->jitter, TIME_US,
 				     TIME_US_UNIT);
-			shell_fprintf(shell, SHELL_NORMAL, "\n");
+			printf("\n");
 
-			shell_fprintf(shell, SHELL_NORMAL,
-				      " rate:\t\t\t");
+			printf(" rate:\t\t\t");
 			print_number(shell, rate_in_kbps, KBPS, KBPS_UNIT);
-			shell_fprintf(shell, SHELL_NORMAL, "\n");
+			printf("\n");
+		} else {
+			/* Update counter */
+			session->counter++;
+			session->length += net_pkt_appdatalen(pkt);
+
+			/* Compute jitter */
+			transit_time = time_delta(HW_CYCLES_TO_USEC(time),
+						  hdr.tv_sec * USEC_PER_SEC +
+						  hdr.tv_usec);
+			if (session->last_transit_time != 0) {
+				s32_t delta_transit = transit_time -
+					session->last_transit_time;
+
+				delta_transit =
+					(delta_transit < 0) ?
+					-delta_transit : delta_transit;
+
+				session->jitter +=
+					(delta_transit - session->jitter) / 16;
+			}
+
+			session->last_transit_time = transit_time;
+
+			/* Check header id */
+			if (id != session->next_id) {
+				if (id < session->next_id) {
+					session->outorder++;
+				} else {
+					session->error += id - session->next_id;
+					session->next_id = id + 1;
+				}
+			} else {
+				session->next_id++;
+			}
 		}
-	} else {
-		net_pkt_unref(pkt);
+		break;
+	default:
+		break;
 	}
+
+	net_pkt_unref(pkt);
 }
 
 void zperf_udp_receiver_init(const struct shell *shell, int port)
