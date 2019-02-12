@@ -42,10 +42,10 @@ void print_number(const struct shell *shell, u32_t value,
 	if (*div != 0) {
 		radix = value / *div;
 		dec = (value % *div) * 100 / *div;
-		shell_fprintf(shell, SHELL_NORMAL, "%u.%s%u %s", radix,
+		printf("%u.%s%u %s", radix,
 			      (dec < 10) ? "0" : "", dec, *unit);
 	} else {
-		shell_fprintf(shell, SHELL_NORMAL, "%u %s", value, *unit);
+		printf("%u %s", value, *unit);
 	}
 }
 
