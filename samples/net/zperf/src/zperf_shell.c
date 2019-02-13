@@ -391,36 +391,34 @@ static void shell_udp_upload_print_stats(const struct shell *shell,
 				      "LAST PACKET NOT RECEIVED!!!\n");
 		}
 
-		shell_fprintf(shell, SHELL_NORMAL,
-			      "Statistics:\t\tserver\t(client)\n");
-		shell_fprintf(shell, SHELL_NORMAL, "Duration:\t\t");
+		printf("Statistics:\t\tserver\t(client)\n");
+		printf("Duration:\t\t");
 		print_number(shell, results->time_in_us, TIME_US,
 			     TIME_US_UNIT);
-		shell_fprintf(shell, SHELL_NORMAL, "\t(");
+		printf("\t(");
 		print_number(shell, results->client_time_in_us, TIME_US,
 			     TIME_US_UNIT);
-		shell_fprintf(shell, SHELL_NORMAL, ")\n");
+		printf(")\n");
 
-		shell_fprintf(shell, SHELL_NORMAL, "Num packets:\t\t%u\t(%u)\n",
+		printf("Num packets:\t\t%u\t(%u)\n",
 			      results->nb_packets_rcvd,
 			      results->nb_packets_sent);
 
-		shell_fprintf(shell, SHELL_NORMAL,
-			      "Num packets out order:\t%u\n",
+		printf("Num packets out order:\t%u\n",
 			      results->nb_packets_outorder);
-		shell_fprintf(shell, SHELL_NORMAL, "Num packets lost:\t%u\n",
+		printf("Num packets lost:\t%u\n",
 			      results->nb_packets_lost);
 
-		shell_fprintf(shell, SHELL_NORMAL, "Jitter:\t\t\t");
+		printf("Jitter:\t\t\t");
 		print_number(shell, results->jitter_in_us, TIME_US,
 			     TIME_US_UNIT);
-		shell_fprintf(shell, SHELL_NORMAL, "\n");
+		printf("\n");
 
-		shell_fprintf(shell, SHELL_NORMAL, "Rate:\t\t\t");
+		printf("Rate:\t\t\t");
 		print_number(shell, rate_in_kbps, KBPS, KBPS_UNIT);
-		shell_fprintf(shell, SHELL_NORMAL, "\t(");
+		printf("\t(");
 		print_number(shell, client_rate_in_kbps, KBPS, KBPS_UNIT);
-		shell_fprintf(shell, SHELL_NORMAL, ")\n");
+		printf(")\n");
 	}
 }
 
@@ -442,18 +440,17 @@ static void shell_tcp_upload_print_stats(const struct shell *shell,
 			client_rate_in_kbps = 0;
 		}
 
-		shell_fprintf(shell, SHELL_NORMAL, "Duration:\t");
+		printf("Duration:\t");
 		print_number(shell, results->client_time_in_us,
 			     TIME_US, TIME_US_UNIT);
-		shell_fprintf(shell, SHELL_NORMAL, "\n");
-		shell_fprintf(shell, SHELL_NORMAL, "Num packets:\t%u\n",
+		printf("\n");
+		printf("Num packets:\t%u\n",
 			      results->nb_packets_sent);
-		shell_fprintf(shell, SHELL_NORMAL,
-			      "Num errors:\t%u (retry or fail)\n",
+		printf("Num errors:\t%u (retry or fail)\n",
 			      results->nb_packets_errors);
-		shell_fprintf(shell, SHELL_NORMAL, "Rate:\t\t");
+		printf("Rate:\t\t");
 		print_number(shell, client_rate_in_kbps, KBPS, KBPS_UNIT);
-		shell_fprintf(shell, SHELL_NORMAL, "\n");
+		printf("\n");
 	}
 }
 
@@ -549,15 +546,17 @@ static int execute_upload(const struct shell *shell,
 	struct zperf_results results = { };
 	int ret;
 
-	shell_fprintf(shell, SHELL_NORMAL, "Duration:\t");
+	printf("Duration:\t");
 	print_number(shell, duration_in_ms * USEC_PER_MSEC, TIME_US,
 		     TIME_US_UNIT);
-	shell_fprintf(shell, SHELL_NORMAL, "\n");
-	shell_fprintf(shell, SHELL_NORMAL, "Packet size:\t%u bytes\n",
+	printf("\n");
+	printf("Packet size:\t%u bytes\n",
 		      packet_size);
-	shell_fprintf(shell, SHELL_NORMAL, "Rate:\t\t%u kbps\n",
-		      rate_in_kbps);
-	shell_fprintf(shell, SHELL_NORMAL, "Starting...\n");
+	printf("Rate:\t\t");
+	print_number(shell, rate_in_kbps, KBPS, KBPS_UNIT);
+	printf("\n");
+
+	printf("Starting...\n");
 
 	if (IS_ENABLED(CONFIG_NET_IPV6) && family == AF_INET6 && context6) {
 		/* For IPv6, we should make sure that neighbor discovery
@@ -571,10 +570,6 @@ static int execute_upload(const struct shell *shell,
 	}
 
 	if (is_udp && IS_ENABLED(CONFIG_NET_UDP)) {
-		shell_fprintf(shell, SHELL_NORMAL, "Rate:\t\t");
-		print_number(shell, rate_in_kbps, KBPS, KBPS_UNIT);
-		shell_fprintf(shell, SHELL_NORMAL, "\n");
-
 		if (family == AF_INET6 && context6) {
 			ret = net_context_connect(context6,
 						  (struct sockaddr *)ipv6,
@@ -728,8 +723,7 @@ static int shell_cmd_upload(const struct shell *shell, size_t argc,
 
 	if (argc > 2) {
 		port = strtoul(argv[start + 2], NULL, 10);
-		shell_fprintf(shell, SHELL_NORMAL,
-			      "Remote port is %u\n", port);
+		printf("Remote port is %u\n", port);
 		port_str = argv[start + 2];
 	} else {
 		port = DEF_PORT;

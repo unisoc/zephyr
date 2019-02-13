@@ -135,7 +135,6 @@ static void udp_received(struct net_context *context,
 	s32_t transit_time;
 	u32_t time;
 	s32_t id;
-	u32_t sent_pkt_num = 0;
 
 	if (!pkt) {
 		return;
@@ -189,14 +188,10 @@ static void udp_received(struct net_context *context,
 			zperf_reset_session_stats(session);
 			session->state = STATE_ONGOING;
 			session->start_time = time;
-
-			sent_pkt_num = 0;
 		}
 		break;
 	case STATE_ONGOING:
 		if (id < 0) {
-			sent_pkt_num = session->counter + session->error;
-
 			shell_fprintf(shell, SHELL_NORMAL, "End of session!\n");
 
 			u32_t rate_in_kbps;
@@ -225,7 +220,7 @@ static void udp_received(struct net_context *context,
 			session->stat.stop_usec = duration % USEC_PER_SEC;
 			session->stat.error_cnt = session->error;
 			session->stat.outorder_cnt = session->outorder;
-			session->stat.datagrams = sent_pkt_num;
+			session->stat.datagrams = session->counter;
 			session->stat.jitter1 = 0;
 			session->stat.jitter2 = session->jitter;
 
@@ -239,8 +234,6 @@ static void udp_received(struct net_context *context,
 			print_number(shell, duration, TIME_US, TIME_US_UNIT);
 			printf("\n");
 
-			printf(" total packets:\t\t%u\n",
-				      sent_pkt_num);
 			printf(" received packets:\t%u\n",
 				      session->counter);
 			printf(" nb packets lost:\t%u\n",
@@ -248,7 +241,7 @@ static void udp_received(struct net_context *context,
 			printf(" nb packets outorder:\t%u\n",
 				      session->outorder);
 
-			printf(" jitter:\t\t\t");
+			printf(" jitter:\t\t");
 			print_number(shell, session->jitter, TIME_US,
 				     TIME_US_UNIT);
 			printf("\n");
