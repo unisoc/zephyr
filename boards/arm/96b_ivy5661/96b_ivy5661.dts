@@ -52,17 +52,25 @@
 			label = "mcuboot";
 			reg = <0x00000000 0x20000>;
 		};
-		scratch_partition: partition@20000 {
+		scratch_partition: partition@2F0000 {
 			label = "image-scratch";
-			reg = <0x00020000 0x10000>;
+			reg = <0x002F0000 0x2000>;
 		};
 		slot0_partition: partition@40000 {
 			label = "image-0";
 			reg = <0x00040000 0x80000>;
 		};
-		slot1_partition: partition@180000 {
+		slot1_partition: partition@1B0000 {
 			label = "image-1";
-			reg = <0x000180000 0x80000>;
+			reg = <0x001B0000 0x80000>;
+		};
+		modem0_partition: partition@C0000 {
+			label = "modem-0";
+			reg = <0x000C0000 0xC0000>;
+		};
+		modem1_partition: partition@230000 {
+			label = "modem-1";
+			reg = <0x00230000 0xC0000>;
 		};
 
 #if defined(CONFIG_FILE_SYSTEM_NFFS)
