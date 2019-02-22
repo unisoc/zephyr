@@ -85,7 +85,7 @@ static int uart_uwp_poll_in(struct device *dev, unsigned char *c)
 	return -1;
 }
 
-static unsigned char uart_uwp_poll_out(struct device *dev, unsigned char c)
+static void uart_uwp_poll_out(struct device *dev, unsigned char c)
 {
 	volatile struct uwp_uart *uart = UART_STRUCT(dev);
 
@@ -93,11 +93,7 @@ static unsigned char uart_uwp_poll_out(struct device *dev, unsigned char c)
 		uwp_uart_write(uart, c);
 		while (!uwp_uart_trans_over(uart))
 			;
-
-		return 0;
 	};
-
-	return -1;
 }
 
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
