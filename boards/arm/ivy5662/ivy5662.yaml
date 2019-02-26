@@ -1,0 +1,7 @@
+identifier: ivy5662
+name: IVY5662
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gccarmemb
