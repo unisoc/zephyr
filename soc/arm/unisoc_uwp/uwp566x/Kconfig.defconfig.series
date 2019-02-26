@@ -4,6 +4,7 @@
 if SOC_SERIES_UWP566X
 
 source "soc/arm/unisoc_uwp/uwp566x/Kconfig.defconfig.uwp5661"
+source "soc/arm/unisoc_uwp/uwp566x/Kconfig.defconfig.uwp5662"
 
 config SOC_SERIES
 	string
