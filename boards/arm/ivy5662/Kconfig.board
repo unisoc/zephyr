@@ -1,0 +1,6 @@
+# Kconfig - board IVY5662 board configuration
+#
+
+config BOARD_IVY5662
+	bool "IVY5662"
+	depends on SOC_UWP5662
