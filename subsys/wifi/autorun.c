@@ -142,14 +142,14 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 	    || !wifimgr_get_ctrl_ops()->open
 	    || !wifimgr_get_ctrl_ops()->scan
 	    || !wifimgr_get_ctrl_ops()->connect) {
-		wifimgr_err("%s: incomplete ops!\n", __func__);
+		wifimgr_err("incomplete ops!\n");
 		return;
 	}
 
 	/* Get control of STA */
 	ret = wifimgr_get_ctrl(iface_name);
 	if (ret) {
-		printf("%s: failed to get ctrl! %d\n", __func__, ret);
+		wifimgr_err("failed to get ctrl! %d\n", ret);
 		goto exit;
 	}
 
@@ -159,18 +159,18 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 	    wifimgr_get_ctrl_ops_cbs(&wifimgr_autorun_cbs)->
 	    get_conf(iface_name);
 	if (ret) {
-		wifimgr_err("%s: failed to get_conf! %d\n", __func__, ret);
+		wifimgr_err("failed to get_conf! %d\n", ret);
 		goto exit;
 	}
 	sem_wait(&sta_sem);
 	if (sta_autorun <= 0) {
 		sta_autorun = 0;
 		if (sta_autorun < 0)
-			wifimgr_warn("%s: autorun disabled!\n", __func__);
+			printf("STA autorun disabled!\n");
 		goto exit;
 	}
 	if (!host_ssid || !strlen(host_ssid)) {
-		wifimgr_warn("%s: no STA config!\n", __func__);
+		wifimgr_warn("no STA config!\n");
 		goto exit;
 	}
 
@@ -179,7 +179,7 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 	    wifimgr_get_ctrl_ops_cbs(&wifimgr_autorun_cbs)->
 	    get_status(iface_name);
 	if (ret) {
-		wifimgr_err("%s: failed to get_status! %d\n", __func__, ret);
+		wifimgr_err("failed to get_status! %d\n", ret);
 		goto exit;
 	}
 	sem_wait(&sta_sem);
@@ -189,7 +189,7 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 		/* Open STA */
 		ret = wifimgr_get_ctrl_ops()->open(iface_name);
 		if (ret) {
-			wifimgr_err("%s: failed to open! %d\n", __func__, ret);
+			wifimgr_err("failed to open! %d\n", ret);
 			goto exit;
 		}
 	case WIFIMGR_SM_STA_READY:
@@ -200,16 +200,14 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 			    wifimgr_get_ctrl_ops_cbs(&wifimgr_autorun_cbs)->
 			    scan();
 			if (ret)
-				wifimgr_err("%s: failed to scan! %d\n",
-					    __func__, ret);
+				wifimgr_err("failed to scan! %d\n", ret);
 			else
 				sem_wait(&sta_sem);
 			if (host_found)
 				break;
 		}
 		if (cnt == WIFIMGR_AUTORUN_STA_RETRY) {
-			wifimgr_err("%s: maximum scan retry reached!\n",
-				    __func__);
+			wifimgr_err("maximum scan retry reached!\n");
 			goto exit;
 		}
 
@@ -217,17 +215,16 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 		sta_connected = false;
 		ret = wifimgr_get_ctrl_ops_cbs(&wifimgr_autorun_cbs)->connect();
 		if (ret) {
-			wifimgr_err("%s: failed to connect! %d\n", __func__,
-				    ret);
+			wifimgr_err("failed to connect! %d\n", ret);
 			goto exit;
 		}
 		sem_wait(&sta_sem);
 		if (sta_connected == true)
-			wifimgr_info("%s: done!\n", __func__);
+			wifimgr_info("done!\n");
 
 		break;
 	default:
-		wifimgr_dbg("%s: nothing else to do under %s!\n", __func__,
+		wifimgr_dbg("nothing else to do under %s!\n",
 			    sta_sts2str(sta_state));
 		goto exit;
 	}
@@ -250,14 +247,14 @@ static void wifimgr_autorun_ap(wifimgr_work *work)
 	    || !wifimgr_get_ctrl_ops()->get_status
 	    || !wifimgr_get_ctrl_ops()->open
 	    || !wifimgr_get_ctrl_ops()->start_ap) {
-		wifimgr_err("%s: incomplete ops!\n", __func__);
+		wifimgr_err("incomplete ops!\n");
 		return;
 	}
 
 	/* Get control of AP */
 	ret = wifimgr_get_ctrl(iface_name);
 	if (ret) {
-		printf("%s: failed to get ctrl! %d\n", __func__, ret);
+		wifimgr_err("failed to get ctrl! %d\n", ret);
 		goto exit;
 	}
 
@@ -267,18 +264,18 @@ static void wifimgr_autorun_ap(wifimgr_work *work)
 	    wifimgr_get_ctrl_ops_cbs(&wifimgr_autorun_cbs)->
 	    get_conf(iface_name);
 	if (ret) {
-		wifimgr_err("%s: failed to get_conf! %d\n", __func__, ret);
+		wifimgr_err("failed to get_conf! %d\n", ret);
 		goto exit;
 	}
 	sem_wait(&ap_sem);
 	if (ap_autorun <= 0) {
 		ap_autorun = 0;
 		if (ap_autorun < 0)
-			wifimgr_warn("%s: autorun disabled!\n", __func__);
+			printf("AP autorun disabled!\n");
 		goto exit;
 	}
 	if (!ap_ssid || !strlen(ap_ssid)) {
-		wifimgr_warn("%s: no AP config!\n", __func__);
+		wifimgr_warn("no AP config!\n");
 		goto exit;
 	}
 
@@ -287,7 +284,7 @@ static void wifimgr_autorun_ap(wifimgr_work *work)
 	    wifimgr_get_ctrl_ops_cbs(&wifimgr_autorun_cbs)->
 	    get_status(iface_name);
 	if (ret) {
-		wifimgr_err("%s: failed to get_status! %d\n", __func__, ret);
+		wifimgr_err("failed to get_status! %d\n", ret);
 		goto exit;
 	}
 	sem_wait(&ap_sem);
@@ -297,22 +294,21 @@ static void wifimgr_autorun_ap(wifimgr_work *work)
 		/* Open AP */
 		ret = wifimgr_get_ctrl_ops()->open(iface_name);
 		if (ret) {
-			wifimgr_err("%s: failed to open! %d\n", __func__, ret);
+			wifimgr_err("failed to open! %d\n", ret);
 			goto exit;
 		}
 	case WIFIMGR_SM_AP_READY:
 		/* Start AP */
 		ret = wifimgr_get_ctrl_ops()->start_ap();
 		if (ret) {
-			wifimgr_err("%s: failed to start AP! %d\n", __func__,
-				    ret);
+			wifimgr_err("failed to start AP! %d\n", ret);
 			goto exit;
 		}
-		wifimgr_info("%s: done!\n", __func__);
+		wifimgr_info("done!\n");
 
 		break;
 	default:
-		wifimgr_dbg("%s: nothing else to do under %s!\n", __func__,
+		wifimgr_dbg("nothing else to do under %s!\n",
 			    ap_sts2str(ap_state));
 		goto exit;
 	}
