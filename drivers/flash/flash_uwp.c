@@ -128,6 +128,7 @@ static int flash_uwp_write(struct device *dev, off_t offset,
 	key = irq_lock_primask();
 	ret = flash->write(flash, ((u32_t)CONFIG_FLASH_BASE_ADDRESS + offset),
 			len, data);
+	cache_invalid_range_hal((u8_t *)((u32_t)CONFIG_FLASH_BASE_ADDRESS + offset), len);
 	irq_unlock_primask(key);
 
 	flash_uwp_unlock(dev);
