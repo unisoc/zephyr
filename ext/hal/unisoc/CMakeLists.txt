@@ -1,1 +1,1 @@
-add_subdirectory(uwp5661)
+add_subdirectory(uwp)
