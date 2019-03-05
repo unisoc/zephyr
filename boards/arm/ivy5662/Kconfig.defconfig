@@ -8,11 +8,11 @@ config BOARD
 	default "ivy5662"
 
 config 2ND_LVL_INTR_00_OFFSET
-	default 0x1
+	default 1
 config 2ND_LVL_INTR_01_OFFSET
-	default 0x0
+	default 0
 config 2ND_LVL_INTR_02_OFFSET
-	default 0x14
+	default 20
 
 config MAX_IRQ_PER_AGGREGATOR
 	default 32
