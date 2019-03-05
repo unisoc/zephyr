@@ -27,8 +27,17 @@
 #include "dhcpc.h"
 #include "led.h"
 
+#ifdef CONFIG_WIFI_STA_DRV_NAME
 #define WIFIMGR_DEV_NAME_STA	CONFIG_WIFI_STA_DRV_NAME
+#else
+#define WIFIMGR_DEV_NAME_STA	"WIFI_STA"
+#endif
+
+#ifdef CONFIG_WIFI_AP_DRV_NAME
 #define WIFIMGR_DEV_NAME_AP	CONFIG_WIFI_AP_DRV_NAME
+#else
+#define WIFIMGR_DEV_NAME_AP	"WIFI_AP"
+#endif
 
 #define WIFIMGR_MAX_STA_NR	16
 
