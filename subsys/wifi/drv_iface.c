@@ -25,16 +25,10 @@ void *wifi_drv_init(char *devname)
 		return NULL;
 
 	dev = device_get_binding(devname);
-	if (!dev) {
-		wifimgr_err("failed to get device %s!\n", devname);
+	if (!dev)
 		return NULL;
-	}
 
 	iface = net_if_lookup_by_dev(dev);
-	if (!iface) {
-		wifimgr_err("failed to get iface %s!\n", devname);
-		return NULL;
-	}
 
 	return (void *)iface;
 }
