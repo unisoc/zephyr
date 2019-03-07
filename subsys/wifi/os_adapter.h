@@ -39,29 +39,46 @@
  * Copied from include/linux/...
  */
 
-#define container_of CONTAINER_OF
+#define container_of(ptr, type, member) \
+	CONTAINER_OF(ptr, type, member)
 
 #define malloc(size)		k_malloc(size)
 #define free(ptr)		k_free(ptr)
-
-#define wifimgr_slist_init(list)		sys_slist_init(list)
-#define wifimgr_slist_peek_head(list)		sys_slist_peek_head(list)
-#define wifimgr_slist_peek_next(node)		sys_slist_peek_next(node)
-#define wifimgr_slist_prepend(list, node)	sys_slist_prepend(list, node)
-#define wifimgr_slist_append(list, node)	sys_slist_append(list, node)
-#define wifimgr_slist_merge(list_a, list_b) \
-	sys_slist_merge_slist(list_a, list_b)
-#define wifimgr_slist_remove_first(list)	sys_slist_get(list)
-#define wifimgr_slist_remove(list, node) \
-	sys_slist_find_and_remove(list, node)
-
-typedef sys_snode_t wifimgr_snode_t;
-typedef sys_slist_t wifimgr_slist_t;
 
 typedef struct k_work wifimgr_work;
 
 #define wifimgr_init_work(...)	k_work_init(__VA_ARGS__)
 #define wifimgr_queue_work(...)	k_work_submit(__VA_ARGS__)
+
+typedef sys_snode_t wifimgr_snode_t;
+typedef sys_slist_t wifimgr_slist_t;
+
+#define wifimgr_list_init(list)			sys_slist_init(list)
+#define wifimgr_list_peek_head(list)		sys_slist_peek_head(list)
+#define wifimgr_list_peek_next(node)		sys_slist_peek_next(node)
+#define wifimgr_list_prepend(list, node)	sys_slist_prepend(list, node)
+#define wifimgr_list_append(list, node)		sys_slist_append(list, node)
+#define wifimgr_list_merge(list_a, list_b) \
+	sys_slist_merge_slist(list_a, list_b)
+#define wifimgr_list_remove_first(list)		sys_slist_get(list)
+#define wifimgr_list_remove(list, node) \
+	sys_slist_find_and_remove(list, node)
+
+static inline void wifimgr_list_free(wifimgr_slist_t *list)
+{
+	wifimgr_snode_t *node;
+
+	do {
+		node = wifimgr_list_remove_first(list);
+		if (node)
+			free(node);
+	} while (node);
+}
+
+#define wifimgr_list_for_each_entry(pos, head, type, member)                   \
+	for (pos = container_of(wifimgr_list_peek_head(head), type, member);   \
+	     pos;                                                              \
+	     pos = container_of(wifimgr_list_peek_next(&pos->member), type, member))
 
 #ifndef MAC2STR
 #define MAC2STR(m) (m)[0], (m)[1], (m)[2], (m)[3], (m)[4], (m)[5]
