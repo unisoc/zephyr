@@ -222,7 +222,7 @@ int wifimgr_cmd_processor_init(struct cmd_processor *handle)
 	attr.mq_msgsize = sizeof(struct cmd_message);
 	attr.mq_flags = 0;
 
-	/* open message queue of command sender */
+	/* Open message queue of command sender */
 	prcs->mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
 	if (prcs->mq == (mqd_t)-1) {
 		wifimgr_err("failed to open command queue %s! errno: %d\n",
@@ -256,6 +256,7 @@ void wifimgr_cmd_processor_exit(struct cmd_processor *handle)
 {
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
 
+	/* Close message queue */
 	if (prcs->mq && (prcs->mq != (mqd_t)-1)) {
 		mq_close(prcs->mq);
 		mq_unlink(WIFIMGR_CMD_MQUEUE);
