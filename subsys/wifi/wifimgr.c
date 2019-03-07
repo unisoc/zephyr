@@ -57,6 +57,10 @@ static int wifimgr_init(struct device *unused)
 		goto err;
 	}
 
+	ret = wifimgr_autorun_init();
+	if (ret)
+		wifimgr_err("failed to init WiFi autorun!\n");
+
 	wifimgr_info("WiFi manager started\n");
 	return ret;
 
