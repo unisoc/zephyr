@@ -47,6 +47,26 @@
 
 #define C2S(x) case x: return #x;
 
+struct wifimgr_notifier {
+	wifimgr_snode_t node;
+	notifier_fn_t notifier_call;
+};
+
+struct wifimgr_notifier_chain {
+	wifimgr_slist_t list;
+	sem_t exclsem;		/* exclusive access to the struct */
+};
+
+struct wifimgr_mac_node {
+	wifimgr_snode_t node;
+	char mac[WIFIMGR_ETH_ALEN];
+};
+
+struct wifimgr_mac_list {
+	unsigned char nr;
+	wifimgr_slist_t list;
+};
+
 struct wifimgr_status {
 	char own_mac[WIFIMGR_ETH_ALEN];
 	union {
@@ -62,16 +82,6 @@ struct wifimgr_status {
 			char (*acl_mac_addrs)[WIFIMGR_ETH_ALEN];
 		} ap;
 	} u;
-};
-
-struct wifimgr_mac_node {
-	wifimgr_snode_t node;
-	char mac[WIFIMGR_ETH_ALEN];
-};
-
-struct wifimgr_mac_list {
-	unsigned char nr;
-	wifimgr_slist_t list;
 };
 
 struct wifimgr_sta_event {
@@ -94,6 +104,8 @@ struct wifi_manager {
 	struct wifimgr_config sta_conf;
 	struct wifimgr_status sta_sts;
 	struct wifimgr_state_machine sta_sm;
+	struct wifimgr_notifier_chain conn_chain;
+	struct wifimgr_notifier_chain disc_chain;
 
 	sem_t ap_ctrl;			/* AP global control */
 	struct wifi_drv_capa ap_capa;
@@ -118,5 +130,7 @@ int wifimgr_sta_init(void *handle);
 void wifimgr_sta_exit(void *handle);
 int wifimgr_ap_init(void *handle);
 void wifimgr_ap_exit(void *handle);
+
+int wifimgr_autorun_init(void);
 
 #endif

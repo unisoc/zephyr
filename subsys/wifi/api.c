@@ -17,9 +17,6 @@
 #include "config.h"
 #include "timer.h"
 
-extern timer_t sta_autorun_timerid;
-extern timer_t ap_autorun_timerid;
-
 static struct wifimgr_ctrl_cbs *wifimgr_cbs;
 
 int wifimgr_get_ctrl(char *iface_name)
@@ -79,20 +76,16 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 				unsigned char ch_width, int autorun)
 {
 	struct wifimgr_config conf;
-	timer_t autorun_timerid;
 	unsigned int cmd_id;
 
 	if (!iface_name)
 		return -EINVAL;
-	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
+	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
 		cmd_id = WIFIMGR_CMD_SET_STA_CONFIG;
-		autorun_timerid = sta_autorun_timerid;
-	} else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP)) {
+	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
 		cmd_id = WIFIMGR_CMD_SET_AP_CONFIG;
-		autorun_timerid = ap_autorun_timerid;
-	} else {
+	else
 		return -EINVAL;
-	}
 
 	memset(&conf, 0, sizeof(conf));
 
@@ -181,13 +174,10 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
 	conf.autorun = autorun;
 	if (autorun)
 		printf("----------------\n");
-	if (autorun > 0) {
+	if (autorun > 0)
 		printf("Autorun:\t%ds\n", autorun);
-		wifimgr_timer_start(autorun_timerid, autorun);
-	} else if (autorun < 0) {
+	else if (autorun < 0)
 		printf("Autorun:\toff\n");
-		wifimgr_timer_stop(autorun_timerid);
-	}
 
 	return wifimgr_ctrl_iface_send_cmd(cmd_id, &conf, sizeof(conf));
 }
