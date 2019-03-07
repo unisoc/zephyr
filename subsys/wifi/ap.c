@@ -166,29 +166,12 @@ static struct wifimgr_mac_node *search_mac(struct wifimgr_mac_list *mac_list,
 	struct wifimgr_mac_node *mac_node;
 
 	/* Loop through list to find the corresponding event */
-	mac_node =
-	    (struct wifimgr_mac_node *)wifimgr_slist_peek_head(&mac_list->list);
-	while (mac_node) {
+	wifimgr_list_for_each_entry(mac_node, &mac_list->list, struct wifimgr_mac_node, node) {
 		if (!memcmp(mac_node->mac, mac, WIFIMGR_ETH_ALEN))
 			return mac_node;
-
-		mac_node = (struct wifimgr_mac_node *)
-		    wifimgr_slist_peek_next(&mac_node->node);
 	}
 
 	return NULL;
-}
-
-static void clean_mac_list(struct wifimgr_mac_list *mac_list)
-{
-	struct wifimgr_mac_node *mac_node;
-
-	do {
-		mac_node = (struct wifimgr_mac_node *)
-		    wifimgr_slist_remove_first(&mac_list->list);
-		if (mac_node)
-			free(mac_node);
-	} while (mac_node);
 }
 
 static int wifimgr_ap_set_mac_acl(void *handle)
@@ -287,24 +270,24 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 				break;
 			}
 			memcpy(marked_sta->mac, set_acl->mac, WIFIMGR_ETH_ALEN);
-			wifimgr_slist_append(&mac_acl->list, &marked_sta->node);
+			wifimgr_list_append(&mac_acl->list, &marked_sta->node);
 			mac_acl->nr++;
 			wifimgr_info("Block ");
 			break;
 		case WIFIMGR_SUBCMD_ACL_UNBLOCK:
-			wifimgr_slist_remove(&mac_acl->list, &marked_sta->node);
+			wifimgr_list_remove(&mac_acl->list, &marked_sta->node);
 			free(marked_sta);
 			mac_acl->nr--;
 			wifimgr_info("Unblock ");
 			break;
 		case WIFIMGR_SUBCMD_ACL_BLOCK_ALL:
-			wifimgr_slist_merge(&mac_acl->list, &assoc_list->list);
+			wifimgr_list_merge(&mac_acl->list, &assoc_list->list);
 			mac_acl->nr = assoc_list->nr;
 			assoc_list->nr = 0;
 			wifimgr_info("Block ");
 			break;
 		case WIFIMGR_SUBCMD_ACL_UNBLOCK_ALL:
-			clean_mac_list(mac_acl);
+			wifimgr_list_free(&mac_acl->list);
 			mac_acl->nr = 0;
 			wifimgr_info("Unblock ");
 			break;
@@ -316,12 +299,12 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 
 		/* Update ACL table */
 		marked_sta = (struct wifimgr_mac_node *)
-		    wifimgr_slist_peek_head(&mac_acl->list);
+		    wifimgr_list_peek_head(&mac_acl->list);
 		for (i = 0; (i < mac_acl->nr) || (marked_sta != NULL); i++) {
 			memcpy(sts->u.ap.acl_mac_addrs[i], marked_sta->mac,
 			       WIFIMGR_ETH_ALEN);
 			marked_sta = (struct wifimgr_mac_node *)
-			    wifimgr_slist_peek_next(&marked_sta->node);
+			    wifimgr_list_peek_next(&marked_sta->node);
 		}
 		sts->u.ap.acl_nr = mac_acl->nr;
 
@@ -377,7 +360,7 @@ static int wifimgr_ap_new_station_event(void *arg)
 		if (!assoc_sta)
 			return -ENOMEM;
 		memcpy(assoc_sta->mac, new_sta->mac, WIFIMGR_ETH_ALEN);
-		wifimgr_slist_append(&assoc_list->list, &assoc_sta->node);
+		wifimgr_list_append(&assoc_list->list, &assoc_sta->node);
 		assoc_list->nr++;
 		pending = true;
 	} else {
@@ -393,7 +376,7 @@ static int wifimgr_ap_new_station_event(void *arg)
 			return 0;
 		}
 
-		wifimgr_slist_remove(&assoc_list->list, &assoc_sta->node);
+		wifimgr_list_remove(&assoc_list->list, &assoc_sta->node);
 		free(assoc_sta);
 		assoc_list->nr--;
 		pending = true;
@@ -408,12 +391,12 @@ static int wifimgr_ap_new_station_event(void *arg)
 
 		/* Update the associated station table */
 		assoc_sta = (struct wifimgr_mac_node *)
-		    wifimgr_slist_peek_head(&assoc_list->list);
+		    wifimgr_list_peek_head(&assoc_list->list);
 		for (i = 0; (i < assoc_list->nr) || (assoc_sta != NULL); i++) {
 			memcpy(sts->u.ap.sta_mac_addrs[i], assoc_sta->mac,
 			       WIFIMGR_ETH_ALEN);
 			assoc_sta = (struct wifimgr_mac_node *)
-			    wifimgr_slist_peek_next(&assoc_sta->node);
+			    wifimgr_list_peek_next(&assoc_sta->node);
 		}
 		sts->u.ap.sta_nr = assoc_list->nr;
 
@@ -474,11 +457,11 @@ static int wifimgr_ap_start(void *handle)
 	sts->u.ap.acl_nr = 0;
 
 	/* Initialize the associated station list */
-	wifimgr_slist_init(&assoc_list->list);
+	wifimgr_list_init(&assoc_list->list);
 	assoc_list->nr = 0;
 
 	/* Initialize the MAC ACL list */
-	wifimgr_slist_init(&mac_acl->list);
+	wifimgr_list_init(&mac_acl->list);
 	mac_acl->nr = 0;
 
 	if (strlen(conf->ssid))
@@ -527,9 +510,9 @@ static int wifimgr_ap_stop(void *handle)
 	evt_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_NEW_STATION);
 
 	/* Deinitialize the MAC ACL list */
-	clean_mac_list(&mgr->mac_acl);
+	wifimgr_list_free(&mgr->mac_acl.list);
 	/* Deinitialize the associated station list */
-	clean_mac_list(&mgr->assoc_list);
+	wifimgr_list_free(&mgr->assoc_list.list);
 	/* Deinitialize the MAC ACL table */
 	free(sts->u.ap.acl_mac_addrs);
 	sts->u.ap.acl_mac_addrs = NULL;

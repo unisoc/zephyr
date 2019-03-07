@@ -15,7 +15,105 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
 
+static struct wifimgr_notifier_chain *conn_chain;
+static struct wifimgr_notifier_chain *disc_chain;
+
 static int wifimgr_sta_close(void *handle);
+
+static struct wifimgr_notifier *search_notifier(struct wifimgr_notifier_chain *chain,
+						notifier_fn_t notifier_call)
+{
+	struct wifimgr_notifier *notifier;
+
+	/* Loop through list to find the corresponding event */
+	wifimgr_list_for_each_entry(notifier, &chain->list, struct wifimgr_notifier, node) {
+		if (notifier->notifier_call == notifier_call)
+			return notifier;
+	}
+
+	return NULL;
+}
+
+static int register_notifier(struct wifimgr_notifier_chain *chain,
+					    notifier_fn_t notifier_call)
+{
+	struct wifimgr_notifier *notifier;
+	int ret;
+
+	if (!chain || !notifier_call)
+		return -EINVAL;
+
+	sem_wait(&chain->exclsem);
+
+	/* Check whether the notifier already exist */
+	notifier = search_notifier(chain, notifier_call);
+	if (notifier) {
+		wifimgr_warn("notifier (%p) already exist!\n", notifier_call);
+		sem_post(&chain->exclsem);
+		return 0;
+	}
+
+	/* Allocate a notifier struct */
+	notifier = malloc(sizeof(struct wifimgr_notifier));
+	if (!notifier) {
+		ret = -ENOMEM;
+		sem_post(&chain->exclsem);
+		return ret;
+	}
+
+	notifier->notifier_call = notifier_call;
+
+	/* Link the notifier into the disconnection chain */
+	wifimgr_list_append(&chain->list, &notifier->node);
+	sem_post(&chain->exclsem);
+
+	return 0;
+}
+
+static int unregister_notifier(struct wifimgr_notifier_chain *chain,
+					      notifier_fn_t notifier_call)
+{
+	struct wifimgr_notifier *notifier;
+
+	if (!chain || !notifier)
+		return -EINVAL;
+
+	/* Get exclusive access to the struct */
+	sem_wait(&chain->exclsem);
+
+	notifier = search_notifier(chain, notifier_call);
+	if (!notifier) {
+		wifimgr_warn("no receiver (%p) to remove!\n", notifier_call);
+		sem_post(&chain->exclsem);
+		return -ENOENT;
+	}
+
+	wifimgr_list_remove(&chain->list, &notifier->node);
+	sem_post(&chain->exclsem);
+	free(notifier);
+
+	return 0;
+}
+
+int wifimgr_register_connection_notifier(notifier_fn_t notifier_call)
+{
+	register_notifier(conn_chain, notifier_call);
+}
+
+int wifimgr_unregister_connection_notifier(notifier_fn_t notifier_call)
+{
+	unregister_notifier(conn_chain, notifier_call);
+}
+
+int wifimgr_register_disconnection_notifier(notifier_fn_t notifier_call)
+{
+	register_notifier(disc_chain, notifier_call);
+}
+
+int wifimgr_unregister_disconnection_notifier(notifier_fn_t notifier_call)
+{
+	unregister_notifier(disc_chain, notifier_call);
+}
 
 void wifimgr_sta_event_timeout(wifimgr_work *work)
 {
@@ -175,6 +273,7 @@ static int wifimgr_sta_disconnect_event(void *arg)
 	struct wifimgr_status *sts = &mgr->sta_sts;
 	struct net_if *iface = (struct net_if *)mgr->sta_iface;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
+	struct wifimgr_notifier *notifier;
 
 	wifimgr_info("disconnect! reason: %d\n", disc->reason_code);
 
@@ -189,6 +288,12 @@ static int wifimgr_sta_disconnect_event(void *arg)
 	if (cbs && cbs->notify_disconnect)
 		cbs->notify_disconnect(disc->reason_code);
 
+	/* Notify the passive callback on the disconnection chain */
+	wifimgr_list_for_each_entry(notifier, &disc_chain->list, struct wifimgr_notifier, node) {
+		if (notifier->notifier_call)
+			notifier->notifier_call(disc->reason_code);
+	}
+
 	return 0;
 }
 
@@ -196,12 +301,6 @@ static int wifimgr_sta_disconnect(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret;
-
-	ret = evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_DISCONNECT,
-					true, wifimgr_sta_disconnect_event,
-					&mgr->sta_evt);
-	if (ret)
-		return ret;
 
 	ret = wifi_drv_disconnect(mgr->sta_iface);
 	if (ret) {
@@ -222,6 +321,7 @@ static int wifimgr_sta_connect_event(void *arg)
 	struct wifimgr_status *sts = &mgr->sta_sts;
 	struct net_if *iface = (struct net_if *)mgr->sta_iface;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
+	struct wifimgr_notifier *notifier;
 	int ret = conn->status;
 
 	if (!ret) {
@@ -250,6 +350,12 @@ static int wifimgr_sta_connect_event(void *arg)
 	/* Notify the external caller */
 	if (cbs && cbs->notify_connect)
 		cbs->notify_connect(conn->status);
+
+	/* Notify the passive callback on the onnection chain */
+	wifimgr_list_for_each_entry(notifier, &conn_chain->list, struct wifimgr_notifier, node) {
+		if (notifier->notifier_call)
+			notifier->notifier_call(conn->status);
+	}
 
 	return ret;
 }
@@ -508,12 +614,28 @@ int wifimgr_sta_init(void *handle)
 	if (ret)
 		wifimgr_err("failed to init WiFi STA state machine!\n");
 
+	/* Initialize the notifier chain */
+	wifimgr_list_init(&mgr->conn_chain.list);
+	sem_init(&mgr->conn_chain.exclsem, 0, 1);
+	conn_chain = &mgr->conn_chain;
+	wifimgr_list_init(&mgr->disc_chain.list);
+	sem_init(&mgr->disc_chain.exclsem, 0, 1);
+	disc_chain = &mgr->disc_chain;
+
 	return ret;
 }
 
 void wifimgr_sta_exit(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
+
+	/* Deinitialize the notifier chain */
+	wifimgr_list_free(&mgr->conn_chain.list);
+	sem_destroy(&mgr->conn_chain.exclsem);
+	conn_chain = NULL;
+	wifimgr_list_free(&mgr->disc_chain.list);
+	sem_destroy(&mgr->disc_chain.exclsem);
+	disc_chain = NULL;
 
 	/* Deinitialize STA state machine */
 	wifimgr_sm_exit(&mgr->sta_sm);
