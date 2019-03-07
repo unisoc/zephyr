@@ -65,13 +65,9 @@ static struct evt_receiver *search_event(struct evt_listener *lsnr,
 	struct evt_receiver *rcvr;
 
 	/* Loop through list to find the corresponding event */
-	rcvr = (struct evt_receiver *)wifimgr_slist_peek_head(&lsnr->evt_list);
-	while (rcvr) {
+	wifimgr_list_for_each_entry(rcvr, &lsnr->evt_list, struct evt_receiver, node) {
 		if (rcvr->expected_evt == evt_id)
 			return rcvr;
-
-		rcvr =
-		    (struct evt_receiver *)wifimgr_slist_peek_next(&rcvr->node);
 	}
 
 	return NULL;
@@ -80,10 +76,10 @@ static struct evt_receiver *search_event(struct evt_listener *lsnr,
 static void free_event(struct evt_listener *lsnr, struct evt_receiver *rcvr)
 {
 	/* Unlink the receiver from the list */
-	wifimgr_slist_remove(&lsnr->evt_list, &rcvr->node);
+	wifimgr_list_remove(&lsnr->evt_list, &rcvr->node);
 
 	/* Link the receiver back into the free list */
-	wifimgr_slist_append(&lsnr->free_evt_list, &rcvr->node);
+	wifimgr_list_append(&lsnr->free_evt_list, &rcvr->node);
 }
 
 int evt_listener_add_receiver(struct evt_listener *handle, unsigned int evt_id,
@@ -109,7 +105,7 @@ int evt_listener_add_receiver(struct evt_listener *handle, unsigned int evt_id,
 
 	/* Allocate a receiver struct from the free pool */
 	rcvr = (struct evt_receiver *)
-	    wifimgr_slist_remove_first(&lsnr->free_evt_list);
+	    wifimgr_list_remove_first(&lsnr->free_evt_list);
 	if (!rcvr) {
 		ret = -ENOMEM;
 		wifimgr_err("no free event receiver! %d\n", ret);
@@ -123,7 +119,7 @@ int evt_listener_add_receiver(struct evt_listener *handle, unsigned int evt_id,
 	rcvr->arg = arg;
 
 	/* Link the evt_listener into the list */
-	wifimgr_slist_append(&lsnr->evt_list, &rcvr->node);
+	wifimgr_list_append(&lsnr->evt_list, &rcvr->node);
 	sem_post(&lsnr->exclsem);
 
 	return 0;
@@ -142,14 +138,15 @@ int evt_listener_remove_receiver(struct evt_listener *handle,
 	sem_wait(&lsnr->exclsem);
 
 	rcvr = search_event(lsnr, evt_id);
-	sem_post(&lsnr->exclsem);
 	if (!rcvr) {
 		wifimgr_warn("no [%s] receiver to remove!\n",
 			     wifimgr_evt2str(evt_id));
+		sem_post(&lsnr->exclsem);
 		return -ENOENT;
 	}
 
 	free_event(lsnr, rcvr);
+	sem_post(&lsnr->exclsem);
 	memset(rcvr, 0, sizeof(struct evt_receiver));
 
 	return 0;
@@ -239,7 +236,7 @@ int wifimgr_evt_listener_init(struct evt_listener *handle)
 	attr.mq_msgsize = sizeof(struct evt_message);
 	attr.mq_flags = 0;
 
-	/* open message queue of event receiver */
+	/* Open message queue of event receiver */
 	lsnr->mq = mq_open(WIFIMGR_EVT_MQUEUE, O_RDWR | O_CREAT, 0666, &attr);
 	if (lsnr->mq == (mqd_t)-1) {
 		wifimgr_err("failed to open event queue %s! errno %d\n",
@@ -248,10 +245,10 @@ int wifimgr_evt_listener_init(struct evt_listener *handle)
 	}
 
 	/* Initialize the event receiver allocation pool */
-	wifimgr_slist_init(&lsnr->evt_list);
-	wifimgr_slist_init(&lsnr->free_evt_list);
+	wifimgr_list_init(&lsnr->evt_list);
+	wifimgr_list_init(&lsnr->free_evt_list);
 	for (i = 0; i < WIFIMGR_EVT_RECEIVER_NR; i++)
-		wifimgr_slist_append(&lsnr->free_evt_list,
+		wifimgr_list_append(&lsnr->free_evt_list,
 				     (wifimgr_snode_t *) &lsnr->evt_pool[i]);
 
 	sem_init(&lsnr->exclsem, 0, 1);
@@ -281,10 +278,15 @@ void wifimgr_evt_listener_exit(struct evt_listener *handle)
 {
 	struct evt_listener *lsnr = (struct evt_listener *)handle;
 
+	/* Close message queue */
 	if (lsnr->mq && (lsnr->mq != (mqd_t)-1)) {
 		mq_close(lsnr->mq);
 		mq_unlink(WIFIMGR_CMD_MQUEUE);
 	}
+
+	/* Deinitialize the event receiver allocation pool */
+	wifimgr_list_free(&lsnr->evt_list);
+	wifimgr_list_free(&lsnr->free_evt_list);
 
 	sem_destroy(&lsnr->exclsem);
 	lsnr->is_started = false;
