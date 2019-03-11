@@ -8,6 +8,7 @@ zephyr_sources_ifdef(
   cmd_prcs.c
   drv_iface.c
   evt_lsnr.c
+  notifier.c
   sm.c
   timer.c
   wifimgr.c
