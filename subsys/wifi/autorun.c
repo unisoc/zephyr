@@ -71,14 +71,20 @@ static void wifimgr_autorun_notify_scan_done(char result)
 }
 
 
-static void wifimgr_autorun_notify_disconnect(int reason_code)
+static void wifimgr_autorun_notify_disconnect(union wifi_notifier_val val)
 {
+	int reason_code = val.val_char;
+
+	printf("%s reason %d\n", __func__, reason_code);
 	sta_connected = false;
 	wifimgr_timer_start(sta_autorun_timerid, sta_autorun);
 }
 
-static void wifimgr_autorun_notify_connect(int result)
+static void wifimgr_autorun_notify_connect(union wifi_notifier_val val)
 {
+	int result = val.val_char;
+
+	printf("%s result %d\n", __func__, result);
 	wifimgr_timer_stop(sta_autorun_timerid);
 	if (!result)
 		sta_connected = true;
@@ -119,6 +125,12 @@ void wifimgr_autorun_get_ap_status_cb(char status, char *own_mac,
 {
 	ap_state = status;
 	sem_post(&ap_sem);
+}
+static void wifimgr_autorun_notify_new_station(union wifi_notifier_val val)
+{
+	char *mac = val.val_ptr;
+
+	printf("MAC:\t\t" MACSTR "\n", MAC2STR(mac));
 }
 #endif
 
@@ -357,6 +369,7 @@ int wifimgr_autorun_init(void)
 	if (ret < 0)
 		wifimgr_err("failed to init AP autorun!\n");
 
+	wifimgr_register_new_station_notifier(wifimgr_autorun_notify_new_station);
 	/* Set timer for the first run */
 	ret = wifimgr_timer_start(ap_autorun_timerid, 1);
 	if (ret < 0)
