@@ -15,8 +15,20 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
 
+static struct wifimgr_notifier_chain *new_sta_chain;
+
 static int wifimgr_ap_stop(void *handle);
 static int wifimgr_ap_close(void *handle);
+
+int wifimgr_register_new_station_notifier(wifi_notifier_fn_t notifier_call)
+{
+	wifimgr_register_notifier(new_sta_chain, notifier_call);
+}
+
+int wifimgr_unregister_new_station_notifier(wifi_notifier_fn_t notifier_call)
+{
+	wifimgr_unregister_notifier(new_sta_chain, notifier_call);
+}
 
 void wifimgr_ap_event_timeout(wifimgr_work *work)
 {
@@ -327,6 +339,7 @@ static int wifimgr_ap_new_station_event(void *arg)
 	struct wifimgr_mac_list *assoc_list = &mgr->assoc_list;
 	struct wifimgr_mac_node *assoc_sta;
 	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
+	struct wifimgr_notifier *notifier;
 	bool pending = false;
 
 	wifimgr_info("Station (" MACSTR ") %s!\n", MAC2STR(new_sta->mac),
@@ -404,6 +417,16 @@ static int wifimgr_ap_new_station_event(void *arg)
 		if (cbs && cbs->notify_new_station)
 			cbs->notify_new_station(new_sta->is_connect,
 						new_sta->mac);
+		/* Notify the passive callback on the new station chain */
+		wifimgr_list_for_each_entry(notifier, &new_sta_chain->list, struct wifimgr_notifier, node) {
+			if (notifier->notifier_call) {
+				union wifi_notifier_val val;
+
+				val.val_ptr = new_sta->mac;
+				notifier->notifier_call(val);
+			}
+		}
+
 	}
 
 	return 0;
@@ -662,12 +685,22 @@ int wifimgr_ap_init(void *handle)
 	if (ret)
 		wifimgr_err("failed to init WiFi AP state machine!\n");
 
+	/* Initialize AP notifier chain */
+	wifimgr_list_init(&mgr->new_sta_chain.list);
+	sem_init(&mgr->new_sta_chain.exclsem, 0, 1);
+	new_sta_chain = &mgr->new_sta_chain;
+
 	return ret;
 }
 
 void wifimgr_ap_exit(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
+
+	/* Deinitialize AP notifier chain */
+	wifimgr_list_free(&mgr->new_sta_chain.list);
+	sem_destroy(&mgr->new_sta_chain.exclsem);
+	new_sta_chain = NULL;
 
 	/* Deinitialize AP state machine */
 	wifimgr_sm_exit(&mgr->ap_sm);
