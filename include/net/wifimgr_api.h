@@ -15,7 +15,12 @@
 #define WIFIMGR_IFACE_NAME_STA	"sta"
 #define WIFIMGR_IFACE_NAME_AP	"ap"
 
-typedef void (*notifier_fn_t)(int val);
+union wifi_notifier_val {
+	char val_char;
+	void *val_ptr;
+};
+
+typedef void (*wifi_notifier_fn_t)(union wifi_notifier_val val);
 
 enum wifimgr_security {
 	WIFIMGR_SECURITY_OPEN = 1,
@@ -69,10 +74,14 @@ struct wifimgr_ctrl_cbs {
 
 int wifimgr_get_ctrl(char *iface_name);
 int wifimgr_release_ctrl(char *iface_name);
-int wifimgr_register_connection_notifier(notifier_fn_t notifier_call);
-int wifimgr_unregister_connection_notifier(notifier_fn_t notifier_call);
-int wifimgr_register_disconnection_notifier(notifier_fn_t notifier_call);
-int wifimgr_unregister_disconnection_notifier(notifier_fn_t notifier_call);
+int wifimgr_register_connection_notifier(wifi_notifier_fn_t notifier_call);
+int wifimgr_unregister_connection_notifier(wifi_notifier_fn_t notifier_call);
+int wifimgr_register_disconnection_notifier(wifi_notifier_fn_t notifier_call);
+int wifimgr_unregister_disconnection_notifier(wifi_notifier_fn_t notifier_call);
+
+int wifimgr_register_new_station_notifier(wifi_notifier_fn_t notifier_call);
+int wifimgr_unregister_new_station_notifier(wifi_notifier_fn_t notifier_call);
+
 const struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops(void);
 const
 struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops_cbs(struct wifimgr_ctrl_cbs *cbs);
