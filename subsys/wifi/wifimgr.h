@@ -21,6 +21,7 @@
 #include "drv_iface.h"
 #include "cmd_prcs.h"
 #include "evt_lsnr.h"
+#include "notifier.h"
 #include "timer.h"
 #include "sm.h"
 #include "psk.h"
@@ -46,16 +47,6 @@
 #define WIFIMGR_EVENT_TIMEOUT	10
 
 #define C2S(x) case x: return #x;
-
-struct wifimgr_notifier {
-	wifimgr_snode_t node;
-	notifier_fn_t notifier_call;
-};
-
-struct wifimgr_notifier_chain {
-	wifimgr_slist_t list;
-	sem_t exclsem;		/* exclusive access to the struct */
-};
 
 struct wifimgr_mac_node {
 	wifimgr_snode_t node;
@@ -115,6 +106,7 @@ struct wifi_manager {
 	struct wifimgr_mac_list assoc_list;
 	struct wifimgr_mac_list mac_acl;
 	struct wifimgr_set_mac_acl set_acl;
+	struct wifimgr_notifier_chain new_sta_chain;
 
 	struct cmd_processor prcs;
 	struct evt_listener lsnr;
