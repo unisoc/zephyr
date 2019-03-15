@@ -180,7 +180,7 @@ void wifimgr_settings_init_one(struct wifimgr_settings_map *setting,
 	setting->mask = mask;
 }
 
-static int wifimgr_settings_init(struct wifimgr_config *conf, char *path)
+static int wifimgr_settings_init(struct wifi_config *conf, char *path)
 {
 	int settings_size = sizeof(struct wifimgr_settings_map) *
 	    ARRAY_SIZE(wifimgr_setting_keynames);
@@ -283,7 +283,7 @@ int wifimgr_config_load(void *handle, char *path)
 
 int wifimgr_config_init(void *handle, char *path)
 {
-	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
+	struct wifi_config *conf = (struct wifi_config *)handle;
 	int ret;
 
 	ret = settings_subsys_init();

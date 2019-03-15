@@ -17,37 +17,27 @@ LOG_MODULE_DECLARE(wifimgr);
 
 K_THREAD_STACK_ARRAY_DEFINE(cmd_stacks, 1, WIFIMGR_CMD_PROCESSOR_STACKSIZE);
 
-int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
+int wifimgr_ctrl_iface_send_cmd(struct wifimgr_ctrl_iface *ctrl, unsigned int cmd_id, void *buf, int buf_len)
 {
-	struct mq_des *mq;
-	struct mq_attr attr;
 	struct cmd_message msg;
 	struct timespec ts;
 	int prio;
 	int ret;
 
-	attr.mq_maxmsg = WIFIMGR_CMD_MQUEUE_NR;
-	attr.mq_msgsize = sizeof(msg);
-	attr.mq_flags = 0;
-	mq = mq_open(WIFIMGR_CMD_MQUEUE, O_RDWR, 0666, &attr);
-	if (mq == (mqd_t)-1) {
-		wifimgr_err("failed to open command queue %s! errno %d\n",
-			    WIFIMGR_CMD_MQUEUE, errno);
-		return -errno;
-	}
-
 	msg.cmd_id = cmd_id;
 	msg.reply = 0;
 	msg.buf_len = buf_len;
-	msg.buf = NULL;
+	msg.buf = buf;
+	/*msg.buf = NULL;
 	if (buf_len) {
 		msg.buf = malloc(buf_len);
 		if (!msg.buf)
 			return -ENOMEM;
 		memcpy(msg.buf, buf, buf_len);
-	}
+	}*/
 
-	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
+	/* Send commands */
+	ret = mq_send(ctrl->mq, (const char *)&msg, sizeof(msg), 0);
 	if (ret == -1) {
 		wifimgr_err("failed to send [%s]! errno %d\n",
 			    wifimgr_cmd2str(msg.cmd_id), errno);
@@ -56,12 +46,13 @@ int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
 		wifimgr_dbg("send [%s], buf: 0x%08x\n",
 			    wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
 
+		/* Receive command replys */
 		ret = clock_gettime(CLOCK_MONOTONIC, &ts);
 		if (ret)
 			wifimgr_err("failed to get clock time! %d\n", ret);
 		ts.tv_sec += WIFIMGR_CMD_TIMEOUT;
 		ret =
-		    mq_timedreceive(mq, (char *)&msg, sizeof(msg), &prio, &ts);
+		    mq_timedreceive(ctrl->mq, (char *)&msg, sizeof(msg), &prio, &ts);
 		if (ret == -1) {
 			wifimgr_err("failed to get command reply! errno %d\n",
 				    errno);
@@ -79,23 +70,30 @@ int wifimgr_ctrl_iface_send_cmd(unsigned int cmd_id, void *buf, int buf_len)
 		}
 	}
 
-	free(msg.buf);
-	mq_close(mq);
+	/*free(msg.buf);*/
 
 	return ret;
 }
 
 int cmd_processor_add_sender(struct cmd_processor *handle, unsigned int cmd_id,
-			     cmd_func_t fn, void *arg)
+			     char type, cmd_func_t fn, void *arg)
 {
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
-	struct cmd_sender *sndr = &prcs->cmd_pool[cmd_id];
+	struct cmd_sender *sndr;
 
-	if (!prcs || !fn)
+	if (!prcs || !type || !fn)
 		return -EINVAL;
 
+	if (cmd_id < WIFIMGR_CMD_MAX)
+		sndr = &prcs->cmd_pool[cmd_id];
+	else
+		return -EINVAL;
+
+	sndr->type = type;
 	sndr->fn = fn;
-	sndr->arg = arg;
+
+	if (arg)
+		sndr->arg = arg;
 
 	return 0;
 }
@@ -104,11 +102,17 @@ int cmd_processor_remove_sender(struct cmd_processor *handle,
 				unsigned int cmd_id)
 {
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
-	struct cmd_sender *sndr = &prcs->cmd_pool[cmd_id];
+	struct cmd_sender *sndr;
 
 	if (!prcs)
 		return -EINVAL;
 
+	if (cmd_id < WIFIMGR_CMD_MAX)
+		sndr = &prcs->cmd_pool[cmd_id];
+	else
+		return -EINVAL;
+
+	sndr->type = 0;
 	sndr->fn = NULL;
 	sndr->arg = NULL;
 
@@ -121,6 +125,7 @@ static void cmd_processor_post_process(void *handle,
 	struct cmd_processor *prcs = (struct cmd_processor *)handle;
 	int ret;
 
+	/* Reply commands */
 	msg->reply = reply;
 	ret =
 	    mq_send(prcs->mq, (const char *)msg, sizeof(struct cmd_message), 0);
@@ -182,15 +187,21 @@ static void *cmd_processor(void *handle)
 		sem_wait(&prcs->exclsem);
 		sndr = &prcs->cmd_pool[msg.cmd_id];
 		if (sndr->fn) {
-			if (msg.buf_len) {
+			/* Set params through message buffer */
+			if (sndr->arg && (sndr->type != WIFIMGR_CMD_TYPE_GET)) {
 				wifimgr_hexdump(msg.buf, msg.buf_len);
 				memcpy(sndr->arg, msg.buf, msg.buf_len);
 			}
-
 			/* Call command function */
 			ret = sndr->fn(sndr->arg);
 			/* Trigger state machine */
 			wifimgr_sm_cmd_step(mgr, msg.cmd_id, ret);
+			/* Get results through message buffer */
+			if (msg.buf && (sndr->type == WIFIMGR_CMD_TYPE_GET)) {
+				printf("%s msg.buf %p sndr->arg %p, msg.buf_len %d, \n", __func__, msg.buf, sndr->arg, msg.buf_len);
+				memcpy(msg.buf, sndr->arg, msg.buf_len);
+				wifimgr_hexdump(msg.buf, msg.buf_len);
+			}
 		} else {
 			wifimgr_err("[%s] not allowed under %s!\n",
 				    wifimgr_cmd2str(msg.cmd_id),

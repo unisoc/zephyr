@@ -24,9 +24,9 @@
 
 #include <misc/slist.h>
 
-#include <net/net_linkaddr.h>
+/*#include <net/net_linkaddr.h>*/
 
-#define WIFIMGR_ETH_ALEN	NET_LINK_ADDR_MAX_LENGTH
+/*#define WIFIMGR_ETH_ALEN	NET_LINK_ADDR_MAX_LENGTH*/
 
 #define wifimgr_err(...)	LOG_ERR(__VA_ARGS__)
 #define wifimgr_warn(...)	LOG_WRN(__VA_ARGS__)
