@@ -9,6 +9,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_DECLARE(wifimgr);
+
 #if defined(CONFIG_WIFIMGR_STA) || defined(CONFIG_WIFIMGR_AP)
 
 #include <net/wifimgr_drv.h>
@@ -38,20 +42,28 @@ int wifi_drv_get_mac(void *iface, char *mac)
 	if (!mac)
 		return -EINVAL;
 
-	memcpy(mac, net_if_get_link_addr(iface)->addr, WIFIMGR_ETH_ALEN);
+	memcpy(mac, net_if_get_link_addr(iface)->addr, NET_LINK_ADDR_MAX_LENGTH);
 
 	return 0;
 }
 
-int wifi_drv_get_capa(void *iface, struct wifi_drv_capa *capa)
+int wifi_drv_get_capa(void *iface, union wifi_capa *capa)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
 	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
+	union wifi_drv_capa drv_capa;
+	int ret;
 
 	if (!drv_api->get_capa)
 		return -EIO;
 
-	return drv_api->get_capa(dev, capa);
+	ret = drv_api->get_capa(dev, &drv_capa);
+	if (!ret) {
+		capa->ap.max_ap_assoc_sta = drv_capa.ap.max_ap_assoc_sta;
+		capa->ap.max_acl_mac_addrs = drv_capa.ap.max_acl_mac_addrs;
+	}
+
+	return ret;
 }
 
 int wifi_drv_open(void *iface)
@@ -82,15 +94,16 @@ void wifi_drv_event_iface_scan_result(void *iface, int status,
 				      struct wifi_drv_scan_result_evt *entry)
 {
 	struct wifi_drv_scan_result_evt scan_res;
-	struct wifi_drv_scan_done_evt scan_done;
+	char evt_status = status;
 
 	if (!entry) {
-		scan_done.result = status;
-		wifimgr_notify_event(WIFIMGR_EVT_SCAN_DONE, &scan_done,
-				     sizeof(scan_done));
+		wifimgr_notify_event(WIFIMGR_EVT_SCAN_DONE, &evt_status,
+				     sizeof(evt_status));
 	} else {
-		strcpy(scan_res.ssid, entry->ssid);
-		strncpy(scan_res.bssid, entry->bssid, WIFIMGR_ETH_ALEN);
+		if (entry->ssid && strlen(entry->ssid))
+			strcpy(scan_res.ssid, entry->ssid);
+		if (entry->bssid && !is_zero_ether_addr(entry->bssid))
+			memcpy(scan_res.bssid, entry->bssid, NET_LINK_ADDR_MAX_LENGTH);
 		scan_res.channel = entry->channel;
 		scan_res.rssi = entry->rssi;
 		scan_res.security = entry->security;
@@ -115,13 +128,46 @@ int wifi_drv_scan(void *iface, unsigned char band, unsigned char channel)
 	return drv_api->scan(dev, &params, wifi_drv_event_iface_scan_result);
 }
 
+static
+void wifi_drv_event_iface_rtt_response(void *iface, int status,
+				      struct wifi_drv_rtt_response_evt *entry)
+{
+	struct wifi_drv_rtt_response_evt rtt_resp;
+	char evt_status = status;
+
+	if (!entry) {
+		wifimgr_notify_event(WIFIMGR_EVT_RTT_DONE, &evt_status,
+				     sizeof(evt_status));
+	} else {
+		if (entry->bssid && !is_zero_ether_addr(entry->bssid))
+			memcpy(rtt_resp.bssid, entry->bssid, NET_LINK_ADDR_MAX_LENGTH);
+		rtt_resp.range = entry->range;
+
+		wifimgr_notify_event(WIFIMGR_EVT_RTT_RESPONSE, &rtt_resp,
+				     sizeof(rtt_resp));
+	}
+}
+
+int wifi_drv_rtt(void *iface, struct wifi_rtt_peers *peers, unsigned char nr_peers)
+{
+	struct device *dev = net_if_get_device((struct net_if *)iface);
+	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
+	struct wifi_drv_rtt_request params;
+
+	if (!drv_api->rtt_req)
+		return -EIO;
+
+	params.nr_peers = nr_peers;
+	params.peers = peers;
+
+	return drv_api->rtt_req(dev, &params, wifi_drv_event_iface_rtt_response);
+}
+
 static void wifi_drv_event_disconnect(void *iface, int status)
 {
-	struct wifi_drv_disconnect_evt disc;
+	char reason_code = status;
 
-	disc.reason_code = status;
-
-	wifimgr_notify_event(WIFIMGR_EVT_DISCONNECT, &disc, sizeof(disc));
+	wifimgr_notify_event(WIFIMGR_EVT_DISCONNECT, &reason_code, sizeof(reason_code));
 }
 
 int wifi_drv_disconnect(void *iface)
@@ -142,7 +188,7 @@ static void wifi_drv_event_connect(void *iface, int status, char *bssid,
 
 	conn.status = status;
 	if (bssid && !is_zero_ether_addr(bssid))
-		memcpy(conn.bssid, bssid, WIFIMGR_ETH_ALEN);
+		memcpy(conn.bssid, bssid, NET_LINK_ADDR_MAX_LENGTH);
 	conn.channel = channel;
 
 	wifimgr_notify_event(WIFIMGR_EVT_CONNECT, &conn, sizeof(conn));
@@ -215,7 +261,7 @@ static void wifi_drv_event_new_station(void *iface, int status, char *mac)
 
 	new_sta.is_connect = status;
 	if (mac && !is_zero_ether_addr(mac))
-		memcpy(new_sta.mac, mac, WIFIMGR_ETH_ALEN);
+		memcpy(new_sta.mac, mac, NET_LINK_ADDR_MAX_LENGTH);
 
 	wifimgr_notify_event(WIFIMGR_EVT_NEW_STATION, &new_sta,
 			     sizeof(new_sta));

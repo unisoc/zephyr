@@ -24,52 +24,43 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #ifdef CONFIG_WIFIMGR_STA
 #define WIFIMGR_AUTORUN_STA_RETRY	(3)
-
-static sem_t sta_sem;
 wifimgr_work sta_work;
 timer_t sta_autorun_timerid;
-static int sta_autorun = 60;
-static char sta_state;
-static char *host_ssid;
-static char host_found;
+struct wifi_config sta_config;
+struct wifi_status sta_status;
 static bool sta_connected;
 #endif
 
 #ifdef CONFIG_WIFIMGR_AP
-static sem_t ap_sem;
 wifimgr_work ap_work;
 timer_t ap_autorun_timerid;
-static char *ap_ssid;
-static int ap_autorun;
-static char ap_state;
+struct wifi_config ap_config;
+struct wifi_status ap_status;
 #endif
 
 #ifdef CONFIG_WIFIMGR_STA
-static
-void wifimgr_autorun_get_sta_conf_cb(char *ssid, char *bssid, char *passphrase,
-				     unsigned char band, unsigned char channel,
-				     enum wifimgr_security security,
-				     int autorun)
+static void wifimgr_autorun_scan_result(struct wifi_scan_result *scan_res)
 {
-	host_ssid = ssid;
-	sta_autorun = autorun;
-	sem_post(&sta_sem);
+	/* Find specified AP */
+	if (!strcmp(scan_res->ssid, sta_config.ssid)) {
+		printf("SSID:\t\t%s\n", sta_config.ssid);
+		/* Choose the first match when BSSID is not specified */
+		if (is_zero_ether_addr(sta_config.bssid))
+			sta_status.u.sta.host_found = 1;
+		else if (!strncmp(scan_res->bssid, sta_config.bssid, WIFIMGR_ETH_ALEN))
+			sta_status.u.sta.host_found = 1;
+	}
 }
 
-static
-void wifimgr_autorun_get_sta_status_cb(char status, char *own_mac,
-				       char *host_bssid, signed char host_rssi)
+static void wifimgr_autorun_notify_connect(union wifi_notifier_val val)
 {
-	sta_state = status;
-	sem_post(&sta_sem);
-}
+	int status = val.val_char;
 
-static void wifimgr_autorun_notify_scan_done(char result)
-{
-	host_found = result;
-	sem_post(&sta_sem);
+	printf("%s status %d\n", __func__, status);
+	wifimgr_timer_stop(sta_autorun_timerid);
+	if (!status)
+		sta_connected = true;
 }
-
 
 static void wifimgr_autorun_notify_disconnect(union wifi_notifier_val val)
 {
@@ -77,55 +68,11 @@ static void wifimgr_autorun_notify_disconnect(union wifi_notifier_val val)
 
 	printf("%s reason %d\n", __func__, reason_code);
 	sta_connected = false;
-	wifimgr_timer_start(sta_autorun_timerid, sta_autorun);
-}
-
-static void wifimgr_autorun_notify_connect(union wifi_notifier_val val)
-{
-	int result = val.val_char;
-
-	printf("%s result %d\n", __func__, result);
-	wifimgr_timer_stop(sta_autorun_timerid);
-	if (!result)
-		sta_connected = true;
-	sem_post(&sta_sem);
-}
-
-static void wifimgr_autorun_notify_scan_timeout(void)
-{
-	host_found = 0;
-	sem_post(&sta_sem);
-}
-
-static void wifimgr_autorun_notify_connect_timeout(void)
-{
-	sta_connected = false;
-	sem_post(&sta_sem);
+	wifimgr_timer_start(sta_autorun_timerid, sta_config.autorun);
 }
 #endif
 
 #ifdef CONFIG_WIFIMGR_AP
-static
-void wifimgr_autorun_get_ap_conf_cb(char *ssid, char *passphrase,
-				    unsigned char band, unsigned char channel,
-				    unsigned char ch_width,
-				    enum wifimgr_security security, int autorun)
-{
-	ap_ssid = ssid;
-	ap_autorun = autorun;
-	sem_post(&ap_sem);
-}
-
-static
-void wifimgr_autorun_get_ap_status_cb(char status, char *own_mac,
-				      unsigned char sta_nr,
-				      char sta_mac_addrs[][6],
-				      unsigned char acl_nr,
-				      char acl_mac_addrs[][6])
-{
-	ap_state = status;
-	sem_post(&ap_sem);
-}
 static void wifimgr_autorun_notify_new_station(union wifi_notifier_val val)
 {
 	char *mac = val.val_ptr;
@@ -134,95 +81,53 @@ static void wifimgr_autorun_notify_new_station(union wifi_notifier_val val)
 }
 #endif
 
-static struct wifimgr_ctrl_cbs wifimgr_autorun_cbs = {
-#ifdef CONFIG_WIFIMGR_STA
-	.get_sta_conf_cb = wifimgr_autorun_get_sta_conf_cb,
-	.get_sta_status_cb = wifimgr_autorun_get_sta_status_cb,
-	.notify_scan_done = wifimgr_autorun_notify_scan_done,
-	.notify_scan_timeout = wifimgr_autorun_notify_scan_timeout,
-	.notify_connect_timeout = wifimgr_autorun_notify_connect_timeout,
-#endif
-#ifdef CONFIG_WIFIMGR_AP
-	.get_ap_conf_cb = wifimgr_autorun_get_ap_conf_cb,
-	.get_ap_status_cb = wifimgr_autorun_get_ap_status_cb,
-#endif
-};
-
 #ifdef CONFIG_WIFIMGR_STA
 static void wifimgr_autorun_sta(wifimgr_work *work)
 {
-	char *iface_name = WIFIMGR_IFACE_NAME_STA;
 	int cnt;
 	int ret;
 
-	/* Check STA ops */
-	if (!wifimgr_get_ctrl_ops()->get_conf
-	    || !wifimgr_get_ctrl_ops()->get_status
-	    || !wifimgr_get_ctrl_ops()->open
-	    || !wifimgr_get_ctrl_ops()->scan
-	    || !wifimgr_get_ctrl_ops()->connect) {
-		wifimgr_err("incomplete ops!\n");
-		return;
-	}
-
-	/* Get control of STA */
-	ret = wifimgr_get_ctrl(iface_name);
-	if (ret) {
-		wifimgr_err("failed to get ctrl! %d\n", ret);
-		goto exit;
-	}
-
-	sem_init(&sta_sem, 0, 0);
 	/* Get STA config */
-	ret =
-	    wifimgr_get_ctrl_ops_cbs(&wifimgr_autorun_cbs)->
-	    get_conf(iface_name);
+	ret = wifi_sta_get_conf(&sta_config);
 	if (ret) {
 		wifimgr_err("failed to get_conf! %d\n", ret);
 		goto exit;
 	}
-	sem_wait(&sta_sem);
-	if (sta_autorun <= 0) {
-		sta_autorun = 0;
-		if (sta_autorun < 0)
+	if (sta_config.autorun <= 0) {
+		sta_config.autorun = 0;
+		if (sta_config.autorun < 0)
 			printf("STA autorun disabled!\n");
 		goto exit;
 	}
-	if (!host_ssid || !strlen(host_ssid)) {
+	if (!sta_config.ssid || !strlen(sta_config.ssid)) {
 		wifimgr_warn("no STA config!\n");
 		goto exit;
 	}
 
 	/* Get STA status */
-	ret =
-	    wifimgr_get_ctrl_ops_cbs(&wifimgr_autorun_cbs)->
-	    get_status(iface_name);
+	ret = wifi_sta_get_status(&sta_status);
 	if (ret) {
 		wifimgr_err("failed to get_status! %d\n", ret);
 		goto exit;
 	}
-	sem_wait(&sta_sem);
 
-	switch (sta_state) {
+	switch (sta_status.state) {
 	case WIFIMGR_SM_STA_NODEV:
 		/* Open STA */
-		ret = wifimgr_get_ctrl_ops()->open(iface_name);
+		ret = wifi_sta_open();
 		if (ret) {
 			wifimgr_err("failed to open! %d\n", ret);
 			goto exit;
 		}
 	case WIFIMGR_SM_STA_READY:
 		/* Trigger STA scan */
-		host_found = 0;
 		for (cnt = 0; cnt < WIFIMGR_AUTORUN_STA_RETRY; cnt++) {
-			ret =
-			    wifimgr_get_ctrl_ops_cbs(&wifimgr_autorun_cbs)->
-			    scan();
+	printf("%s %d\n", __func__, __LINE__);
+			ret = wifi_sta_scan(wifimgr_autorun_scan_result);
+	printf("%s %d\n", __func__, __LINE__);
 			if (ret)
 				wifimgr_err("failed to scan! %d\n", ret);
-			else
-				sem_wait(&sta_sem);
-			if (host_found)
+			if (sta_status.u.sta.host_found)
 				break;
 		}
 		if (cnt == WIFIMGR_AUTORUN_STA_RETRY) {
@@ -231,12 +136,13 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 		}
 
 		/* Connect the AP */
-		ret = wifimgr_get_ctrl_ops_cbs(&wifimgr_autorun_cbs)->connect();
+	printf("%s %d\n", __func__, __LINE__);
+		ret = wifi_sta_connect();
+	printf("%s %d\n", __func__, __LINE__);
 		if (ret) {
 			wifimgr_err("failed to connect! %d\n", ret);
 			goto exit;
 		}
-		sem_wait(&sta_sem);
 	case WIFIMGR_SM_STA_CONNECTED:
 		if (sta_connected == true)
 			goto out;
@@ -244,82 +150,64 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 		break;
 	default:
 		wifimgr_dbg("nothing else to do under %s!\n",
-			    sta_sts2str(sta_state));
+			    sta_sts2str(sta_status.state));
 		break;
 	}
 exit:
 	/* Set timer for the next run */
-	wifimgr_timer_start(sta_autorun_timerid, sta_autorun);
+	wifimgr_timer_start(sta_autorun_timerid, sta_config.autorun);
 out:
-	/* Release control of STA */
-	wifimgr_release_ctrl(iface_name);
+	return;
 }
 #endif
 
 #ifdef CONFIG_WIFIMGR_AP
 static void wifimgr_autorun_ap(wifimgr_work *work)
 {
-	char *iface_name = WIFIMGR_IFACE_NAME_AP;
 	int ret;
 
-	/* Check AP ops */
-	if (!wifimgr_get_ctrl_ops()->get_conf
-	    || !wifimgr_get_ctrl_ops()->get_status
-	    || !wifimgr_get_ctrl_ops()->open
-	    || !wifimgr_get_ctrl_ops()->start_ap) {
-		wifimgr_err("incomplete ops!\n");
-		return;
-	}
-
-	/* Get control of AP */
+	/*[> Get control of AP <]
 	ret = wifimgr_get_ctrl(iface_name);
 	if (ret) {
 		wifimgr_err("failed to get ctrl! %d\n", ret);
 		goto exit;
-	}
+	}*/
 
-	sem_init(&ap_sem, 0, 0);
 	/* Get AP config */
-	ret =
-	    wifimgr_get_ctrl_ops_cbs(&wifimgr_autorun_cbs)->
-	    get_conf(iface_name);
+	ret = wifi_ap_get_conf(&ap_config);
 	if (ret) {
 		wifimgr_err("failed to get_conf! %d\n", ret);
 		goto exit;
 	}
-	sem_wait(&ap_sem);
-	if (ap_autorun <= 0) {
-		ap_autorun = 0;
-		if (ap_autorun < 0)
+	if (ap_config.autorun <= 0) {
+		ap_config.autorun = 0;
+		if (ap_config.autorun < 0)
 			printf("AP autorun disabled!\n");
 		goto exit;
 	}
-	if (!ap_ssid || !strlen(ap_ssid)) {
+	if (!ap_config.ssid || !strlen(ap_config.ssid)) {
 		wifimgr_warn("no AP config!\n");
 		goto exit;
 	}
 
 	/* Get AP status */
-	ret =
-	    wifimgr_get_ctrl_ops_cbs(&wifimgr_autorun_cbs)->
-	    get_status(iface_name);
+	ret = wifi_ap_get_status(&ap_status);
 	if (ret) {
 		wifimgr_err("failed to get_status! %d\n", ret);
 		goto exit;
 	}
-	sem_wait(&ap_sem);
 
-	switch (ap_state) {
+	switch (ap_status.state) {
 	case WIFIMGR_SM_AP_NODEV:
 		/* Open AP */
-		ret = wifimgr_get_ctrl_ops()->open(iface_name);
+		ret = wifi_ap_open();
 		if (ret) {
 			wifimgr_err("failed to open! %d\n", ret);
 			goto exit;
 		}
 	case WIFIMGR_SM_AP_READY:
 		/* Start AP */
-		ret = wifimgr_get_ctrl_ops()->start_ap();
+		ret = wifi_ap_start_ap();
 		if (ret) {
 			wifimgr_err("failed to start AP! %d\n", ret);
 			goto exit;
@@ -329,15 +217,15 @@ static void wifimgr_autorun_ap(wifimgr_work *work)
 		break;
 	default:
 		wifimgr_dbg("nothing else to do under %s!\n",
-			    ap_sts2str(ap_state));
+			    ap_sts2str(ap_status.state));
 		goto exit;
 	}
 
 exit:
 	/* Set timer for the next run */
-	wifimgr_timer_start(ap_autorun_timerid, ap_autorun);
+	wifimgr_timer_start(ap_autorun_timerid, ap_config.autorun);
 	/* Release control of STA */
-	wifimgr_release_ctrl(iface_name);
+	/*wifimgr_release_ctrl(iface_name);*/
 }
 #endif
 
@@ -351,16 +239,17 @@ int wifimgr_autorun_init(void)
 	if (ret < 0)
 		wifimgr_err("failed to init STA autorun!\n");
 
-	wifimgr_register_connection_notifier(wifimgr_autorun_notify_connect);
-	wifimgr_register_disconnection_notifier(wifimgr_autorun_notify_disconnect);
+	wifi_register_connection_notifier(wifimgr_autorun_notify_connect);
+	wifi_register_disconnection_notifier(wifimgr_autorun_notify_disconnect);
 
 	/* Set timer for the first run */
 	ret = wifimgr_timer_start(sta_autorun_timerid, 1);
 	if (ret < 0) {
 		wifimgr_err("failed to start STA autorun!\n");
-		wifimgr_unregister_connection_notifier(wifimgr_autorun_notify_connect);
-		wifimgr_unregister_disconnection_notifier(wifimgr_autorun_notify_disconnect);
+		wifi_unregister_connection_notifier(wifimgr_autorun_notify_connect);
+		wifi_unregister_disconnection_notifier(wifimgr_autorun_notify_disconnect);
 	}
+	sta_config.autorun = 60;
 #endif
 #ifdef CONFIG_WIFIMGR_AP
 	wifimgr_init_work(&ap_work, (void *)wifimgr_autorun_ap);
@@ -371,12 +260,16 @@ int wifimgr_autorun_init(void)
 
 	wifimgr_register_new_station_notifier(wifimgr_autorun_notify_new_station);
 	/* Set timer for the first run */
-	ret = wifimgr_timer_start(ap_autorun_timerid, 1);
+	/*ret = wifimgr_timer_start(ap_autorun_timerid, 1);*/
 	if (ret < 0)
 		wifimgr_err("failed to start AP autorun!\n");
 #endif
 	return ret;
 }
 
-/*SYS_INIT(wifimgr_autorun_init, APPLICATION, WIFIMGR_AUTORUN_PRIORITY);*/
+	/*wifi_register_new_station_notifier(new_station_notifier);
+	wifi_register_new_station_notifier(station_leave_notifier);
+
+	wifi_unregister_new_station_notifier(new_station_notifier);
+	wifi_unregister_new_station_notifier(station_leave_notifier);*/
 #endif
