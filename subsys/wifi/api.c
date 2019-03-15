@@ -15,354 +15,197 @@
 
 #include "api.h"
 #include "config.h"
-#include "timer.h"
+#include "ctrl_iface.h"
 
-static struct wifimgr_ctrl_cbs *wifimgr_cbs;
-
-int wifimgr_get_ctrl(char *iface_name)
+int wifi_register_connection_notifier(wifi_notifier_fn_t notifier_call)
 {
-	unsigned int cmd_id = 0;
-
-	if (!iface_name)
-		return -EINVAL;
-
-	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		cmd_id = WIFIMGR_CMD_GET_STA_CTRL;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		cmd_id = WIFIMGR_CMD_GET_AP_CTRL;
-	else
-		return -EINVAL;
-
-	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
+	wifimgr_register_connection_notifier(notifier_call);
 }
 
-int wifimgr_release_ctrl(char *iface_name)
+int wifi_unregister_connection_notifier(wifi_notifier_fn_t notifier_call)
 {
-	unsigned int cmd_id = 0;
-
-	if (!iface_name)
-		return -EINVAL;
-
-	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		cmd_id = WIFIMGR_CMD_RELEASE_STA_CTRL;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		cmd_id = WIFIMGR_CMD_RELEASE_AP_CTRL;
-	else
-		return -EINVAL;
-
-	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
+	wifimgr_unregister_connection_notifier(notifier_call);
 }
 
-static int wifimgr_ctrl_iface_get_conf(char *iface_name)
+int wifi_register_disconnection_notifier(wifi_notifier_fn_t notifier_call)
 {
-	unsigned int cmd_id = 0;
-
-	if (!iface_name)
-		return -EINVAL;
-
-	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		cmd_id = WIFIMGR_CMD_GET_STA_CONFIG;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		cmd_id = WIFIMGR_CMD_GET_AP_CONFIG;
-	else
-		return -EINVAL;
-
-	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
+	wifimgr_register_disconnection_notifier(notifier_call);
 }
 
-int wifimgr_ctrl_iface_set_conf(char *iface_name, char *ssid, char *bssid,
-				char security, char *passphrase,
-				unsigned char band, unsigned char channel,
-				unsigned char ch_width, int autorun)
+int wifi_unregister_disconnection_notifier(wifi_notifier_fn_t notifier_call)
 {
-	struct wifimgr_config conf;
-	unsigned int cmd_id;
-
-	if (!iface_name)
-		return -EINVAL;
-	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		cmd_id = WIFIMGR_CMD_SET_STA_CONFIG;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		cmd_id = WIFIMGR_CMD_SET_AP_CONFIG;
-	else
-		return -EINVAL;
-
-	memset(&conf, 0, sizeof(conf));
-
-	/* Check SSID (mandatory) */
-	if (ssid) {
-		if (!strlen(ssid) || (strlen(ssid) > sizeof(conf.ssid))) {
-			printf("Invalid SSID: %s!\n", ssid);
-			return -EINVAL;
-		}
-		strcpy(conf.ssid, ssid);
-		printf("SSID:\t\t%s\n", ssid);
-	}
-
-	/* Check BSSID (optional) */
-	if (bssid) {
-		if (is_zero_ether_addr(bssid)) {
-			printf("Invalid BSSID!\n");
-			return -EINVAL;
-		}
-		memcpy(conf.bssid, bssid, WIFIMGR_ETH_ALEN);
-		printf("BSSID:\t\t" MACSTR "\n", MAC2STR(bssid));
-	}
-
-	/* Check Security */
-	switch (security) {
-	case WIFIMGR_SECURITY_OPEN:
-	case WIFIMGR_SECURITY_PSK:
-		printf("Security:\t%s\n", security2str(security));
-	case 0:
-		conf.security = security;
-		break;
-	default:
-		printf("invalid security: %d!\n", security);
-		return -EINVAL;
-	}
-
-	/* Check Passphrase (optional: valid only for WPA/WPA2-PSK) */
-	if (passphrase) {
-		if (strlen(passphrase) > sizeof(conf.passphrase)) {
-			printf("invalid PSK: %s!\n", passphrase);
-			return -EINVAL;
-		}
-		strcpy(conf.passphrase, passphrase);
-		if (strlen(passphrase))
-			printf("Passphrase:\t%s\n", passphrase);
-	}
-
-	/* Check band */
-	switch (band) {
-	case 2:
-	case 5:
-		printf("Band:\t%u\n", band);
-	case 0:
-		conf.band = band;
-		break;
-	default:
-		printf("invalid band: %u!\n", band);
-		return -EINVAL;
-	}
-
-	/* Check channel */
-	if ((channel > 14 && channel < 34) || (channel > 196)) {
-		printf("invalid channel: %u!\n", channel);
-		return -EINVAL;
-	}
-	conf.channel = channel;
-	if (channel)
-		printf("Channel:\t%u\n", channel);
-
-	/* Check channel width */
-	switch (ch_width) {
-	case 20:
-	case 40:
-	case 80:
-	case 160:
-		printf("Channel Width:\t%u\n", ch_width);
-	case 0:
-		conf.ch_width = ch_width;
-		break;
-	default:
-		printf("invalid channel width: %u!\n", ch_width);
-		return -EINVAL;
-	}
-
-	/* Check autorun */
-	conf.autorun = autorun;
-	if (autorun)
-		printf("----------------\n");
-	if (autorun > 0)
-		printf("Autorun:\t%ds\n", autorun);
-	else if (autorun < 0)
-		printf("Autorun:\toff\n");
-
-	return wifimgr_ctrl_iface_send_cmd(cmd_id, &conf, sizeof(conf));
+	wifimgr_unregister_disconnection_notifier(notifier_call);
 }
 
-static int wifimgr_ctrl_iface_clear_conf(char *iface_name)
+int wifi_register_new_station_notifier(wifi_notifier_fn_t notifier_call)
 {
-	struct wifimgr_config conf;
-	unsigned int cmd_id;
-
-	memset(&conf, 0, sizeof(conf));
-
-	if (!iface_name)
-		return -EINVAL;
-
-	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		cmd_id = WIFIMGR_CMD_SET_STA_CONFIG;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		cmd_id = WIFIMGR_CMD_SET_AP_CONFIG;
-	else
-		return -EINVAL;
-
-	return wifimgr_ctrl_iface_send_cmd(cmd_id, &conf, sizeof(conf));
+	wifimgr_register_new_station_notifier(notifier_call);
 }
 
-static int wifimgr_ctrl_iface_get_capa(char *iface_name)
+int wifi_unregister_new_station_notifier(wifi_notifier_fn_t notifier_call)
 {
-	unsigned int cmd_id = 0;
-
-	if (!iface_name)
-		return -EINVAL;
-
-	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		cmd_id = WIFIMGR_CMD_GET_STA_CAPA;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		cmd_id = WIFIMGR_CMD_GET_AP_CAPA;
-	else
-		return -EINVAL;
-
-	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
+	wifimgr_unregister_new_station_notifier(notifier_call);
 }
 
-static int wifimgr_ctrl_iface_get_status(char *iface_name)
+int wifi_register_station_leave_notifier(wifi_notifier_fn_t notifier_call)
 {
-	unsigned int cmd_id = 0;
-
-	if (!iface_name)
-		return -EINVAL;
-
-	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		cmd_id = WIFIMGR_CMD_GET_STA_STATUS;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		cmd_id = WIFIMGR_CMD_GET_AP_STATUS;
-	else
-		return -EINVAL;
-
-	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
+	wifimgr_register_station_leave_notifier(notifier_call);
 }
 
-static int wifimgr_ctrl_iface_open(char *iface_name)
+int wifi_unregister_station_leave_notifier(wifi_notifier_fn_t notifier_call)
 {
-	unsigned int cmd_id = 0;
-
-	if (!iface_name)
-		return -EINVAL;
-
-	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		cmd_id = WIFIMGR_CMD_OPEN_STA;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		cmd_id = WIFIMGR_CMD_OPEN_AP;
-	else
-		return -EINVAL;
-
-	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
-}
-
-static int wifimgr_ctrl_iface_close(char *iface_name)
-{
-	unsigned int cmd_id = 0;
-
-	if (!iface_name)
-		return -EINVAL;
-
-	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		cmd_id = WIFIMGR_CMD_CLOSE_STA;
-	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		cmd_id = WIFIMGR_CMD_CLOSE_AP;
-	else
-		return -EINVAL;
-
-	return wifimgr_ctrl_iface_send_cmd(cmd_id, NULL, 0);
+	wifimgr_unregister_station_leave_notifier(notifier_call);
 }
 
 #ifdef CONFIG_WIFIMGR_STA
-static int wifimgr_ctrl_iface_scan(void)
+int wifi_sta_set_conf(struct wifi_config *conf)
 {
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_SCAN, NULL, 0);
+	return wifimgr_ctrl_iface_set_conf(WIFIMGR_IFACE_NAME_STA, conf);
 }
 
-static int wifimgr_ctrl_iface_connect(void)
+int wifi_sta_clear_conf(void)
 {
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_CONNECT, NULL, 0);
+	struct wifi_config conf;
+
+	memset(&conf, 0, sizeof(conf));
+
+	return wifimgr_ctrl_iface_set_conf(WIFIMGR_IFACE_NAME_STA, &conf);
 }
 
-static int wifimgr_ctrl_iface_disconnect(void)
+int wifi_sta_get_conf(struct wifi_config *conf)
 {
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_DISCONNECT, NULL, 0);
+	return wifimgr_ctrl_iface_get_conf(WIFIMGR_IFACE_NAME_STA, conf);
+}
+
+int wifi_sta_get_capa(union wifi_capa *capa)
+{
+	return wifimgr_ctrl_iface_get_capa(WIFIMGR_IFACE_NAME_STA, capa);
+}
+
+int wifi_sta_get_status(struct wifi_status *sts)
+{
+	return wifimgr_ctrl_iface_get_status(WIFIMGR_IFACE_NAME_STA, sts);
+}
+
+int wifi_sta_open(void)
+{
+	return wifimgr_ctrl_iface_open(WIFIMGR_IFACE_NAME_STA);
+}
+
+int wifi_sta_close(void)
+{
+	return wifimgr_ctrl_iface_close(WIFIMGR_IFACE_NAME_STA);
+}
+
+int wifi_sta_scan(scan_res_cb_t scan_res_cb)
+{
+	int ret;
+
+	ret = wifimgr_ctrl_iface_scan(WIFIMGR_IFACE_NAME_STA, scan_res_cb);
+	if (ret)
+		return ret;
+
+	ret = wifimgr_ctrl_wait(WIFIMGR_IFACE_NAME_STA);
+	return ret;
+}
+
+int wifi_sta_rtt_request(struct wifi_rtt_request *rtt_req, rtt_resp_cb_t rtt_resp_cb)
+{
+	int ret;
+
+	ret = wifimgr_ctrl_iface_rtt_req(rtt_req, rtt_resp_cb);
+	if (ret)
+		return ret;
+
+	ret = wifimgr_ctrl_wait(WIFIMGR_IFACE_NAME_STA);
+	return ret;
+}
+
+int wifi_sta_connect(void)
+{
+	int ret;
+
+	ret = wifimgr_ctrl_iface_connect();
+	if (ret)
+		return ret;
+
+	ret = wifimgr_ctrl_wait(WIFIMGR_IFACE_NAME_STA);
+	return ret;
+}
+
+int wifi_sta_disconnect(void)
+{
+	int ret;
+
+	ret = wifimgr_ctrl_iface_disconnect();
+	if (ret)
+		return ret;
+
+	ret = wifimgr_ctrl_wait(WIFIMGR_IFACE_NAME_STA);
+	return ret;
 }
 #endif
 
 #ifdef CONFIG_WIFIMGR_AP
-static int wifimgr_ctrl_iface_start_ap(void)
+int wifi_ap_set_conf(struct wifi_config *conf)
 {
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_START_AP, NULL, 0);
+	return wifimgr_ctrl_iface_set_conf(WIFIMGR_IFACE_NAME_AP, conf);
 }
 
-static int wifimgr_ctrl_iface_stop_ap(void)
+int wifi_ap_clear_conf(void)
 {
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_STOP_AP, NULL, 0);
+	struct wifi_config conf;
+
+	memset(&conf, 0, sizeof(conf));
+
+	return wifimgr_ctrl_iface_set_conf(WIFIMGR_IFACE_NAME_AP, &conf);
 }
 
-static int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac)
+int wifi_ap_get_conf(struct wifi_config *conf)
 {
-	struct wifimgr_set_mac_acl set_acl;
+	return wifimgr_ctrl_iface_get_conf(WIFIMGR_IFACE_NAME_AP, conf);
+}
 
-	switch (subcmd) {
-	case WIFIMGR_SUBCMD_ACL_BLOCK:
-	case WIFIMGR_SUBCMD_ACL_UNBLOCK:
-	case WIFIMGR_SUBCMD_ACL_BLOCK_ALL:
-	case WIFIMGR_SUBCMD_ACL_UNBLOCK_ALL:
-		set_acl.subcmd = subcmd;
-		break;
-	default:
-		return -EINVAL;
-	}
+int wifi_ap_get_capa(union wifi_capa *capa)
+{
+	return wifimgr_ctrl_wait(WIFIMGR_IFACE_NAME_AP);
+}
 
-	if (mac && !is_zero_ether_addr(mac)) {
-		memcpy(set_acl.mac, mac, WIFIMGR_ETH_ALEN);
-	} else if (!mac) {
-		memset(set_acl.mac, 0xff, WIFIMGR_ETH_ALEN);
-	} else {
-		printf("invalid MAC address!\n");
-		return -EINVAL;
-	}
+int wifi_ap_get_status(struct wifi_status *sts)
+{
+	return wifimgr_ctrl_wait(WIFIMGR_IFACE_NAME_AP);
+}
 
-	return wifimgr_ctrl_iface_send_cmd(WIFIMGR_CMD_SET_MAC_ACL, &set_acl,
-					   sizeof(set_acl));
+int wifi_ap_open(void)
+{
+	return wifimgr_ctrl_iface_open(WIFIMGR_IFACE_NAME_AP);
+}
+
+int wifi_ap_close(void)
+{
+	return wifimgr_ctrl_iface_close(WIFIMGR_IFACE_NAME_AP);
+}
+
+int wifi_ap_start_ap(void)
+{
+	return wifimgr_ctrl_iface_start_ap();
+}
+
+int wifi_ap_stop_ap(void)
+{
+	return wifimgr_ctrl_iface_stop_ap();
+}
+
+int wifi_ap_del_station(char *mac)
+{
+	return wifimgr_ctrl_iface_del_station(mac);
+}
+
+int wifi_ap_set_mac_acl(char subcmd, char *mac)
+{
+	return wifimgr_ctrl_iface_set_mac_acl(subcmd, mac);
 }
 #endif
 
-static const struct wifimgr_ctrl_ops wifimgr_ops = {
-	.get_conf = wifimgr_ctrl_iface_get_conf,
-	.set_conf = wifimgr_ctrl_iface_set_conf,
-	.clear_conf = wifimgr_ctrl_iface_clear_conf,
-	.get_status = wifimgr_ctrl_iface_get_status,
-	.get_capa = wifimgr_ctrl_iface_get_capa,
-	.open = wifimgr_ctrl_iface_open,
-	.close = wifimgr_ctrl_iface_close,
-#ifdef CONFIG_WIFIMGR_STA
-	.scan = wifimgr_ctrl_iface_scan,
-	.connect = wifimgr_ctrl_iface_connect,
-	.disconnect = wifimgr_ctrl_iface_disconnect,
-#endif
-#ifdef CONFIG_WIFIMGR_AP
-	.start_ap = wifimgr_ctrl_iface_start_ap,
-	.stop_ap = wifimgr_ctrl_iface_stop_ap,
-	.set_mac_acl = wifimgr_ctrl_iface_set_mac_acl,
-#endif
-};
-
-const struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops(void)
-{
-	return &wifimgr_ops;
-}
-
-const
-struct wifimgr_ctrl_ops *wifimgr_get_ctrl_ops_cbs(struct wifimgr_ctrl_cbs *cbs)
-{
-	wifimgr_cbs = cbs;
-
-	return &wifimgr_ops;
-}
-
-struct wifimgr_ctrl_cbs *wifimgr_get_ctrl_cbs(void)
-{
-	return wifimgr_cbs;
-}
 
 #endif

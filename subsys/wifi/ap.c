@@ -15,20 +15,8 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
 
-static struct wifimgr_notifier_chain *new_sta_chain;
-
 static int wifimgr_ap_stop(void *handle);
 static int wifimgr_ap_close(void *handle);
-
-int wifimgr_register_new_station_notifier(wifi_notifier_fn_t notifier_call)
-{
-	wifimgr_register_notifier(new_sta_chain, notifier_call);
-}
-
-int wifimgr_unregister_new_station_notifier(wifi_notifier_fn_t notifier_call)
-{
-	wifimgr_unregister_notifier(new_sta_chain, notifier_call);
-}
 
 void wifimgr_ap_event_timeout(wifimgr_work *work)
 {
@@ -47,108 +35,46 @@ void wifimgr_ap_event_timeout(wifimgr_work *work)
 	}
 }
 
-static int wifimgr_ap_get_config(void *handle)
-{
-	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
-	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
-	char *ssid = NULL;
-	char *passphrase = NULL;
-
-	/* Load config form non-volatile memory */
-	wifimgr_config_load(conf, WIFIMGR_SETTING_AP_PATH);
-
-	if (strlen(conf->ssid))
-		ssid = conf->ssid;
-
-	if (strlen(conf->passphrase))
-		passphrase = conf->passphrase;
-
-	/* Notify the external caller */
-	if (cbs && cbs->get_ap_conf_cb)
-		cbs->get_ap_conf_cb(ssid, passphrase, conf->band, conf->channel,
-				    conf->ch_width, conf->security,
-				    conf->autorun);
-
-	if (!memiszero(conf, sizeof(struct wifimgr_config)))
-		wifimgr_info("No AP config found!\n");
-
-	return 0;
-}
-
 static int wifimgr_ap_set_config(void *handle)
 {
 	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
-	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
-		wifimgr_info("Clearing AP Config ...\n");
+	if (!memiszero(conf, sizeof(struct wifi_config)))
 		wifimgr_config_clear(conf, WIFIMGR_SETTING_AP_PATH);
-	} else {
-		wifimgr_info("Setting AP Config ...\n");
-		/* Save config to non-volatile memory */
+	else
 		wifimgr_config_save(conf, WIFIMGR_SETTING_AP_PATH);
-	}
 
 	return 0;
 }
 
-static int wifimgr_ap_get_status(void *handle)
+static int wifimgr_ap_get_config(void *handle)
 {
-	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifimgr_state_machine *sm = &mgr->ap_sm;
-	struct wifimgr_status *sts = &mgr->ap_sts;
-	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
-	char *own_mac = NULL;
+	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
-	if (!is_zero_ether_addr(sts->own_mac))
-		own_mac = sts->own_mac;
-
-	/* Notify the external caller */
-	if (cbs && cbs->get_ap_status_cb)
-		cbs->get_ap_status_cb(sm_ap_query(sm), own_mac,
-				      sts->u.ap.sta_nr,
-				      sts->u.ap.sta_mac_addrs,
-				      sts->u.ap.acl_nr,
-				      sts->u.ap.acl_mac_addrs);
+	/* Load config form non-volatile memory */
+	memset(conf, 0, sizeof(conf));
+	wifimgr_config_load(conf, WIFIMGR_SETTING_AP_PATH);
 
 	return 0;
 }
 
 static int wifimgr_ap_get_capa(void *handle)
 {
-	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifi_drv_capa *capa = &mgr->ap_capa;
-	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
-
-	/* Notify the external caller */
-	if (cbs && cbs->get_ap_capa_cb)
-		cbs->get_ap_capa_cb(capa->max_ap_assoc_sta,
-				    capa->max_acl_mac_addrs);
+	/* Nothing TODO */
 
 	return 0;
 }
 
-static int wifimgr_ap_get_ctrl(void *handle)
+static int wifimgr_ap_get_status(void *handle)
 {
-	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	int ret;
+	struct wifi_status *sts = (struct wifi_status *)handle;
+	struct wifi_manager *mgr =
+	    container_of(sts, struct wifi_manager, ap_sts);
+	struct wifimgr_state_machine *sm = &mgr->ap_sm;
 
-	ret = sem_trywait(&mgr->ap_ctrl);
-	if (ret == -1)
-		ret = -errno;
+	sts->state = sm_ap_query(sm);
 
-	return ret;
-}
-
-static int wifimgr_ap_release_ctrl(void *handle)
-{
-	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	int ret;
-
-	ret = sem_post(&mgr->ap_ctrl);
-	if (ret == -1)
-		ret = -errno;
-
-	return ret;
+	return 0;
 }
 
 static int wifimgr_ap_del_station(void *handle)
@@ -163,12 +89,9 @@ static int wifimgr_ap_del_station(void *handle)
 		return -EINVAL;
 
 	ret = wifi_drv_del_station(mgr->ap_iface, set_acl->mac);
+	if (ret)
+		wifimgr_err("failed to deauth! %d\n", ret);
 
-	if (is_broadcast_ether_addr(set_acl->mac))
-		wifimgr_info("Deauth all stations!\n");
-	else
-		wifimgr_info("Deauth station (" MACSTR ")\n",
-			     MAC2STR(set_acl->mac));
 	return ret;
 }
 
@@ -192,26 +115,29 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 	    (struct wifimgr_set_mac_acl *)handle;
 	struct wifi_manager *mgr =
 	    container_of(set_acl, struct wifi_manager, set_acl);
-	struct wifimgr_status *sts = &mgr->ap_sts;
+	struct wifi_status *sts = &mgr->ap_sts;
 	struct wifimgr_mac_list *assoc_list = &mgr->assoc_list;
 	struct wifimgr_mac_list *mac_acl = &mgr->mac_acl;
 	struct wifimgr_mac_node *marked_sta = NULL;
 	char (*acl_mac_addrs)[WIFIMGR_ETH_ALEN] = NULL;
 	char drv_subcmd = 0;
-	unsigned char acl_nr = 0;
+	unsigned char nr_acl = 0;
 	int ret = 0;
 
-	if (is_zero_ether_addr(set_acl->mac))
+	if (is_zero_ether_addr(set_acl->mac)) {
+		wifimgr_info("%s (" MACSTR ")\n", __func__,
+			     MAC2STR(set_acl->mac));
 		return -EINVAL;
+	}
 
 	/* Check parmas and prepare ACL table for driver */
 	switch (set_acl->subcmd) {
 	case WIFIMGR_SUBCMD_ACL_BLOCK:
-		if ((mac_acl->nr + acl_nr) > mgr->ap_capa.max_acl_mac_addrs) {
+		if ((mac_acl->nr + nr_acl) > mgr->ap_capa.ap.max_acl_mac_addrs) {
 			wifimgr_warn("Max number of ACL reached!");
 			return -ENOSPC;
 		}
-		acl_nr = 1;
+		nr_acl = 1;
 
 		marked_sta = search_mac(mac_acl, set_acl->mac);
 		if (marked_sta) {
@@ -227,7 +153,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 			wifimgr_warn("Empty ACL!");
 			return -ENOENT;
 		}
-		acl_nr = 1;
+		nr_acl = 1;
 
 		marked_sta = search_mac(mac_acl, set_acl->mac);
 		if (!marked_sta) {
@@ -243,9 +169,9 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 			wifimgr_warn("Empty Station List!");
 			return -ENOENT;
 		}
-		acl_nr = assoc_list->nr;
+		nr_acl = assoc_list->nr;
 
-		if (mac_acl->nr + acl_nr > mgr->ap_capa.max_acl_mac_addrs) {
+		if (mac_acl->nr + nr_acl > mgr->ap_capa.ap.max_acl_mac_addrs) {
 			wifimgr_warn("Max number of ACL reached!");
 			return -ENOSPC;
 		}
@@ -258,7 +184,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 			wifimgr_warn("Empty ACL!");
 			return -ENOENT;
 		}
-		acl_nr = mac_acl->nr;
+		nr_acl = mac_acl->nr;
 		drv_subcmd = WIFI_DRV_BLACKLIST_DEL;
 		acl_mac_addrs = sts->u.ap.acl_mac_addrs;
 		break;
@@ -268,7 +194,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 
 	/* Set ACL */
 	ret =
-	    wifi_drv_set_mac_acl(mgr->ap_iface, drv_subcmd, acl_nr,
+	    wifi_drv_set_mac_acl(mgr->ap_iface, drv_subcmd, nr_acl,
 				 acl_mac_addrs);
 	if (ret) {
 		wifimgr_err("failed to set MAC ACL! %d\n", ret);
@@ -318,7 +244,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 			marked_sta = (struct wifimgr_mac_node *)
 			    wifimgr_list_peek_next(&marked_sta->node);
 		}
-		sts->u.ap.acl_nr = mac_acl->nr;
+		sts->u.ap.nr_acl = mac_acl->nr;
 
 		if (is_broadcast_ether_addr(set_acl->mac))
 			wifimgr_info("all stations!\n");
@@ -335,15 +261,11 @@ static int wifimgr_ap_new_station_event(void *arg)
 	struct wifi_drv_new_station_evt *new_sta = &ap_evt->u.new_sta;
 	struct wifi_manager *mgr =
 	    container_of(ap_evt, struct wifi_manager, ap_evt);
-	struct wifimgr_status *sts = &mgr->ap_sts;
+	struct wifi_status *sts = &mgr->ap_sts;
 	struct wifimgr_mac_list *assoc_list = &mgr->assoc_list;
 	struct wifimgr_mac_node *assoc_sta;
-	struct wifimgr_ctrl_cbs *cbs = wifimgr_get_ctrl_cbs();
-	struct wifimgr_notifier *notifier;
+	struct wifimgr_notifier_chain *chain;
 	bool pending = false;
-
-	wifimgr_info("Station (" MACSTR ") %s!\n", MAC2STR(new_sta->mac),
-		     new_sta->is_connect ? "connected" : "disconnected");
 
 	if (is_zero_ether_addr(new_sta->mac)
 	    || is_broadcast_ether_addr(new_sta->mac)) {
@@ -355,10 +277,11 @@ static int wifimgr_ap_new_station_event(void *arg)
 		if (!assoc_list->nr)
 			cmd_processor_add_sender(&mgr->prcs,
 						 WIFIMGR_CMD_DEL_STA,
+						 WIFIMGR_CMD_TYPE_ASYNC,
 						 wifimgr_ap_del_station,
 						 &mgr->set_acl);
 
-		if (assoc_list->nr >= mgr->ap_capa.max_ap_assoc_sta) {
+		if (assoc_list->nr >= mgr->ap_capa.ap.max_ap_assoc_sta) {
 			wifimgr_warn("Max number of stations reached!");
 			return 0;
 		}
@@ -376,10 +299,11 @@ static int wifimgr_ap_new_station_event(void *arg)
 		wifimgr_list_append(&assoc_list->list, &assoc_sta->node);
 		assoc_list->nr++;
 		pending = true;
+		chain = &mgr->ap_ctrl.new_sta_chain;
 	} else {
 		if (!assoc_list->nr) {
 			wifimgr_warn("No stations connected!");
-			sts->u.ap.sta_nr = assoc_list->nr;
+			sts->u.ap.nr_sta = assoc_list->nr;
 			return 0;
 		}
 
@@ -393,6 +317,7 @@ static int wifimgr_ap_new_station_event(void *arg)
 		free(assoc_sta);
 		assoc_list->nr--;
 		pending = true;
+		chain = &mgr->ap_ctrl.sta_leave_chain;
 
 		if (!assoc_list->nr)
 			cmd_processor_remove_sender(&mgr->prcs,
@@ -411,22 +336,11 @@ static int wifimgr_ap_new_station_event(void *arg)
 			assoc_sta = (struct wifimgr_mac_node *)
 			    wifimgr_list_peek_next(&assoc_sta->node);
 		}
-		sts->u.ap.sta_nr = assoc_list->nr;
+		sts->u.ap.nr_sta = assoc_list->nr;
 
 		/* Notify the external caller */
-		if (cbs && cbs->notify_new_station)
-			cbs->notify_new_station(new_sta->is_connect,
+		wifimgr_ctrl_evt_new_station(WIFIMGR_IFACE_NAME_AP, chain, new_sta->is_connect,
 						new_sta->mac);
-		/* Notify the passive callback on the new station chain */
-		wifimgr_list_for_each_entry(notifier, &new_sta_chain->list, struct wifimgr_notifier, node) {
-			if (notifier->notifier_call) {
-				union wifi_notifier_val val;
-
-				val.val_ptr = new_sta->mac;
-				notifier->notifier_call(val);
-			}
-		}
-
 	}
 
 	return 0;
@@ -435,11 +349,11 @@ static int wifimgr_ap_new_station_event(void *arg)
 static int wifimgr_ap_start(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifi_drv_capa *capa = &mgr->ap_capa;
-	struct wifimgr_config *conf = &mgr->ap_conf;
+	union wifi_capa *capa = &mgr->ap_capa;
+	struct wifi_config *conf = &mgr->ap_conf;
 	struct wifimgr_mac_list *assoc_list = &mgr->assoc_list;
 	struct wifimgr_mac_list *mac_acl = &mgr->mac_acl;
-	struct wifimgr_status *sts = &mgr->ap_sts;
+	struct wifi_status *sts = &mgr->ap_sts;
 	char *ssid = NULL;
 	char *psk = NULL;
 	char psk_len = 0;
@@ -454,30 +368,31 @@ static int wifimgr_ap_start(void *handle)
 	if (ret)
 		return ret;
 
-	if (!memiszero(conf, sizeof(struct wifimgr_config))) {
+	if (!memiszero(conf, sizeof(struct wifi_config))) {
 		wifimgr_info("No AP config found!\n");
 		return -EINVAL;
 	}
 	/* Initialize the associated station table */
-	if (!capa->max_ap_assoc_sta)
-		capa->max_ap_assoc_sta = WIFIMGR_MAX_STA_NR;
-	size = capa->max_ap_assoc_sta * WIFIMGR_ETH_ALEN;
+	if (!capa->ap.max_ap_assoc_sta)
+		capa->ap.max_ap_assoc_sta = WIFIMGR_MAX_STA_NR;
+	size = capa->ap.max_ap_assoc_sta * WIFIMGR_ETH_ALEN;
 	sts->u.ap.sta_mac_addrs = malloc(size);
 	if (!sts->u.ap.sta_mac_addrs)
 		return -ENOMEM;
-	sts->u.ap.sta_nr = 0;
+	sts->u.ap.nr_sta = 0;
+	memset(sts->u.ap.sta_mac_addrs, 0, size);
 
 	/* Initialize the MAC ACL table */
-	if (!capa->max_acl_mac_addrs)
-		capa->max_acl_mac_addrs = WIFIMGR_MAX_STA_NR;
-	size = capa->max_acl_mac_addrs * WIFIMGR_ETH_ALEN;
+	if (!capa->ap.max_acl_mac_addrs)
+		capa->ap.max_acl_mac_addrs = WIFIMGR_MAX_STA_NR;
+	size = capa->ap.max_acl_mac_addrs * WIFIMGR_ETH_ALEN;
 	sts->u.ap.acl_mac_addrs = malloc(size);
 	if (!sts->u.ap.acl_mac_addrs) {
 		free(sts->u.ap.sta_mac_addrs);
 		return -ENOMEM;
 	}
+	sts->u.ap.nr_acl = 0;
 	memset(sts->u.ap.acl_mac_addrs, 0, size);
-	sts->u.ap.acl_nr = 0;
 
 	/* Initialize the associated station list */
 	wifimgr_list_init(&assoc_list->list);
@@ -514,8 +429,10 @@ static int wifimgr_ap_start(void *handle)
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_START_AP);
 
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP,
+				 WIFIMGR_CMD_TYPE_SYNC,
 				 wifimgr_ap_stop, mgr);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_SET_MAC_ACL,
+				 WIFIMGR_CMD_TYPE_SET,
 				 wifimgr_ap_set_mac_acl, &mgr->set_acl);
 
 	/* TODO: Start DHCP server */
@@ -527,7 +444,7 @@ static int wifimgr_ap_start(void *handle)
 static int wifimgr_ap_stop(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifimgr_status *sts = &mgr->ap_sts;
+	struct wifi_status *sts = &mgr->ap_sts;
 	int ret;
 
 	evt_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_NEW_STATION);
@@ -539,9 +456,11 @@ static int wifimgr_ap_stop(void *handle)
 	/* Deinitialize the MAC ACL table */
 	free(sts->u.ap.acl_mac_addrs);
 	sts->u.ap.acl_mac_addrs = NULL;
+	sts->u.ap.nr_acl = 0;
 	/* Deinitialize the associated station table */
 	free(sts->u.ap.sta_mac_addrs);
 	sts->u.ap.sta_mac_addrs = NULL;
+	sts->u.ap.nr_sta = 0;
 
 	/* Deauth all stations before leaving */
 	memset(mgr->set_acl.mac, 0xff, sizeof(mgr->set_acl.mac));
@@ -558,6 +477,7 @@ static int wifimgr_ap_stop(void *handle)
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_SET_MAC_ACL);
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_START_AP,
+				 WIFIMGR_CMD_TYPE_SYNC,
 				 wifimgr_ap_start, mgr);
 
 	wifimgr_ap_led_off();
@@ -579,8 +499,10 @@ static int wifimgr_ap_open(void *handle)
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_AP);
 
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_AP,
+				 WIFIMGR_CMD_TYPE_SYNC,
 				 wifimgr_ap_close, mgr);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_START_AP,
+				 WIFIMGR_CMD_TYPE_SYNC,
 				 wifimgr_ap_start, mgr);
 
 	wifimgr_info("open AP!\n");
@@ -598,13 +520,12 @@ static int wifimgr_ap_close(void *handle)
 		return ret;
 	}
 
-	evt_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_NEW_STATION);
-
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP);
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_START_AP);
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_AP);
 
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_AP,
+				 WIFIMGR_CMD_TYPE_SYNC,
 				 wifimgr_ap_open, mgr);
 
 	wifimgr_info("close AP!\n");
@@ -632,10 +553,8 @@ static int wifimgr_ap_drv_init(struct wifi_manager *mgr)
 
 	/* Check driver capability */
 	ret = wifi_drv_get_capa(iface, &mgr->ap_capa);
-	if (ret) {
+	if (ret)
 		wifimgr_warn("failed to get driver capability!");
-		return ret;
-	}
 
 	wifimgr_info("interface %s(" MACSTR ") initialized!\n", devname,
 		     MAC2STR(mgr->ap_sts.own_mac));
@@ -650,23 +569,21 @@ int wifimgr_ap_init(void *handle)
 	int ret;
 
 	/* Register default AP commands */
-	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_AP_CONFIG,
-				 wifimgr_ap_get_config, &mgr->ap_conf);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_SET_AP_CONFIG,
+				 WIFIMGR_CMD_TYPE_SET,
 				 wifimgr_ap_set_config, &mgr->ap_conf);
+	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_AP_CONFIG,
+				 WIFIMGR_CMD_TYPE_GET,
+				 wifimgr_ap_get_config, &mgr->ap_conf);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_AP_CAPA,
-				 wifimgr_ap_get_capa, mgr);
+				 WIFIMGR_CMD_TYPE_GET,
+				 wifimgr_ap_get_capa, &mgr->ap_capa);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_AP_STATUS,
-				 wifimgr_ap_get_status, mgr);
-	cmd_processor_add_sender(prcs, WIFIMGR_CMD_GET_AP_CTRL,
-				 wifimgr_ap_get_ctrl, mgr);
-	cmd_processor_add_sender(prcs, WIFIMGR_CMD_RELEASE_AP_CTRL,
-				 wifimgr_ap_release_ctrl, mgr);
+				 WIFIMGR_CMD_TYPE_GET,
+				 wifimgr_ap_get_status, &mgr->ap_sts);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_OPEN_AP,
+				 WIFIMGR_CMD_TYPE_SYNC,
 				 wifimgr_ap_open, mgr);
-
-	/* Initialize AP global control */
-	sem_init(&mgr->ap_ctrl, 0, 1);
 
 	/* Initialize AP config */
 	ret = wifimgr_config_init(&mgr->ap_conf, WIFIMGR_SETTING_AP_PATH);
@@ -685,10 +602,8 @@ int wifimgr_ap_init(void *handle)
 	if (ret)
 		wifimgr_err("failed to init WiFi AP state machine!\n");
 
-	/* Initialize AP notifier chain */
-	wifimgr_list_init(&mgr->new_sta_chain.list);
-	sem_init(&mgr->new_sta_chain.exclsem, 0, 1);
-	new_sta_chain = &mgr->new_sta_chain;
+	/* Initialize AP global control iface */
+	wifimgr_init_ctrl_iface(WIFIMGR_IFACE_NAME_AP, &mgr->ap_ctrl);
 
 	return ret;
 }
@@ -697,17 +612,12 @@ void wifimgr_ap_exit(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 
-	/* Deinitialize AP notifier chain */
-	wifimgr_list_free(&mgr->new_sta_chain.list);
-	sem_destroy(&mgr->new_sta_chain.exclsem);
-	new_sta_chain = NULL;
+	/* Deinitialize AP global control */
+	wifimgr_destroy_ctrl_iface(WIFIMGR_IFACE_NAME_AP, &mgr->ap_ctrl);
 
 	/* Deinitialize AP state machine */
 	wifimgr_sm_exit(&mgr->ap_sm);
 
 	/* Deinitialize AP config */
 	wifimgr_config_exit(WIFIMGR_SETTING_AP_PATH);
-
-	/* Deinitialize AP global control */
-	sem_destroy(&mgr->ap_ctrl);
 }
