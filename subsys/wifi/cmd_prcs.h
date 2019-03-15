@@ -26,8 +26,15 @@
 
 /* Function pointer prototype for commands */
 typedef int (*cmd_func_t) (void *arg);
+typedef void (*cmd_cb_t) (void *cb_arg, void *arg);
 
 struct cmd_sender {
+#define WIFIMGR_CMD_TYPE_ERROR		0
+#define WIFIMGR_CMD_TYPE_SET		1
+#define WIFIMGR_CMD_TYPE_GET		2
+#define WIFIMGR_CMD_TYPE_SYNC		3
+#define WIFIMGR_CMD_TYPE_ASYNC		4
+	char type;
 	cmd_func_t fn;
 	void *arg;
 };
@@ -52,7 +59,7 @@ struct cmd_message {
 };
 
 int cmd_processor_add_sender(struct cmd_processor *handle, unsigned int cmd_id,
-			     cmd_func_t fn, void *arg);
+			     char type, cmd_func_t fn, void *arg);
 int cmd_processor_remove_sender(struct cmd_processor *handle,
 				unsigned int cmd_id);
 int wifimgr_cmd_processor_init(struct cmd_processor *handle);

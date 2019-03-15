@@ -18,10 +18,10 @@
 #include "os_adapter.h"
 #include "api.h"
 #include "config.h"
-#include "drv_iface.h"
 #include "cmd_prcs.h"
+#include "ctrl_iface.h"
+#include "drv_iface.h"
 #include "evt_lsnr.h"
-#include "notifier.h"
 #include "timer.h"
 #include "sm.h"
 #include "psk.h"
@@ -40,10 +40,12 @@
 #define WIFIMGR_DEV_NAME_AP	"WIFI_AP"
 #endif
 
+#define WIFIMGR_MAX_RTT_NR	10
 #define WIFIMGR_MAX_STA_NR	16
 
 #define WIFIMGR_CMD_TIMEOUT	5
 #define WIFIMGR_SCAN_TIMEOUT	10
+#define WIFIMGR_RTT_TIMEOUT	10
 #define WIFIMGR_EVENT_TIMEOUT	10
 
 #define C2S(x) case x: return #x;
@@ -58,29 +60,12 @@ struct wifimgr_mac_list {
 	wifimgr_slist_t list;
 };
 
-struct wifimgr_status {
-	char own_mac[WIFIMGR_ETH_ALEN];
-	union {
-		struct {
-			bool host_found;
-			char host_bssid[WIFIMGR_ETH_ALEN];
-			signed char host_rssi;
-		} sta;
-		struct {
-			unsigned char sta_nr;
-			char (*sta_mac_addrs)[WIFIMGR_ETH_ALEN];
-			unsigned char acl_nr;
-			char (*acl_mac_addrs)[WIFIMGR_ETH_ALEN];
-		} ap;
-	} u;
-};
-
 struct wifimgr_sta_event {
 	union {
-		struct wifi_drv_connect_evt conn;
-		struct wifi_drv_disconnect_evt disc;
-		struct wifi_drv_scan_done_evt scan_done;
+		char evt_status;
 		struct wifi_drv_scan_result_evt scan_res;
+		struct wifi_drv_rtt_response_evt rtt_resp;
+		struct wifi_drv_connect_evt conn;
 	} u;
 };
 
@@ -91,22 +76,23 @@ struct wifimgr_ap_event {
 };
 
 struct wifi_manager {
-	sem_t sta_ctrl;			/* STA global control */
-	struct wifimgr_config sta_conf;
-	struct wifimgr_status sta_sts;
+	union wifi_capa sta_capa;
+	struct wifi_config sta_conf;
+	struct wifi_status sta_sts;
 	struct wifimgr_state_machine sta_sm;
-	struct wifimgr_notifier_chain conn_chain;
-	struct wifimgr_notifier_chain disc_chain;
+	struct wifi_scan_result sta_scan_res;
+	struct wifi_rtt_request sta_rtt_req;
+	struct wifi_rtt_response sta_rtt_resp;
+	struct wifimgr_ctrl_iface sta_ctrl;
 
-	sem_t ap_ctrl;			/* AP global control */
-	struct wifi_drv_capa ap_capa;
-	struct wifimgr_config ap_conf;
-	struct wifimgr_status ap_sts;
+	union wifi_capa ap_capa;
+	struct wifi_config ap_conf;
+	struct wifi_status ap_sts;
 	struct wifimgr_state_machine ap_sm;
 	struct wifimgr_mac_list assoc_list;
 	struct wifimgr_mac_list mac_acl;
 	struct wifimgr_set_mac_acl set_acl;
-	struct wifimgr_notifier_chain new_sta_chain;
+	struct wifimgr_ctrl_iface ap_ctrl;
 
 	struct cmd_processor prcs;
 	struct evt_listener lsnr;

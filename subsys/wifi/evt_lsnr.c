@@ -44,6 +44,7 @@ int wifimgr_notify_event(unsigned int evt_id, void *buf, int buf_len)
 		memcpy(msg.buf, buf, buf_len);
 	}
 
+	/* Notify events */
 	ret = mq_send(mq, (const char *)&msg, sizeof(msg), 0);
 	if (ret == -1) {
 		free(msg.buf);
