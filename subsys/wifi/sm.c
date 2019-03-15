@@ -24,9 +24,13 @@ static int sm_sta_timer_start(struct wifimgr_state_machine *sta_sm,
 	int ret = 0;
 
 	switch (cmd_id) {
-	case WIFIMGR_CMD_SCAN:
+	case WIFIMGR_CMD_STA_SCAN:
 		ret =
 		    wifimgr_timer_start(sta_sm->timerid, WIFIMGR_SCAN_TIMEOUT);
+		break;
+	case WIFIMGR_CMD_RTT_REQ:
+		ret =
+		    wifimgr_timer_start(sta_sm->timerid, WIFIMGR_RTT_TIMEOUT);
 		break;
 	case WIFIMGR_CMD_CONNECT:
 	case WIFIMGR_CMD_DISCONNECT:
@@ -50,6 +54,7 @@ static int sm_sta_timer_stop(struct wifimgr_state_machine *sta_sm,
 
 	switch (evt_id) {
 	case WIFIMGR_EVT_SCAN_DONE:
+	case WIFIMGR_EVT_RTT_DONE:
 	case WIFIMGR_EVT_CONNECT:
 		ret = wifimgr_timer_stop(sta_sm->timerid);
 		break;
@@ -81,6 +86,9 @@ const char *sta_sts2str(int state)
 	case WIFIMGR_SM_STA_SCANNING:
 		str = "STA <SCANNING>";
 		break;
+	case WIFIMGR_SM_STA_RTTING:
+		str = "STA <RTTING>";
+		break;
 	case WIFIMGR_SM_STA_CONNECTING:
 		str = "STA <CONNECTING>";
 		break;
@@ -99,7 +107,7 @@ const char *sta_sts2str(int state)
 
 static bool is_sta_common_cmd(unsigned int cmd_id)
 {
-	return ((cmd_id >= WIFIMGR_CMD_GET_STA_CONFIG)
+	return ((cmd_id >= 0)
 		&& (cmd_id < WIFIMGR_CMD_OPEN_STA));
 }
 
@@ -111,8 +119,8 @@ static bool is_sta_cmd(unsigned int cmd_id)
 
 static bool is_sta_evt(unsigned int evt_id)
 {
-	return ((evt_id >= WIFIMGR_EVT_CONNECT)
-		&& (evt_id <= WIFIMGR_EVT_SCAN_DONE));
+	return ((evt_id >= WIFIMGR_EVT_SCAN_RESULT)
+		&& (evt_id <= WIFIMGR_EVT_DISCONNECT));
 }
 
 int sm_sta_query(struct wifimgr_state_machine *sta_sm)
@@ -132,6 +140,7 @@ static int sm_sta_query_cmd(struct wifimgr_state_machine *sta_sm,
 
 	switch (sm_sta_query(sta_sm)) {
 	case WIFIMGR_SM_STA_SCANNING:
+	case WIFIMGR_SM_STA_RTTING:
 	case WIFIMGR_SM_STA_CONNECTING:
 	case WIFIMGR_SM_STA_DISCONNECTING:
 		ret = -EBUSY;
@@ -173,16 +182,20 @@ static void sm_sta_cmd_step(struct wifimgr_state_machine *sta_sm,
 			sm_sta_step(sta_sm, WIFIMGR_SM_STA_READY);
 		break;
 	case WIFIMGR_SM_STA_READY:
-		if (cmd_id == WIFIMGR_CMD_SCAN)
+		if (cmd_id == WIFIMGR_CMD_STA_SCAN)
 			sm_sta_step(sta_sm, WIFIMGR_SM_STA_SCANNING);
+		else if (cmd_id == WIFIMGR_CMD_RTT_REQ)
+			sm_sta_step(sta_sm, WIFIMGR_SM_STA_RTTING);
 		else if (cmd_id == WIFIMGR_CMD_CONNECT)
 			sm_sta_step(sta_sm, WIFIMGR_SM_STA_CONNECTING);
 		else if (cmd_id == WIFIMGR_CMD_CLOSE_STA)
 			sm_sta_step(sta_sm, WIFIMGR_SM_STA_NODEV);
 		break;
 	case WIFIMGR_SM_STA_CONNECTED:
-		if (cmd_id == WIFIMGR_CMD_SCAN)
+		if (cmd_id == WIFIMGR_CMD_STA_SCAN)
 			sm_sta_step(sta_sm, WIFIMGR_SM_STA_SCANNING);
+		else if (cmd_id == WIFIMGR_CMD_RTT_REQ)
+			sm_sta_step(sta_sm, WIFIMGR_SM_STA_RTTING);
 		else if (cmd_id == WIFIMGR_CMD_DISCONNECT)
 			sm_sta_step(sta_sm, WIFIMGR_SM_STA_DISCONNECTING);
 		else if (cmd_id == WIFIMGR_CMD_CLOSE_STA)
@@ -204,6 +217,10 @@ static void sm_sta_evt_step(struct wifimgr_state_machine *sta_sm,
 	switch (sta_sm->state) {
 	case WIFIMGR_SM_STA_SCANNING:
 		if (evt_id == WIFIMGR_EVT_SCAN_DONE)
+			sm_sta_step(sta_sm, sta_sm->old_state);
+		break;
+	case WIFIMGR_SM_STA_RTTING:
+		if (evt_id == WIFIMGR_EVT_RTT_DONE)
 			sm_sta_step(sta_sm, sta_sm->old_state);
 		break;
 	case WIFIMGR_SM_STA_CONNECTING:
@@ -358,15 +375,16 @@ static void sm_ap_cmd_step(struct wifimgr_state_machine *ap_sm,
 const char *wifimgr_cmd2str(int cmd)
 {
 	switch (cmd) {
-	C2S(WIFIMGR_CMD_GET_STA_CONFIG)
 	C2S(WIFIMGR_CMD_SET_STA_CONFIG)
+	C2S(WIFIMGR_CMD_GET_STA_CONFIG)
 	C2S(WIFIMGR_CMD_GET_STA_STATUS)
 	C2S(WIFIMGR_CMD_GET_STA_CAPA)
 	C2S(WIFIMGR_CMD_GET_STA_CTRL)
 	C2S(WIFIMGR_CMD_RELEASE_STA_CTRL)
 	C2S(WIFIMGR_CMD_OPEN_STA)
 	C2S(WIFIMGR_CMD_CLOSE_STA)
-	C2S(WIFIMGR_CMD_SCAN)
+	C2S(WIFIMGR_CMD_STA_SCAN)
+	C2S(WIFIMGR_CMD_RTT_REQ)
 	C2S(WIFIMGR_CMD_CONNECT)
 	C2S(WIFIMGR_CMD_DISCONNECT)
 	C2S(WIFIMGR_CMD_GET_AP_CONFIG)
@@ -377,6 +395,7 @@ const char *wifimgr_cmd2str(int cmd)
 	C2S(WIFIMGR_CMD_RELEASE_AP_CTRL)
 	C2S(WIFIMGR_CMD_OPEN_AP)
 	C2S(WIFIMGR_CMD_CLOSE_AP)
+	C2S(WIFIMGR_CMD_AP_SCAN)
 	C2S(WIFIMGR_CMD_START_AP)
 	C2S(WIFIMGR_CMD_STOP_AP)
 	C2S(WIFIMGR_CMD_DEL_STA)
@@ -391,6 +410,8 @@ const char *wifimgr_evt2str(int evt)
 	switch (evt) {
 	C2S(WIFIMGR_EVT_SCAN_RESULT)
 	C2S(WIFIMGR_EVT_SCAN_DONE)
+	C2S(WIFIMGR_EVT_RTT_RESPONSE)
+	C2S(WIFIMGR_EVT_RTT_DONE)
 	C2S(WIFIMGR_EVT_CONNECT)
 	C2S(WIFIMGR_EVT_DISCONNECT)
 	C2S(WIFIMGR_EVT_NEW_STATION)

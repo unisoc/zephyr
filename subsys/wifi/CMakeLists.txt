@@ -6,6 +6,7 @@ zephyr_sources_ifdef(
   api.c
   autorun.c
   cmd_prcs.c
+  ctrl_iface.c
   drv_iface.c
   evt_lsnr.c
   notifier.c
