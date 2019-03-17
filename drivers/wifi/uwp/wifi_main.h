@@ -33,10 +33,12 @@ struct wifi_device {
 	u8_t max_sta_num;
 	/* Maximum stations in blacklist on softap */
 	u8_t max_blacklist_num;
-	scan_result_cb_t scan_result_cb;
-	connect_cb_t connect_cb;
-	disconnect_cb_t disconnect_cb;
-	new_station_t new_station_cb;
+	u8_t max_rtt_num;
+	scan_result_evt_t scan_result_cb;
+	connect_evt_t connect_cb;
+	disconnect_evt_t disconnect_cb;
+	new_station_evt_t new_station_cb;
+	rtt_result_evt_t rtt_result_cb;
 	struct net_if *iface;
 	struct device *dev;
 };

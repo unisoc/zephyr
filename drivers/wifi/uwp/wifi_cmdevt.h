@@ -38,6 +38,7 @@ enum cmd_type {
 	WIFI_CMD_SET_WHITELIST,
 
 	WIFI_CMD_NOTIFY_IP_ACQUIRED = 0x0F, /* Set IP address. */
+	WIFI_CMD_RTT = 0x10,
 
 	WIFI_CMD_MAX,
 };
@@ -51,6 +52,9 @@ enum event_type {
 	WIFI_EVENT_SCAN_DONE,
 	/* Ap event. */
 	WIFI_EVENT_NEW_STATION,
+
+	WIFI_EVENT_RTT = 0x86,
+
 	WIFI_EVENT_MAX,
 };
 
@@ -60,6 +64,8 @@ enum vht_chan_bw {
 	VHT_CHAN_BW_80M,
 	VHT_CHAN_BW_160M,
 	VHT_CHAN_BW_80_80M,
+	VHT_CHAN_BW_5M,
+	VHT_CHAN_BW_10M,
 
 	VHT_CHAN_BW_DEF = 0xFF,
 };
@@ -67,6 +73,25 @@ enum vht_chan_bw {
 enum blacklist_sub_type {
 	ADD_MAC_ACL = 3,
 	DEL_MAC_ACL,
+};
+
+enum rtt_sub_type {
+	RTT_ENABLE,
+	RTT_DISABLE,
+	RTT_GET_CAPABILITIES,
+	RTT_RANGE_REQUEST,
+	RTT_RANGE_CANCEL,
+	RTT_SET_CLI,
+	RTT_SET_CLR,
+	RTT_GET_RESPONDER_INFO,
+	RTT_ENABLE_RESPONDER,
+	RTT_DISABLE_RESPONDER,
+};
+
+enum rtt_sub_evt {
+	RTT_SESSION_END,
+	RTT_PER_DEST_RES,
+	RTT_PER_DEST_METER,
 };
 
 /* These structures are shared by command and event. */
@@ -98,6 +123,7 @@ struct cmd_get_cp_info {
 	char mac[ETH_ALEN];
 	u8_t max_ap_assoc_sta_num;
 	u8_t max_ap_blacklist_sta_num;
+	u8_t max_rtt_num;
 } __packed;
 
 struct cmd_stop {
@@ -194,6 +220,38 @@ struct cmd_npi {
 	u8_t data[0];
 } __packed;
 
+struct wifi_channel_info {
+	u32_t width;
+	s32_t chan_num;
+	s32_t chan_num0;
+	s32_t chan_num1;
+} __packed;
+
+struct rtt_peer_info {
+	u8_t mac[ETH_ALEN];
+	u8_t wifi_rtt_type;
+	u32_t rtt_peer_type;
+	struct wifi_channel_info chan_info;
+	u32_t burst_period; /* 0-31 */
+	u32_t num_burst; /* 0-15 */
+	u32_t num_frames_per_burst; /* 0-31 */
+	u32_t num_retries_per_rtt_frame; /* 0-3 */
+	u32_t num_retries_per_rtt_ftmr;
+	u8_t LCI_request;
+	u8_t LCR_request;
+	u32_t burst_duration;
+	u8_t preamble;
+	u8_t bw;
+} __packed;
+
+struct cmd_session_request {
+	struct trans_hdr trans_header;
+	u8_t sub_type;
+	u8_t len;
+	u8_t n_peers;
+	struct rtt_peer_info peers[0];
+} __packed;
+
 struct event_scan_result {
 	u8_t band;
 	u8_t channel;
@@ -201,6 +259,11 @@ struct event_scan_result {
 	u8_t encrypt_mode;
 	char bssid[ETH_ALEN];
 	char ssid[MAX_SSID_LEN];
+	/**
+	 * Extra functon supported,
+	 * like RTT.
+	 */
+	u32_t extra;
 } __packed;
 
 struct event_scan_done {
@@ -225,6 +288,17 @@ struct event_new_station {
 	/* u8_t ie[0]; */
 } __packed;
 
+struct event_rtt {
+	u8_t sub_type;
+	u8_t data[0];
+} __packed;
+
+struct event_rtt_per_dest_meter {
+	u8_t sub_type;
+	u8_t mac[ETH_ALEN];
+	s32_t meter;
+} __packed;
+
 int wifi_cmd_get_cp_info(struct wifi_priv *priv);
 int wifi_cmd_open(struct wifi_device *wifi_dev);
 int wifi_cmd_close(struct wifi_device *wifi_dev);
@@ -247,6 +321,8 @@ int wifi_cmd_hw_test(struct wifi_device *wifi_dev,
 		char *r_buf, u32_t *r_len);
 int wifi_cmd_notify_ip_acquired(struct wifi_device *wifi_dev,
 		u8_t *ip, u8_t len);
+int wifi_cmd_session_request(struct wifi_device *wifi_dev,
+		struct wifi_drv_rtt_request *params);
 
 int wifi_cmd_send(u8_t cmd, char *data, int len,
 			 char *rbuf, int *rlen);
