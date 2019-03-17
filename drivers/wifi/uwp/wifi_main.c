@@ -85,7 +85,7 @@ static int wifi_rf_init(void)
 }
 
 static int uwp_mgmt_get_capa(struct device *dev,
-		struct wifi_drv_capa *capa)
+		union wifi_drv_capa *capa)
 {
 	struct wifi_device *wifi_dev;
 
@@ -99,14 +99,12 @@ static int uwp_mgmt_get_capa(struct device *dev,
 		return -EINVAL;
 	}
 
-	if (wifi_dev->mode != WIFI_MODE_AP) {
-		LOG_WRN("Improper mode %d to get capa.",
-				wifi_dev->mode);
-		return -EINVAL;
+	if (wifi_dev->mode == WIFI_MODE_AP) {
+		capa->ap.max_ap_assoc_sta = wifi_dev->max_sta_num;
+		capa->ap.max_acl_mac_addrs = wifi_dev->max_blacklist_num;
+	} else if (wifi_dev->mode == WIFI_MODE_STA) {
+		capa->sta.max_rtt_peers = wifi_dev->max_rtt_num;
 	}
-
-	capa->max_ap_assoc_sta = wifi_dev->max_sta_num;
-	capa->max_acl_mac_addrs = wifi_dev->max_blacklist_num;
 
 	return 0;
 }
@@ -189,7 +187,7 @@ static int uwp_mgmt_close(struct device *dev)
 
 static int uwp_mgmt_start_ap(struct device *dev,
 			     struct wifi_drv_start_ap_params *params,
-				 new_station_t cb)
+				 new_station_evt_t cb)
 {
 	struct wifi_device *wifi_dev;
 
@@ -301,6 +299,32 @@ static int uwp_mgmt_set_mac_acl(struct device *dev,
 			acl_nr, (u8_t **)acl_mac_addrs);
 }
 
+static int uwp_mgmt_session_req(struct device *dev,
+		struct wifi_drv_rtt_request *param, rtt_result_evt_t cb)
+{
+	struct wifi_device *wifi_dev;
+
+	if (!dev) {
+		return -EINVAL;
+	}
+
+	wifi_dev = get_wifi_dev_by_dev(dev);
+	if (!wifi_dev) {
+		LOG_ERR("Unable to find wifi dev by dev %p", dev);
+		return -EINVAL;
+	}
+
+	if (wifi_dev->mode != WIFI_MODE_STA) {
+		LOG_WRN("Improper mode %d to do session req.",
+				wifi_dev->mode);
+		return -EINVAL;
+	}
+
+	wifi_dev->rtt_result_cb = cb;
+
+	return wifi_cmd_session_request(wifi_dev, param);
+}
+
 static int uwp_mgmt_hw_test(struct device *dev,
 		int ictx_id, char *t_buf,
 		unsigned int t_len, char *r_buf,
@@ -324,7 +348,7 @@ static int uwp_mgmt_hw_test(struct device *dev,
 
 static int uwp_mgmt_scan(struct device *dev,
 		struct wifi_drv_scan_params *params,
-		scan_result_cb_t cb)
+		scan_result_evt_t cb)
 {
 	struct wifi_device *wifi_dev;
 
@@ -376,8 +400,8 @@ static int uwp_mgmt_get_station(struct device *dev,
 
 static int uwp_mgmt_connect(struct device *dev,
 			    struct wifi_drv_connect_params *params,
-				connect_cb_t con_cb,
-				disconnect_cb_t discon_cb)
+				connect_evt_t con_cb,
+				disconnect_evt_t discon_cb)
 {
 	struct wifi_device *wifi_dev;
 
@@ -408,7 +432,7 @@ static int uwp_mgmt_connect(struct device *dev,
 }
 
 static int uwp_mgmt_disconnect(struct device *dev,
-		disconnect_cb_t cb)
+		disconnect_evt_t cb)
 {
 	struct wifi_device *wifi_dev;
 
@@ -637,6 +661,7 @@ static const struct wifi_drv_api uwp_api = {
 	.stop_ap                = uwp_mgmt_stop_ap,
 	.del_station            = uwp_mgmt_del_station,
 	.set_mac_acl            = uwp_mgmt_set_mac_acl,
+	.rtt_req                = uwp_mgmt_session_req,
 	.hw_test                = uwp_mgmt_hw_test,
 };
 
