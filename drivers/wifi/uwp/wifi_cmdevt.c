@@ -20,7 +20,6 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 #define RECV_BUF_SIZE (128)
 #define GET_STA_BUF_SIZE (12)
 #define ALL_2_4_GHZ_CHANNELS (0x3FFF)
-#define CHANNEL_2_4_GHZ_BIT(n) (1 << (n - 1))
 
 extern struct wifi_priv uwp_wifi_ap_priv;
 
@@ -61,9 +60,14 @@ static u16_t CRC16(const u8_t *buf, u16_t len)
 static inline int check_cmdevt_len(int input_len, int expected_len)
 {
 	if (input_len != expected_len) {
-		LOG_ERR("Invalid len %d, expected len %d",
-				input_len, expected_len);
-		return -EINVAL;
+		if (input_len > expected_len) {
+			LOG_DBG("Invalid len %d, expected len %d",
+					input_len, expected_len);
+		} else {
+			LOG_ERR("Invalid len %d, expected len %d",
+					input_len, expected_len);
+			return -EINVAL;
+		}
 	}
 
 	return 0;
@@ -81,7 +85,7 @@ int wifi_cmd_load_ini(const u8_t *data, u32_t len, u8_t sec_num)
 
 	cmd = k_malloc(cmd_len);
 	if (!cmd) {
-		LOG_ERR("Cmd is null");
+		LOG_ERR("cmd is null");
 		return -ENOMEM;
 	}
 
@@ -130,14 +134,14 @@ int wifi_cmd_scan(struct wifi_device *wifi_dev,
 	case WIFI_BAND_2_4G:
 		cmd = k_malloc(cmd_len);
 		if (!cmd) {
-			LOG_ERR("Cmd is null");
+			LOG_ERR("cmd is null");
 			return -ENOMEM;
 		}
 
 		if (channel == 0) { /* All 2.4GHz channel */
 			cmd->channels_2g = ALL_2_4_GHZ_CHANNELS;
 		} else { /* One channel */
-			cmd->channels_2g = CHANNEL_2_4_GHZ_BIT(channel);
+			cmd->channels_2g = BIT(channel - 1);
 		}
 		break;
 	case WIFI_BAND_5G:
@@ -297,10 +301,13 @@ int wifi_cmd_get_cp_info(struct wifi_priv *priv)
 	priv->wifi_dev[WIFI_DEV_AP].max_blacklist_num =
 		cmd.max_ap_blacklist_sta_num;
 
+	priv->wifi_dev[WIFI_DEV_STA].max_rtt_num = cmd.max_rtt_num;
+
 	LOG_INF("CP version: 0x%x\n", priv->cp_version);
 
 	LOG_DBG("Max sta num: %d\n", cmd.max_ap_assoc_sta_num);
 	LOG_DBG("Max blacklist num: %d\n", cmd.max_ap_blacklist_sta_num);
+	LOG_DBG("Max rtt num: %d\n", cmd.max_rtt_num);
 
 	return 0;
 }
@@ -467,8 +474,6 @@ int wifi_cmd_del_sta(struct wifi_device *wifi_dev,
 int wifi_cmd_set_blacklist(struct wifi_device *wifi_dev,
 		u8_t sub_type, u8_t mac_num, u8_t **mac_addr)
 {
-	ARG_UNUSED(wifi_dev);
-
 	struct cmd_set_blacklist *cmd;
 	int ret;
 	int cmd_len;
@@ -534,7 +539,7 @@ int wifi_cmd_hw_test(struct wifi_device *wifi_dev,
 
 	cmd = k_malloc(cmd_len);
 	if (!cmd) {
-		LOG_ERR("Cmd is null");
+		LOG_ERR("cmd is null");
 		return -ENOMEM;
 	}
 
@@ -590,6 +595,49 @@ int wifi_cmd_notify_ip_acquired(struct wifi_device *wifi_dev,
 	return 0;
 }
 
+int wifi_cmd_session_request(struct wifi_device *wifi_dev,
+		struct wifi_drv_rtt_request *params)
+{
+	ARG_UNUSED(wifi_dev);
+
+	int ret;
+	int cmd_len;
+	struct cmd_session_request *cmd;
+	u8_t n_peers;
+
+	n_peers = params->nr_peers;
+	cmd_len = sizeof(*cmd) + n_peers * sizeof(struct rtt_peer_info);
+
+	cmd = k_malloc(cmd_len);
+	if (!cmd) {
+		LOG_ERR("cmd is null");
+		return -ENOMEM;
+	}
+
+	memset(cmd, 0, cmd_len);
+	cmd->sub_type = RTT_RANGE_REQUEST;
+	cmd->len = sizeof(cmd->n_peers)+
+		n_peers * sizeof(struct rtt_peer_info);
+	cmd->n_peers = n_peers;
+
+	for (int i = 0; i < n_peers; i++) {
+		memcpy(cmd->peers[i].mac, params->peers[i].bssid, ETH_ALEN);
+		cmd->peers[i].chan_info.chan_num = params->peers[i].channel;
+	}
+
+	ret = wifi_cmd_send(WIFI_CMD_RTT, (char *)cmd,
+			    cmd_len, NULL, NULL);
+	if (ret) {
+		LOG_ERR("Session request send cmd fail\n");
+		k_free(cmd);
+		return ret;
+	}
+
+	k_free(cmd);
+
+	return 0;
+}
+
 static int wifi_evt_scan_result(struct wifi_device *wifi_dev,
 		char *data, int len)
 {
@@ -610,6 +658,7 @@ static int wifi_evt_scan_result(struct wifi_device *wifi_dev,
 	scan_result.channel = event->channel;
 	scan_result.rssi = event->rssi;
 	scan_result.security = event->encrypt_mode;
+	scan_result.rtt_supported = event->extra & BIT(0);
 
 	LOG_DBG("ssid: %s", event->ssid);
 
@@ -707,6 +756,48 @@ static int wifi_evt_new_sta(struct wifi_device *wifi_dev, char *data, int len)
 	return 0;
 }
 
+static int wifi_evt_rtt(struct wifi_device *wifi_dev, char *data, int len)
+{
+	struct event_rtt_per_dest_meter *sub_evt = NULL;
+	struct event_rtt *event =
+		(struct event_rtt *)data;
+	struct wifi_drv_rtt_response_evt rtt_res;
+
+	switch (event->sub_type) {
+	case RTT_SESSION_END:
+		if (check_cmdevt_len(len, sizeof(struct event_rtt))) {
+			return -EINVAL;
+		}
+		if (wifi_dev->rtt_result_cb) {
+			wifi_dev->rtt_result_cb(wifi_dev->iface, 0, NULL);
+		}
+		break;
+	case RTT_PER_DEST_METER:
+		if (check_cmdevt_len(len, sizeof(struct event_rtt))) {
+			return -EINVAL;
+		}
+		sub_evt = (struct event_rtt_per_dest_meter *)data;
+
+		LOG_DBG("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+				sub_evt->mac[0], sub_evt->mac[1],
+				sub_evt->mac[2], sub_evt->mac[3],
+				sub_evt->mac[4], sub_evt->mac[5]);
+		LOG_DBG("meter: %u\n", sub_evt->meter);
+
+		memcpy(rtt_res.bssid, sub_evt->mac, ETH_ALEN);
+		rtt_res.range = sub_evt->meter;
+		if (wifi_dev->rtt_result_cb) {
+			wifi_dev->rtt_result_cb(wifi_dev->iface, 0, &rtt_res);
+		}
+		break;
+	default:
+		LOG_WRN("Not supported sub_evt: 0x%02x", event->sub_type);
+		break;
+	}
+
+	return 0;
+}
+
 int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 {
 	struct trans_hdr *hdr = (struct trans_hdr *)data;
@@ -757,6 +848,10 @@ int wifi_cmdevt_process(struct wifi_priv *priv, char *data, int len)
 		wifi_evt_connect(&priv->wifi_dev[WIFI_DEV_STA],
 				hdr->data, len);
 		break;
+	case WIFI_EVENT_RTT:
+		wifi_evt_rtt(&priv->wifi_dev[WIFI_DEV_STA],
+				hdr->data, len);
+		break;
 	case WIFI_EVENT_NEW_STATION:
 		wifi_evt_new_sta(&priv->wifi_dev[WIFI_DEV_AP],
 				hdr->data, len);
@@ -789,19 +884,19 @@ int wifi_cmd_send(u8_t cmd, char *data, int len, char *rbuf, int *rlen)
 
 	ret = wifi_tx_cmd(data, len);
 	if (ret < 0) {
-		LOG_ERR("tx cmd fail %d", ret);
+		LOG_ERR("tx cmd fail %d\n", ret);
 		return ret;
 	}
 
 	ret = k_sem_take(&cmd_sem, 3000);
 	if (ret) {
-		LOG_ERR("Wait cmd(%d) timeout.", cmd);
+		LOG_ERR("Wait cmd(%d) timeout.\n", cmd);
 		return ret;
 	}
 
 	hdr = (struct trans_hdr *)recv_buf;
 	if (hdr->status != 0) {
-		LOG_ERR("Invalid cmd status: %i", hdr->status);
+		LOG_ERR("Invalid cmd status: %i\n", hdr->status);
 		return hdr->status;
 	}
 
