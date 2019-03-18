@@ -34,6 +34,10 @@
 	status = "ok";
 };
 
+&uart1 {
+	status = "ok";
+};
+
 &uart2 {
 	status = "ok";
 };
