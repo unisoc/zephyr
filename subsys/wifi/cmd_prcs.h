@@ -24,6 +24,8 @@
 #error "Please increase CONFIG_MSG_COUNT_MAX!"
 #endif
 
+#define WIFIMGR_CMD_TIMEOUT	5
+
 /* Function pointer prototype for commands */
 typedef int (*cmd_func_t) (void *arg);
 typedef void (*cmd_cb_t) (void *cb_arg, void *arg);
@@ -32,8 +34,7 @@ struct cmd_sender {
 #define WIFIMGR_CMD_TYPE_ERROR		0
 #define WIFIMGR_CMD_TYPE_SET		1
 #define WIFIMGR_CMD_TYPE_GET		2
-#define WIFIMGR_CMD_TYPE_SYNC		3
-#define WIFIMGR_CMD_TYPE_ASYNC		4
+#define WIFIMGR_CMD_TYPE_EXCHANGE	3
 	char type;
 	cmd_func_t fn;
 	void *arg;

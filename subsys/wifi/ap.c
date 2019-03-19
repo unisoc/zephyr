@@ -101,7 +101,8 @@ static struct wifimgr_mac_node *search_mac(struct wifimgr_mac_list *mac_list,
 	struct wifimgr_mac_node *mac_node;
 
 	/* Loop through list to find the corresponding event */
-	wifimgr_list_for_each_entry(mac_node, &mac_list->list, struct wifimgr_mac_node, node) {
+	wifimgr_list_for_each_entry(mac_node, &mac_list->list,
+				    struct wifimgr_mac_node, node) {
 		if (!memcmp(mac_node->mac, mac, WIFIMGR_ETH_ALEN))
 			return mac_node;
 	}
@@ -277,7 +278,7 @@ static int wifimgr_ap_new_station_event(void *arg)
 		if (!assoc_list->nr)
 			cmd_processor_add_sender(&mgr->prcs,
 						 WIFIMGR_CMD_DEL_STA,
-						 WIFIMGR_CMD_TYPE_ASYNC,
+						 WIFIMGR_CMD_TYPE_EXCHANGE,
 						 wifimgr_ap_del_station,
 						 &mgr->set_acl);
 
@@ -339,8 +340,8 @@ static int wifimgr_ap_new_station_event(void *arg)
 		sts->u.ap.nr_sta = assoc_list->nr;
 
 		/* Notify the external caller */
-		wifimgr_ctrl_evt_new_station(WIFIMGR_IFACE_NAME_AP, chain, new_sta->is_connect,
-						new_sta->mac);
+		wifimgr_ctrl_evt_new_station(&mgr->sta_ctrl, chain,
+					     new_sta->is_connect, new_sta->mac);
 	}
 
 	return 0;
@@ -429,7 +430,7 @@ static int wifimgr_ap_start(void *handle)
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_START_AP);
 
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP,
-				 WIFIMGR_CMD_TYPE_SYNC,
+				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_ap_stop, mgr);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_SET_MAC_ACL,
 				 WIFIMGR_CMD_TYPE_SET,
@@ -477,7 +478,7 @@ static int wifimgr_ap_stop(void *handle)
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_SET_MAC_ACL);
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_STOP_AP);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_START_AP,
-				 WIFIMGR_CMD_TYPE_SYNC,
+				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_ap_start, mgr);
 
 	wifimgr_ap_led_off();
@@ -499,10 +500,10 @@ static int wifimgr_ap_open(void *handle)
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_AP);
 
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_AP,
-				 WIFIMGR_CMD_TYPE_SYNC,
+				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_ap_close, mgr);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_START_AP,
-				 WIFIMGR_CMD_TYPE_SYNC,
+				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_ap_start, mgr);
 
 	wifimgr_info("open AP!\n");
@@ -525,7 +526,7 @@ static int wifimgr_ap_close(void *handle)
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_AP);
 
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_AP,
-				 WIFIMGR_CMD_TYPE_SYNC,
+				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_ap_open, mgr);
 
 	wifimgr_info("close AP!\n");
@@ -582,7 +583,7 @@ int wifimgr_ap_init(void *handle)
 				 WIFIMGR_CMD_TYPE_GET,
 				 wifimgr_ap_get_status, &mgr->ap_sts);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_OPEN_AP,
-				 WIFIMGR_CMD_TYPE_SYNC,
+				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_ap_open, mgr);
 
 	/* Initialize AP config */

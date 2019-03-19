@@ -17,64 +17,6 @@ LOG_MODULE_DECLARE(wifimgr);
 
 K_THREAD_STACK_ARRAY_DEFINE(cmd_stacks, 1, WIFIMGR_CMD_PROCESSOR_STACKSIZE);
 
-int wifimgr_ctrl_iface_send_cmd(struct wifimgr_ctrl_iface *ctrl, unsigned int cmd_id, void *buf, int buf_len)
-{
-	struct cmd_message msg;
-	struct timespec ts;
-	int prio;
-	int ret;
-
-	msg.cmd_id = cmd_id;
-	msg.reply = 0;
-	msg.buf_len = buf_len;
-	msg.buf = buf;
-	/*msg.buf = NULL;
-	if (buf_len) {
-		msg.buf = malloc(buf_len);
-		if (!msg.buf)
-			return -ENOMEM;
-		memcpy(msg.buf, buf, buf_len);
-	}*/
-
-	/* Send commands */
-	ret = mq_send(ctrl->mq, (const char *)&msg, sizeof(msg), 0);
-	if (ret == -1) {
-		wifimgr_err("failed to send [%s]! errno %d\n",
-			    wifimgr_cmd2str(msg.cmd_id), errno);
-		ret = -errno;
-	} else {
-		wifimgr_dbg("send [%s], buf: 0x%08x\n",
-			    wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
-
-		/* Receive command replys */
-		ret = clock_gettime(CLOCK_MONOTONIC, &ts);
-		if (ret)
-			wifimgr_err("failed to get clock time! %d\n", ret);
-		ts.tv_sec += WIFIMGR_CMD_TIMEOUT;
-		ret =
-		    mq_timedreceive(ctrl->mq, (char *)&msg, sizeof(msg), &prio, &ts);
-		if (ret == -1) {
-			wifimgr_err("failed to get command reply! errno %d\n",
-				    errno);
-			if (errno == ETIME)
-				wifimgr_err("[%s] timeout!\n",
-					    wifimgr_cmd2str(msg.cmd_id));
-			ret = -errno;
-		} else {
-			wifimgr_dbg("recv [%s] reply: %d\n",
-				    wifimgr_cmd2str(msg.cmd_id), msg.reply);
-			ret = msg.reply;
-			if (ret)
-				wifimgr_err("failed to exec [%s]! %d\n",
-					    wifimgr_cmd2str(msg.cmd_id), ret);
-		}
-	}
-
-	/*free(msg.buf);*/
-
-	return ret;
-}
-
 int cmd_processor_add_sender(struct cmd_processor *handle, unsigned int cmd_id,
 			     char type, cmd_func_t fn, void *arg)
 {
@@ -198,7 +140,6 @@ static void *cmd_processor(void *handle)
 			wifimgr_sm_cmd_step(mgr, msg.cmd_id, ret);
 			/* Get results through message buffer */
 			if (msg.buf && (sndr->type == WIFIMGR_CMD_TYPE_GET)) {
-				printf("%s msg.buf %p sndr->arg %p, msg.buf_len %d, \n", __func__, msg.buf, sndr->arg, msg.buf_len);
 				memcpy(msg.buf, sndr->arg, msg.buf_len);
 				wifimgr_hexdump(msg.buf, msg.buf_len);
 			}
