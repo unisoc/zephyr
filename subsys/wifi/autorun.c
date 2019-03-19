@@ -38,7 +38,6 @@ struct wifi_config ap_config;
 struct wifi_status ap_status;
 #endif
 
-#ifdef CONFIG_WIFIMGR_STA
 static void wifimgr_autorun_scan_result(struct wifi_scan_result *scan_res)
 {
 	/* Find specified AP */
@@ -47,26 +46,31 @@ static void wifimgr_autorun_scan_result(struct wifi_scan_result *scan_res)
 		/* Choose the first match when BSSID is not specified */
 		if (is_zero_ether_addr(sta_config.bssid))
 			sta_status.u.sta.host_found = 1;
-		else if (!strncmp(scan_res->bssid, sta_config.bssid, WIFIMGR_ETH_ALEN))
+		else if (!strncmp
+			 (scan_res->bssid, sta_config.bssid, WIFIMGR_ETH_ALEN))
 			sta_status.u.sta.host_found = 1;
 	}
 }
 
+#ifdef CONFIG_WIFIMGR_STA
 static void wifimgr_autorun_notify_connect(union wifi_notifier_val val)
 {
 	int status = val.val_char;
 
-	printf("%s status %d\n", __func__, status);
 	wifimgr_timer_stop(sta_autorun_timerid);
-	if (!status)
+	if (!status) {
+		printf("connect successfully!\n");
 		sta_connected = true;
+	} else {
+		printf("failed to connect!\n");
+	}
 }
 
 static void wifimgr_autorun_notify_disconnect(union wifi_notifier_val val)
 {
 	int reason_code = val.val_char;
 
-	printf("%s reason %d\n", __func__, reason_code);
+	printf("disconnect! reason: %d\n", reason_code);
 	sta_connected = false;
 	wifimgr_timer_start(sta_autorun_timerid, sta_config.autorun);
 }
@@ -77,7 +81,14 @@ static void wifimgr_autorun_notify_new_station(union wifi_notifier_val val)
 {
 	char *mac = val.val_ptr;
 
-	printf("MAC:\t\t" MACSTR "\n", MAC2STR(mac));
+	printf("Station (" MACSTR ") connected!\n", MAC2STR(mac));
+}
+
+static void wifimgr_autorun_notify_station_leave(union wifi_notifier_val val)
+{
+	char *mac = val.val_ptr;
+
+	printf("Station (" MACSTR ") disconnected!\n", MAC2STR(mac));
 }
 #endif
 
@@ -122,9 +133,7 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 	case WIFIMGR_SM_STA_READY:
 		/* Trigger STA scan */
 		for (cnt = 0; cnt < WIFIMGR_AUTORUN_STA_RETRY; cnt++) {
-	printf("%s %d\n", __func__, __LINE__);
 			ret = wifi_sta_scan(wifimgr_autorun_scan_result);
-	printf("%s %d\n", __func__, __LINE__);
 			if (ret)
 				wifimgr_err("failed to scan! %d\n", ret);
 			if (sta_status.u.sta.host_found)
@@ -136,9 +145,7 @@ static void wifimgr_autorun_sta(wifimgr_work *work)
 		}
 
 		/* Connect the AP */
-	printf("%s %d\n", __func__, __LINE__);
 		ret = wifi_sta_connect();
-	printf("%s %d\n", __func__, __LINE__);
 		if (ret) {
 			wifimgr_err("failed to connect! %d\n", ret);
 			goto exit;
@@ -165,13 +172,6 @@ out:
 static void wifimgr_autorun_ap(wifimgr_work *work)
 {
 	int ret;
-
-	/*[> Get control of AP <]
-	ret = wifimgr_get_ctrl(iface_name);
-	if (ret) {
-		wifimgr_err("failed to get ctrl! %d\n", ret);
-		goto exit;
-	}*/
 
 	/* Get AP config */
 	ret = wifi_ap_get_conf(&ap_config);
@@ -224,8 +224,6 @@ static void wifimgr_autorun_ap(wifimgr_work *work)
 exit:
 	/* Set timer for the next run */
 	wifimgr_timer_start(ap_autorun_timerid, ap_config.autorun);
-	/* Release control of STA */
-	/*wifimgr_release_ctrl(iface_name);*/
 }
 #endif
 
@@ -246,8 +244,10 @@ int wifimgr_autorun_init(void)
 	ret = wifimgr_timer_start(sta_autorun_timerid, 1);
 	if (ret < 0) {
 		wifimgr_err("failed to start STA autorun!\n");
-		wifi_unregister_connection_notifier(wifimgr_autorun_notify_connect);
-		wifi_unregister_disconnection_notifier(wifimgr_autorun_notify_disconnect);
+		wifi_unregister_connection_notifier
+		    (wifimgr_autorun_notify_connect);
+		wifi_unregister_disconnection_notifier
+		    (wifimgr_autorun_notify_disconnect);
 	}
 	sta_config.autorun = 60;
 #endif
@@ -258,18 +258,21 @@ int wifimgr_autorun_init(void)
 	if (ret < 0)
 		wifimgr_err("failed to init AP autorun!\n");
 
-	wifimgr_register_new_station_notifier(wifimgr_autorun_notify_new_station);
+	wifimgr_register_new_station_notifier
+	    (wifimgr_autorun_notify_new_station);
+	wifimgr_register_station_leave_notifier
+	    (wifimgr_autorun_notify_station_leave);
 	/* Set timer for the first run */
-	/*ret = wifimgr_timer_start(ap_autorun_timerid, 1);*/
-	if (ret < 0)
+	ret = wifimgr_timer_start(ap_autorun_timerid, 1);
+	if (ret < 0) {
 		wifimgr_err("failed to start AP autorun!\n");
+		wifimgr_unregister_new_station_notifier
+		    (wifimgr_autorun_notify_new_station);
+		wifimgr_unregister_station_leave_notifier
+		    (wifimgr_autorun_notify_station_leave);
+	}
 #endif
 	return ret;
 }
 
-	/*wifi_register_new_station_notifier(new_station_notifier);
-	wifi_register_new_station_notifier(station_leave_notifier);
-
-	wifi_unregister_new_station_notifier(new_station_notifier);
-	wifi_unregister_new_station_notifier(station_leave_notifier);*/
 #endif
