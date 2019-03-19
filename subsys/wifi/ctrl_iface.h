@@ -22,15 +22,10 @@
 struct wifimgr_ctrl_iface {
 	sem_t syncsem;			/* synchronization for async command */
 	mqd_t mq;
-	bool active_disconnect;
+	bool wait_event;
 	char evt_status;
 	scan_res_cb_t scan_res_cb;
 	rtt_resp_cb_t rtt_resp_cb;
-	connect_cb_t connect_cb;
-	disconnect_cb_t disconnect_cb;
-	/*scan_timeout_cb_t scan_timeout_cb;
-	connect_timeout_cb_t connect_timeout_cb;
-	disconnect_timeout_cb_t disconnect_timeout_cb;*/
 	struct wifimgr_notifier_chain conn_chain;
 	struct wifimgr_notifier_chain disc_chain;
 	struct wifimgr_notifier_chain new_sta_chain;
@@ -62,9 +57,10 @@ int wifimgr_ctrl_iface_stop_ap(void);
 int wifimgr_ctrl_iface_del_station(char *mac);
 int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac);
 
-int wifimgr_init_ctrl_iface(char *iface_name, struct wifimgr_ctrl_iface *ctrl);
-int wifimgr_destroy_ctrl_iface(char *iface_name, struct wifimgr_ctrl_iface *ctrl);
+int wifimgr_ctrl_iface_wait_event(char *iface_name);
+int wifimgr_ctrl_iface_wakeup(struct wifimgr_ctrl_iface *ctrl);
 
-int wifimgr_ctrl_iface_send_cmd(struct wifimgr_ctrl_iface *ctrl, unsigned int cmd_id, void *buf, int buf_len);
+int wifimgr_ctrl_iface_init(char *iface_name, struct wifimgr_ctrl_iface *ctrl);
+int wifimgr_ctrl_iface_destroy(char *iface_name, struct wifimgr_ctrl_iface *ctrl);
 
 #endif

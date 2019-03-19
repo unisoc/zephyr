@@ -43,11 +43,6 @@
 #define WIFIMGR_MAX_RTT_NR	10
 #define WIFIMGR_MAX_STA_NR	16
 
-#define WIFIMGR_CMD_TIMEOUT	5
-#define WIFIMGR_SCAN_TIMEOUT	10
-#define WIFIMGR_RTT_TIMEOUT	10
-#define WIFIMGR_EVENT_TIMEOUT	10
-
 #define C2S(x) case x: return #x;
 
 struct wifimgr_mac_node {
