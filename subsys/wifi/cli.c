@@ -80,24 +80,28 @@ static void wifimgr_cli_show_capa(char *iface_name, union wifi_capa *capa)
 	}
 }
 
-static void wifimgr_cli_show_status(char *iface_name, struct wifi_status *status)
+static void wifimgr_cli_show_status(char *iface_name,
+				    struct wifi_status *status)
 {
 	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
 		printf("STA Status:\t%s\n", sta_sts2str(status->state));
 		if (status->own_mac && !is_zero_ether_addr(status->own_mac))
-			printf("own MAC:\t" MACSTR "\n", MAC2STR(status->own_mac));
+			printf("own MAC:\t" MACSTR "\n",
+			       MAC2STR(status->own_mac));
 
 		if (status->state == WIFIMGR_SM_STA_CONNECTED) {
 			printf("----------------\n");
-			if (status->u.sta.host_bssid && !is_zero_ether_addr(status->u.sta.host_bssid))
+			if (status->u.sta.host_bssid
+			    && !is_zero_ether_addr(status->u.sta.host_bssid))
 				printf("Host BSSID:\t" MACSTR "\n",
-					     MAC2STR(status->u.sta.host_bssid));
+				       MAC2STR(status->u.sta.host_bssid));
 			printf("Host RSSI:\t%d\n", status->u.sta.host_rssi);
 		}
 	} else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP)) {
 		printf("AP Status:\t%s\n", ap_sts2str(status->state));
 		if (status->own_mac && !is_zero_ether_addr(status->own_mac))
-			printf("BSSID:\t\t" MACSTR "\n", MAC2STR(status->own_mac));
+			printf("BSSID:\t\t" MACSTR "\n",
+			       MAC2STR(status->own_mac));
 
 		if (status->state == WIFIMGR_SM_AP_STARTED) {
 			int i;
@@ -179,7 +183,7 @@ static int strtomac(char *mac_str, char *mac_addr)
 
 /* WiFi Manager CLI client commands */
 static int wifimgr_cli_cmd_set_config(const struct shell *shell, size_t argc,
-				  char *argv[])
+				      char *argv[])
 {
 	struct wifi_config conf;
 	char *iface_name;
@@ -272,7 +276,7 @@ static int wifimgr_cli_cmd_set_config(const struct shell *shell, size_t argc,
 }
 
 static int wifimgr_cli_cmd_clear_config(const struct shell *shell, size_t argc,
-				    char *argv[])
+					char *argv[])
 {
 	char *iface_name;
 	struct wifi_config conf;
@@ -294,7 +298,7 @@ static int wifimgr_cli_cmd_clear_config(const struct shell *shell, size_t argc,
 }
 
 static int wifimgr_cli_cmd_get_config(const struct shell *shell, size_t argc,
-				  char *argv[])
+				      char *argv[])
 {
 	char *iface_name;
 	struct wifi_config conf;
@@ -320,7 +324,7 @@ static int wifimgr_cli_cmd_get_config(const struct shell *shell, size_t argc,
 }
 
 static int wifimgr_cli_cmd_capa(const struct shell *shell, size_t argc,
-			    char *argv[])
+				char *argv[])
 {
 	char *iface_name;
 	union wifi_capa capa;
@@ -339,7 +343,7 @@ static int wifimgr_cli_cmd_capa(const struct shell *shell, size_t argc,
 }
 
 static int wifimgr_cli_cmd_status(const struct shell *shell, size_t argc,
-			      char *argv[])
+				  char *argv[])
 {
 	char *iface_name;
 	struct wifi_status sts;
@@ -358,7 +362,7 @@ static int wifimgr_cli_cmd_status(const struct shell *shell, size_t argc,
 }
 
 static int wifimgr_cli_cmd_open(const struct shell *shell, size_t argc,
-			    char *argv[])
+				char *argv[])
 {
 	char *iface_name;
 
@@ -370,7 +374,7 @@ static int wifimgr_cli_cmd_open(const struct shell *shell, size_t argc,
 }
 
 static int wifimgr_cli_cmd_close(const struct shell *shell, size_t argc,
-			     char *argv[])
+				 char *argv[])
 {
 	char *iface_name;
 
@@ -382,7 +386,7 @@ static int wifimgr_cli_cmd_close(const struct shell *shell, size_t argc,
 }
 
 static int wifimgr_cli_cmd_scan(const struct shell *shell, size_t argc,
-			    char *argv[])
+				char *argv[])
 {
 	char *iface_name;
 
@@ -395,7 +399,7 @@ static int wifimgr_cli_cmd_scan(const struct shell *shell, size_t argc,
 
 #ifdef CONFIG_WIFIMGR_STA
 static int wifimgr_cli_cmd_rtt_req(const struct shell *shell, size_t argc,
-			    char *argv[])
+				   char *argv[])
 {
 	struct wifi_rtt_request *rtt_req;
 	struct wifi_rtt_peers *peer;
@@ -409,7 +413,10 @@ static int wifimgr_cli_cmd_rtt_req(const struct shell *shell, size_t argc,
 		return -ENOMEM;
 	memset(rtt_req, 0, size);
 	rtt_req->nr_peers = 1;
-	rtt_req->peers = (struct wifi_rtt_peers *)((char *)rtt_req + rtt_req->nr_peers * sizeof(struct wifi_rtt_request));
+	rtt_req->peers =
+	    (struct wifi_rtt_peers *)((char *)rtt_req +
+				      rtt_req->nr_peers *
+				      sizeof(struct wifi_rtt_request));
 	peer = rtt_req->peers;
 
 	optind = 0;
@@ -441,20 +448,21 @@ static int wifimgr_cli_cmd_rtt_req(const struct shell *shell, size_t argc,
 		}
 	}
 
-	ret = wifimgr_ctrl_iface_rtt_request(rtt_req, wifimgr_cli_show_rtt_resp);
+	ret =
+	    wifimgr_ctrl_iface_rtt_request(rtt_req, wifimgr_cli_show_rtt_resp);
 	free(rtt_req);
 
 	return ret;
 }
 
 static int wifimgr_cli_cmd_connect(const struct shell *shell, size_t argc,
-			       char *argv[])
+				   char *argv[])
 {
 	return wifimgr_ctrl_iface_connect();
 }
 
 static int wifimgr_cli_cmd_disconnect(const struct shell *shell, size_t argc,
-				  char *argv[])
+				      char *argv[])
 {
 	return wifimgr_ctrl_iface_disconnect();
 }
@@ -462,13 +470,13 @@ static int wifimgr_cli_cmd_disconnect(const struct shell *shell, size_t argc,
 
 #ifdef CONFIG_WIFIMGR_AP
 static int wifimgr_cli_cmd_start_ap(const struct shell *shell, size_t argc,
-				char *argv[])
+				    char *argv[])
 {
 	return wifimgr_ctrl_iface_start_ap();
 }
 
 static int wifimgr_cli_cmd_stop_ap(const struct shell *shell, size_t argc,
-			       char *argv[])
+				   char *argv[])
 {
 	return wifimgr_ctrl_iface_stop_ap();
 }
@@ -489,17 +497,17 @@ static int wifimgr_cli_cmd_del_sta(const struct shell *shell, size_t argc,
 	}
 
 	if (is_broadcast_ether_addr(mac_addr))
-		wifimgr_info("Deauth all stations!\n");
+		printf("Deauth all stations!\n");
 	else
-		wifimgr_info("Deauth station (" MACSTR ")\n",
-			     MAC2STR(mac_addr));
+		printf("Deauth station (" MACSTR ")\n", MAC2STR(mac_addr));
 
 	ret = wifimgr_ctrl_iface_del_station(mac_addr);
 
 	return ret;
 }
+
 static int wifimgr_cli_cmd_set_mac_acl(const struct shell *shell, size_t argc,
-				   char *argv[])
+				       char *argv[])
 {
 	int choice;
 	char subcmd = 0;

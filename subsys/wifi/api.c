@@ -105,11 +105,12 @@ int wifi_sta_scan(scan_res_cb_t scan_res_cb)
 	if (ret)
 		return ret;
 
-	ret = wifimgr_ctrl_wait(WIFIMGR_IFACE_NAME_STA);
+	ret = wifimgr_ctrl_iface_wait_event(WIFIMGR_IFACE_NAME_STA);
 	return ret;
 }
 
-int wifi_sta_rtt_request(struct wifi_rtt_request *rtt_req, rtt_resp_cb_t rtt_resp_cb)
+int wifi_sta_rtt_request(struct wifi_rtt_request *rtt_req,
+			 rtt_resp_cb_t rtt_resp_cb)
 {
 	int ret;
 
@@ -117,7 +118,7 @@ int wifi_sta_rtt_request(struct wifi_rtt_request *rtt_req, rtt_resp_cb_t rtt_res
 	if (ret)
 		return ret;
 
-	ret = wifimgr_ctrl_wait(WIFIMGR_IFACE_NAME_STA);
+	ret = wifimgr_ctrl_iface_wait_event(WIFIMGR_IFACE_NAME_STA);
 	return ret;
 }
 
@@ -129,7 +130,7 @@ int wifi_sta_connect(void)
 	if (ret)
 		return ret;
 
-	ret = wifimgr_ctrl_wait(WIFIMGR_IFACE_NAME_STA);
+	ret = wifimgr_ctrl_iface_wait_event(WIFIMGR_IFACE_NAME_STA);
 	return ret;
 }
 
@@ -141,7 +142,7 @@ int wifi_sta_disconnect(void)
 	if (ret)
 		return ret;
 
-	ret = wifimgr_ctrl_wait(WIFIMGR_IFACE_NAME_STA);
+	ret = wifimgr_ctrl_iface_wait_event(WIFIMGR_IFACE_NAME_STA);
 	return ret;
 }
 #endif
@@ -168,12 +169,12 @@ int wifi_ap_get_conf(struct wifi_config *conf)
 
 int wifi_ap_get_capa(union wifi_capa *capa)
 {
-	return wifimgr_ctrl_wait(WIFIMGR_IFACE_NAME_AP);
+	return wifimgr_ctrl_iface_get_capa(WIFIMGR_IFACE_NAME_AP, capa);
 }
 
 int wifi_ap_get_status(struct wifi_status *sts)
 {
-	return wifimgr_ctrl_wait(WIFIMGR_IFACE_NAME_AP);
+	return wifimgr_ctrl_iface_get_status(WIFIMGR_IFACE_NAME_AP, sts);
 }
 
 int wifi_ap_open(void)
@@ -198,7 +199,14 @@ int wifi_ap_stop_ap(void)
 
 int wifi_ap_del_station(char *mac)
 {
-	return wifimgr_ctrl_iface_del_station(mac);
+	int ret;
+
+	ret = wifimgr_ctrl_iface_del_station(mac);
+	if (ret)
+		return ret;
+
+	ret = wifimgr_ctrl_iface_wait_event(WIFIMGR_IFACE_NAME_AP);
+	return ret;
 }
 
 int wifi_ap_set_mac_acl(char subcmd, char *mac)
@@ -206,6 +214,5 @@ int wifi_ap_set_mac_acl(char subcmd, char *mac)
 	return wifimgr_ctrl_iface_set_mac_acl(subcmd, mac);
 }
 #endif
-
 
 #endif

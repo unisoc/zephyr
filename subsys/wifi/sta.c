@@ -160,7 +160,7 @@ static int wifimgr_sta_connect_event(void *arg)
 
 		cmd_processor_add_sender(&mgr->prcs,
 					 WIFIMGR_CMD_DISCONNECT,
-					 WIFIMGR_CMD_TYPE_ASYNC,
+					 WIFIMGR_CMD_TYPE_EXCHANGE,
 					 wifimgr_sta_disconnect, mgr);
 
 		if (!is_zero_ether_addr(conn->bssid))
@@ -394,16 +394,16 @@ static int wifimgr_sta_open(void *handle)
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_STA);
 
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_CLOSE_STA,
-				 WIFIMGR_CMD_TYPE_SYNC,
+				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_sta_close, mgr);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_STA_SCAN,
-				 WIFIMGR_CMD_TYPE_ASYNC,
+				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_sta_scan, mgr);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_RTT_REQ,
-				 WIFIMGR_CMD_TYPE_ASYNC,
+				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_sta_rtt_req, &mgr->sta_rtt_req);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_CONNECT,
-				 WIFIMGR_CMD_TYPE_ASYNC,
+				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_sta_connect, mgr);
 
 	wifimgr_info("open STA!\n");
@@ -429,7 +429,7 @@ static int wifimgr_sta_close(void *handle)
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_STA_SCAN);
 
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_OPEN_STA,
-				 WIFIMGR_CMD_TYPE_SYNC,
+				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_sta_open, mgr);
 
 	wifimgr_info("close STA!\n");
@@ -485,7 +485,7 @@ int wifimgr_sta_init(void *handle)
 				 WIFIMGR_CMD_TYPE_GET,
 				 wifimgr_sta_get_status, &mgr->sta_sts);
 	cmd_processor_add_sender(prcs, WIFIMGR_CMD_OPEN_STA,
-				 WIFIMGR_CMD_TYPE_SYNC,
+				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_sta_open, mgr);
 
 	/* Initialize STA config */
