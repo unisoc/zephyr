@@ -60,12 +60,6 @@ enum wifimgr_cmd {
 
 typedef void (*scan_done_cb_t)(char status);
 typedef void (*rtt_done_cb_t)(char status);
-typedef void (*connect_cb_t)(struct wifimgr_notifier_chain *conn_chain, char status);
-typedef void (*disconnect_cb_t)(struct wifimgr_notifier_chain *disc_chain, char reason);
-typedef void (*scan_timeout_cb_t)(void);
-typedef void (*connect_timeout_cb_t)(void);
-typedef void (*disconnect_timeout_cb_t)(void);
-typedef void (*new_station_cb_t)(struct wifimgr_notifier_chain *chain, char status, char *mac);
 
 static inline const char *security2str(int security)
 {
