@@ -773,7 +773,8 @@ static int wifi_evt_rtt(struct wifi_device *wifi_dev, char *data, int len)
 		}
 		break;
 	case RTT_PER_DEST_METER:
-		if (check_cmdevt_len(len, sizeof(struct event_rtt))) {
+		if (check_cmdevt_len(len,
+				sizeof(struct event_rtt_per_dest_meter))) {
 			return -EINVAL;
 		}
 		sub_evt = (struct event_rtt_per_dest_meter *)data;
@@ -782,7 +783,7 @@ static int wifi_evt_rtt(struct wifi_device *wifi_dev, char *data, int len)
 				sub_evt->mac[0], sub_evt->mac[1],
 				sub_evt->mac[2], sub_evt->mac[3],
 				sub_evt->mac[4], sub_evt->mac[5]);
-		LOG_DBG("meter: %u\n", sub_evt->meter);
+		LOG_DBG("meter: %d\n", sub_evt->meter);
 
 		memcpy(rtt_res.bssid, sub_evt->mac, ETH_ALEN);
 		rtt_res.range = sub_evt->meter;
