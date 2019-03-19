@@ -92,8 +92,16 @@ union wifi_notifier_val {
 	void *val_ptr;
 };
 
-int wifi_get_ctrl(char *iface_name);
-int wifi_release_ctrl(char *iface_name);
+typedef void (*wifi_notifier_fn_t)(union wifi_notifier_val val);
+
+int wifi_register_connection_notifier(wifi_notifier_fn_t notifier_call);
+int wifi_unregister_connection_notifier(wifi_notifier_fn_t notifier_call);
+int wifi_register_disconnection_notifier(wifi_notifier_fn_t notifier_call);
+int wifi_unregister_disconnection_notifier(wifi_notifier_fn_t notifier_call);
+int wifi_register_new_station_notifier(wifi_notifier_fn_t notifier_call);
+int wifi_unregister_new_station_notifier(wifi_notifier_fn_t notifier_call);
+int wifi_register_station_leave_notifier(wifi_notifier_fn_t notifier_call);
+int wifi_unregister_station_leave_notifier(wifi_notifier_fn_t notifier_call);
 
 typedef void (*scan_res_cb_t)(struct wifi_scan_result *scan_res);
 typedef void (*rtt_resp_cb_t)(struct wifi_rtt_response *rtt_resp);
@@ -120,16 +128,5 @@ int wifi_ap_start_ap(void);
 int wifi_ap_stop_ap(void);
 int wifi_ap_del_station(char *mac);
 int wifi_ap_set_mac_acl(char subcmd, char *mac);
-
-typedef void (*wifi_notifier_fn_t)(union wifi_notifier_val val);
-
-int wifi_register_connection_notifier(wifi_notifier_fn_t notifier_call);
-int wifi_unregister_connection_notifier(wifi_notifier_fn_t notifier_call);
-int wifi_register_disconnection_notifier(wifi_notifier_fn_t notifier_call);
-int wifi_unregister_disconnection_notifier(wifi_notifier_fn_t notifier_call);
-int wifi_register_new_station_notifier(wifi_notifier_fn_t notifier_call);
-int wifi_unregister_new_station_notifier(wifi_notifier_fn_t notifier_call);
-int wifi_register_station_leave_notifier(wifi_notifier_fn_t notifier_call);
-int wifi_unregister_station_leave_notifier(wifi_notifier_fn_t notifier_call);
 
 #endif
