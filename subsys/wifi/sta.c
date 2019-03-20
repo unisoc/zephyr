@@ -15,12 +15,14 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
 
+K_THREAD_STACK_DEFINE(wifimgr_sta_wq_stack, WIFIMGR_WORKQUEUE_STACK_SIZE);
+
 static int wifimgr_sta_close(void *handle);
 
-void wifimgr_sta_event_timeout(wifimgr_work *work)
+void wifimgr_sta_event_timeout(struct wifimgr_delayed_work *dwork)
 {
 	struct wifimgr_state_machine *sm =
-	    container_of(work, struct wifimgr_state_machine, work);
+	    container_of(dwork, struct wifimgr_state_machine, dwork);
 	struct wifi_manager *mgr =
 	    container_of(sm, struct wifi_manager, sta_sm);
 	unsigned int expected_evt;
@@ -504,6 +506,7 @@ int wifimgr_sta_init(void *handle)
 	ret = wifimgr_sm_init(&mgr->sta_sm, wifimgr_sta_event_timeout);
 	if (ret)
 		wifimgr_err("failed to init WiFi STA state machine!\n");
+	wifimgr_create_workqueue(&mgr->sta_sm.dwork.wq, wifimgr_sta_wq_stack);
 
 	/* Initialize STA global control */
 	wifimgr_init_ctrl_iface(WIFIMGR_IFACE_NAME_STA, &mgr->sta_ctrl);
