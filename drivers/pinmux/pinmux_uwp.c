@@ -33,38 +33,39 @@ struct uwp_gpio_data {
 	u32_t pin_callback_enables;
 };
 
-static int uwp_pinmux_set(struct device *dev, u32_t pin,
+static int uwp_pinmux_set(struct device *dev, u32_t pin_reg,
 					u32_t func)
 {
-	uwp_pmux_func_clear(pin);
-	uwp_pmux_func_set(pin, func);
+	uwp_pmux_func_clear(pin_reg);
+	uwp_pmux_func_set(pin_reg, func);
 	return 0;
 }
 
-static int uwp_pinmux_get(struct device *dev, u32_t pin,
+static int uwp_pinmux_get(struct device *dev, u32_t pin_reg,
 					u32_t *func)
 {
-	uwp_pmux_get(pin, func);
+	uwp_pmux_get(pin_reg, func);
 	return 0;
 }
 
-static int uwp_pinmux_input(struct device *dev, u32_t pin,
+static int uwp_pinmux_input(struct device *dev, u32_t pin_reg,
 					u8_t func)
 {
 	return -ENOTSUP;
 }
 
-static int uwp_pinmux_pullup(struct device *dev, u32_t pin,
+static int uwp_pinmux_pullup(struct device *dev, u32_t pin_reg,
 					u8_t func)
 {
 	if (func == PMUX_FPU_EN) {
-		uwp_pmux_pin_pullup(pin);
+		uwp_pmux_pin_pullup(pin_reg);
 	} else if (func == PMUX_FPD_EN) {
-		uwp_pmux_pin_pulldown(pin);
+		uwp_pmux_pin_pulldown(pin_reg);
 	}
 	return 0;
 }
 
+/* when use functions in pinmux.h, 2nd parameter is pin_reg*/
 const struct pinmux_driver_api uwp_pinmux_api = {
 	.set = uwp_pinmux_set,
 	.get = uwp_pinmux_get,
