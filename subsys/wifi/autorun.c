@@ -22,8 +22,7 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #ifdef CONFIG_WIFIMGR_STA
 #define WIFIMGR_AUTORUN_STA_RETRY	(3)
-K_THREAD_STACK_DEFINE(wifimgr_sta_autowq_stack, WIFIMGR_WORKQUEUE_STACK_SIZE);
-struct wifimgr_delayed_work *sta_autowork;
+struct wifimgr_delayed_work sta_autowork;
 timer_t sta_autorun_timerid;
 struct wifi_config sta_config;
 struct wifi_status sta_status;
@@ -31,8 +30,7 @@ static bool sta_connected;
 #endif
 
 #ifdef CONFIG_WIFIMGR_AP
-K_THREAD_STACK_DEFINE(wifimgr_ap_autowq_stack, WIFIMGR_WORKQUEUE_STACK_SIZE);
-struct wifimgr_delayed_work *ap_autowork;
+struct wifimgr_delayed_work ap_autowork;
 timer_t ap_autorun_timerid;
 struct wifi_config ap_config;
 struct wifi_status ap_status;
@@ -166,35 +164,6 @@ exit:
 out:
 	return;
 }
-
-int wifimgr_sta_autorun_init(void *handle)
-{
-	int ret;
-
-	sta_autowork = (struct wifimgr_delayed_work *)handle;
-	wifimgr_init_work(&sta_autowork->work, (void *)wifimgr_autorun_sta);
-	ret = wifimgr_timer_init(sta_autowork, wifimgr_timeout,
-				 &sta_autorun_timerid);
-	if (ret < 0)
-		wifimgr_err("failed to init STA autorun!\n");
-	wifimgr_create_workqueue(&sta_autowork->wq, wifimgr_sta_autowq_stack);
-
-	wifi_register_connection_notifier(wifimgr_autorun_notify_connect);
-	wifi_register_disconnection_notifier(wifimgr_autorun_notify_disconnect);
-
-	/* Set timer for the first run */
-	ret = wifimgr_timer_start(sta_autorun_timerid, 1);
-	if (ret < 0) {
-		wifimgr_err("failed to start STA autorun!\n");
-		wifi_unregister_connection_notifier
-		    (wifimgr_autorun_notify_connect);
-		wifi_unregister_disconnection_notifier
-		    (wifimgr_autorun_notify_disconnect);
-	}
-	sta_config.autorun = 60;
-
-	return ret;
-}
 #endif
 
 #ifdef CONFIG_WIFIMGR_AP
@@ -237,11 +206,13 @@ static void wifimgr_autorun_ap(wifimgr_work *work)
 	case WIFIMGR_SM_AP_READY:
 		/* Start AP */
 		ret = wifi_ap_start_ap();
-		if (ret) {
-			wifimgr_err("failed to start AP! %d\n", ret);
-			goto exit;
+		if (!ret) {
+			wifimgr_info("done!\n");
+			goto out;
 		}
-		wifimgr_info("done!\n");
+
+		wifimgr_err("failed to start AP! %d\n", ret);
+		goto exit;
 
 		break;
 	default:
@@ -253,20 +224,48 @@ static void wifimgr_autorun_ap(wifimgr_work *work)
 exit:
 	/* Set timer for the next run */
 	wifimgr_timer_start(ap_autorun_timerid, ap_config.autorun);
+out:
+	return;
 }
 #endif
 
-int wifimgr_ap_autorun_init(void *handle)
+void wifimgr_autorun_timeout(void *sival_ptr)
+{
+	struct wifimgr_delayed_work *dwork = (struct wifimgr_delayed_work *)sival_ptr;
+
+	wifimgr_submit_work(&dwork->work);
+}
+
+int wifimgr_autorun_init(void *handle)
 {
 	int ret;
+#ifdef CONFIG_WIFIMGR_STA
+	wifimgr_init_work(&sta_autowork.work, (void *)wifimgr_autorun_sta);
+	ret = wifimgr_timer_init(&sta_autowork, wifimgr_autorun_timeout,
+				 &sta_autorun_timerid);
+	if (ret < 0)
+		wifimgr_err("failed to init STA autorun!\n");
 
-	ap_autowork = (struct wifimgr_delayed_work *)handle;
-	wifimgr_init_work(&ap_autowork->work, (void *)wifimgr_autorun_ap);
-	ret = wifimgr_timer_init(ap_autowork, wifimgr_timeout,
+	wifi_register_connection_notifier(wifimgr_autorun_notify_connect);
+	wifi_register_disconnection_notifier(wifimgr_autorun_notify_disconnect);
+
+	/* Set timer for the first run */
+	ret = wifimgr_timer_start(sta_autorun_timerid, 1);
+	if (ret < 0) {
+		wifimgr_err("failed to start STA autorun!\n");
+		wifi_unregister_connection_notifier
+		    (wifimgr_autorun_notify_connect);
+		wifi_unregister_disconnection_notifier
+		    (wifimgr_autorun_notify_disconnect);
+	}
+	sta_config.autorun = 60;
+#endif
+#ifdef CONFIG_WIFIMGR_AP
+	wifimgr_init_work(&ap_autowork.work, (void *)wifimgr_autorun_ap);
+	ret = wifimgr_timer_init(&ap_autowork, wifimgr_autorun_timeout,
 				 &ap_autorun_timerid);
 	if (ret < 0)
 		wifimgr_err("failed to init AP autorun!\n");
-	wifimgr_create_workqueue(&ap_autowork->wq, wifimgr_ap_autowq_stack);
 
 	wifimgr_register_new_station_notifier
 	    (wifimgr_autorun_notify_new_station);
@@ -281,7 +280,7 @@ int wifimgr_ap_autorun_init(void *handle)
 		wifimgr_unregister_station_leave_notifier
 		    (wifimgr_autorun_notify_station_leave);
 	}
-
+#endif
 	return ret;
 }
 

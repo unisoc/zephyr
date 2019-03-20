@@ -56,11 +56,7 @@ static int wifimgr_init(struct device *unused)
 		goto err;
 	}
 
-	ret = wifimgr_sta_autorun_init(&mgr->sta_autowork);
-	if (ret)
-		wifimgr_err("failed to init WiFi autorun!\n");
-
-	ret = wifimgr_ap_autorun_init(&mgr->ap_autowork);
+	ret = wifimgr_autorun_init(mgr);
 	if (ret)
 		wifimgr_err("failed to init WiFi autorun!\n");
 
