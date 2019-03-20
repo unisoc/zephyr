@@ -22,12 +22,10 @@
 	((volatile struct uwp_uart *)(DEV_CFG(dev))->base)
 
 static struct device DEVICE_NAME_GET(uart_uwp_0);
-static struct device DEVICE_NAME_GET(uart_uwp_1);
 
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 static void uart_uwp_isr(void *arg);
 static void uwp_config_0_irq(struct device *dev);
-static void uwp_config_1_irq(struct device *dev);
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 
 /*private data structure*/
@@ -46,12 +44,6 @@ static struct uart_uwp_dev_data_t uart_uwp_dev_data_0 = {
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 };
 
-static struct uart_uwp_dev_data_t uart_uwp_dev_data_1 = {
-	.baud_rate = DT_UART_1_UWP_SPEED,
-#ifdef CONFIG_UART_INTERRUPT_DRIVEN
-	.cb = NULL,
-#endif /* CONFIG_UART_INTERRUPT_DRIVEN */
-};
 static const struct uart_device_config uart_uwp_dev_cfg_0 = {
 	.base = (void *)DT_UART_UWP_BASE,
 	.sys_clk_freq = DT_UART_UWP_CLOCK,
@@ -59,6 +51,21 @@ static const struct uart_device_config uart_uwp_dev_cfg_0 = {
 	.irq_config_func = uwp_config_0_irq,
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 };
+
+#ifdef CONFIG_UART1_UWP
+static struct device DEVICE_NAME_GET(uart_uwp_1);
+
+#ifdef CONFIG_UART_INTERRUPT_DRIVEN
+static void uwp_config_1_irq(struct device *dev);
+#endif /* CONFIG_UART_INTERRUPT_DRIVEN */
+
+static struct uart_uwp_dev_data_t uart_uwp_dev_data_1 = {
+	.baud_rate = DT_UART_1_UWP_SPEED,
+#ifdef CONFIG_UART_INTERRUPT_DRIVEN
+	.cb = NULL,
+#endif /* CONFIG_UART_INTERRUPT_DRIVEN */
+};
+
 static const struct uart_device_config uart_uwp_dev_cfg_1 = {
 	.base = (void *)DT_UART_1_UWP_BASE,
 	.sys_clk_freq = DT_UART_1_UWP_CLOCK,
@@ -66,6 +73,7 @@ static const struct uart_device_config uart_uwp_dev_cfg_1 = {
 	.irq_config_func = uwp_config_1_irq,
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 };
+#endif
 
 #ifdef CONFIG_AON_UART_UWP
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
@@ -259,14 +267,7 @@ static void uwp_config_0_irq(struct device *dev)
 			DEVICE_GET(uart_uwp_0), 0);
 	irq_enable(DT_UART_UWP_IRQ);
 }
-static void uwp_config_1_irq(struct device *dev)
-{
-	IRQ_CONNECT(DT_UART_1_UWP_IRQ,
-			DT_UART_1_UWP_IRQ_PRIO,
-			uart_uwp_isr,
-			DEVICE_GET(uart_uwp_1), 0);
-	irq_enable(DT_UART_1_UWP_IRQ);
-}
+
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 
 static int uart_uwp_init(struct device *dev)
@@ -292,28 +293,6 @@ static int uart_uwp_init(struct device *dev)
 	return 0;
 }
 
-static int uart1_uwp_init(struct device *dev)
-{
-	volatile struct uwp_uart *uart = UART_STRUCT(dev);
-	const struct uart_device_config * const dev_cfg = DEV_CFG(dev);
-	struct uart_uwp_dev_data_t * const dev_data = DEV_DATA(dev);
-
-	uwp_sys_enable(BIT(APB_EB_UART1));
-	uwp_sys_reset(BIT(APB_EB_UART1));
-
-	uwp_uart_set_cdk(uart, DIV_ROUND(dev_cfg->sys_clk_freq,
-			dev_data->baud_rate));
-	uwp_uart_set_stop_bit_num(uart, 1);
-	uwp_uart_set_byte_len(uart, 3);
-
-	uwp_uart_init(uart);
-
-#ifdef CONFIG_UART_INTERRUPT_DRIVEN
-	dev_cfg->irq_config_func(dev);
-#endif /* CONFIG_UART_INTERRUPT_DRIVEN */
-
-	return 0;
-}
 static const struct uart_driver_api uart_uwp_driver_api = {
 	.poll_in = uart_uwp_poll_in,
 	.poll_out = uart_uwp_poll_out,
@@ -341,11 +320,45 @@ DEVICE_AND_API_INIT(uart_uwp_0, DT_UART_UWP_NAME,
 		    PRE_KERNEL_1, 10,
 		    (void *)&uart_uwp_driver_api);
 
+#ifdef CONFIG_UART1_UWP
+static void uwp_config_1_irq(struct device *dev)
+{
+	IRQ_CONNECT(DT_UART_1_UWP_IRQ,
+			DT_UART_1_UWP_IRQ_PRIO,
+			uart_uwp_isr,
+			DEVICE_GET(uart_uwp_1), 0);
+	irq_enable(DT_UART_1_UWP_IRQ);
+}
+
+static int uart1_uwp_init(struct device *dev)
+{
+	volatile struct uwp_uart *uart = UART_STRUCT(dev);
+	const struct uart_device_config * const dev_cfg = DEV_CFG(dev);
+	struct uart_uwp_dev_data_t * const dev_data = DEV_DATA(dev);
+
+	uwp_sys_enable(BIT(APB_EB_UART1));
+	uwp_sys_reset(BIT(APB_EB_UART1));
+
+	uwp_uart_set_cdk(uart, DIV_ROUND(dev_cfg->sys_clk_freq,
+			dev_data->baud_rate));
+	uwp_uart_set_stop_bit_num(uart, 1);
+	uwp_uart_set_byte_len(uart, 3);
+
+	uwp_uart_init(uart);
+
+#ifdef CONFIG_UART_INTERRUPT_DRIVEN
+	dev_cfg->irq_config_func(dev);
+#endif /* CONFIG_UART_INTERRUPT_DRIVEN */
+
+	return 0;
+}
+
 DEVICE_AND_API_INIT(uart_uwp_1, DT_UART_1_UWP_NAME,
 		    uart1_uwp_init, &uart_uwp_dev_data_1,
 		    &uart_uwp_dev_cfg_1,
 		    PRE_KERNEL_1, 10,
 		    (void *)&uart_uwp_driver_api);
+#endif
 
 #ifdef CONFIG_AON_UART_UWP
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
