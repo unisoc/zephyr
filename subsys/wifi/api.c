@@ -114,7 +114,7 @@ int wifi_sta_rtt_request(struct wifi_rtt_request *rtt_req,
 {
 	int ret;
 
-	ret = wifimgr_ctrl_iface_rtt_req(rtt_req, rtt_resp_cb);
+	ret = wifimgr_ctrl_iface_rtt_request(rtt_req, rtt_resp_cb);
 	if (ret)
 		return ret;
 

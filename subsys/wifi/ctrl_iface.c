@@ -74,6 +74,7 @@ void wifimgr_ctrl_evt_scan_done(void *handle, char status)
 {
 	struct wifimgr_ctrl_iface *ctrl = (struct wifimgr_ctrl_iface *)handle;
 
+	ctrl->scan_res_cb = NULL;
 	ctrl->evt_status = status;
 	if (!status)
 		wifimgr_info("scan done!\n");
@@ -98,6 +99,7 @@ void wifimgr_ctrl_evt_rtt_done(void *handle, char status)
 {
 	struct wifimgr_ctrl_iface *ctrl = (struct wifimgr_ctrl_iface *)handle;
 
+	ctrl->rtt_resp_cb = NULL;
 	ctrl->evt_status = status;
 	if (!status)
 		wifimgr_info("RTT done!\n");
@@ -446,6 +448,8 @@ int wifimgr_ctrl_iface_rtt_request(struct wifi_rtt_request *rtt_req, rtt_resp_cb
 			return -EINVAL;
 		}
 	}
+
+	ctrl->rtt_resp_cb = rtt_resp_cb;
 
 	return wifimgr_ctrl_iface_send_cmd(ctrl, WIFIMGR_CMD_RTT_REQ, rtt_req, sizeof(struct wifi_rtt_request));
 }
