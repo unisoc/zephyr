@@ -14,6 +14,6 @@ config NUM_IRQS
 
 config SYS_CLOCK_HW_CYCLES_PER_SEC
 	int
-	default 416000000
+	default 320000000
 
 endif # SOC_UWP5662
