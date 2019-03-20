@@ -11,12 +11,13 @@
 
 
 #include "os_adapter.h"
+#include "sm.h"
 
 void wifimgr_timeout(void *sival_ptr)
 {
-	wifimgr_work *work = (wifimgr_work *)sival_ptr;
+	struct wifimgr_delayed_work *dwork = (struct wifimgr_delayed_work *)sival_ptr;
 
-	wifimgr_queue_work(work);
+	wifimgr_queue_work(&dwork->wq, &dwork->work);
 }
 
 int wifimgr_timer_start(timer_t timerid, unsigned int sec)
@@ -56,13 +57,13 @@ int wifimgr_interval_timer_start(timer_t timerid, unsigned int sec,
 	return ret;
 }
 
-int wifimgr_timer_init(wifimgr_work *work, void *sighand, timer_t *timerid)
+int wifimgr_timer_init(struct wifimgr_delayed_work *dwork, void *sighand, timer_t *timerid)
 {
 	struct sigevent toevent;
 	int ret;
 
 	/* Create a POSIX timer to handle timeouts */
-	toevent.sigev_value.sival_ptr = work;
+	toevent.sigev_value.sival_ptr = dwork;
 	toevent.sigev_notify = SIGEV_SIGNAL;
 	toevent.sigev_notify_function = sighand;
 	toevent.sigev_notify_attributes = NULL;
