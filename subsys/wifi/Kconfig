@@ -28,6 +28,14 @@ config WIFIMGR_CLI
 	  A client that can interact with WiFi manger,
 	  which can be ran from shell.
 
+config WIFIMGR_AUTORUN
+	bool "WiFi Manager Autorun"
+	select SHELL
+	select NEWLIB_LIBC
+	default n
+	help
+	  A example program that can autorun WiFi manger.
+
 config WIFIMGR_CONFIG_SAVING
 	bool "Enable Saving Config"
 	select FCB
