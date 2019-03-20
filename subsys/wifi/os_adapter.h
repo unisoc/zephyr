@@ -49,8 +49,10 @@
 typedef struct k_work_q wifimgr_workqueue;
 typedef struct k_work wifimgr_work;
 
-#define wifimgr_init_work(...)	k_work_init(__VA_ARGS__)
-#define wifimgr_queue_work(...)	k_work_submit_to_queue(__VA_ARGS__)
+#define wifimgr_init_work(...)		k_work_init(__VA_ARGS__)
+#define wifimgr_submit_work(...)	k_work_submit(__VA_ARGS__)
+#define wifimgr_submit_work_to_queue(...)	\
+	k_work_submit_to_queue(__VA_ARGS__)
 #define wifimgr_create_workqueue(work_q, work_q_stack)		\
 	k_work_q_start(work_q, work_q_stack,			\
 		       K_THREAD_STACK_SIZEOF(work_q_stack),	\
