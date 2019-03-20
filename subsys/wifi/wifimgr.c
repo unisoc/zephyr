@@ -43,21 +43,24 @@ static int wifimgr_init(struct device *unused)
 		wifimgr_err("failed to init WiFi command processor!\n");
 		goto err;
 	}
-#ifdef CONFIG_WIFIMGR_STA
+
 	ret = wifimgr_sta_init(mgr);
 	if (ret) {
 		wifimgr_err("failed to init WiFi STA!\n");
 		goto err;
 	}
-#endif
-#ifdef CONFIG_WIFIMGR_AP
+
 	ret = wifimgr_ap_init(mgr);
 	if (ret) {
 		wifimgr_err("failed to init WiFi AP!\n");
 		goto err;
 	}
-#endif
-	ret = wifimgr_autorun_init();
+
+	ret = wifimgr_sta_autorun_init(&mgr->sta_autowork);
+	if (ret)
+		wifimgr_err("failed to init WiFi autorun!\n");
+
+	ret = wifimgr_ap_autorun_init(&mgr->ap_autowork);
 	if (ret)
 		wifimgr_err("failed to init WiFi autorun!\n");
 
@@ -67,12 +70,8 @@ static int wifimgr_init(struct device *unused)
 err:
 	wifimgr_cmd_processor_exit(&mgr->prcs);
 	wifimgr_evt_listener_exit(&mgr->lsnr);
-#ifdef CONFIG_WIFIMGR_AP
 	wifimgr_ap_exit(mgr);
-#endif
-#ifdef CONFIG_WIFIMGR_STA
 	wifimgr_sta_exit(mgr);
-#endif
 	return ret;
 }
 

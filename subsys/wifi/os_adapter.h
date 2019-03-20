@@ -45,10 +45,17 @@
 #define malloc(size)		k_malloc(size)
 #define free(ptr)		k_free(ptr)
 
+#define WIFIMGR_WORKQUEUE_STACK_SIZE	1024
+typedef struct k_work_q wifimgr_workqueue;
 typedef struct k_work wifimgr_work;
 
 #define wifimgr_init_work(...)	k_work_init(__VA_ARGS__)
-#define wifimgr_queue_work(...)	k_work_submit(__VA_ARGS__)
+#define wifimgr_queue_work(...)	k_work_submit_to_queue(__VA_ARGS__)
+#define wifimgr_create_workqueue(work_q, work_q_stack)		\
+	k_work_q_start(work_q, work_q_stack,			\
+		       K_THREAD_STACK_SIZEOF(work_q_stack),	\
+		       CONFIG_SYSTEM_WORKQUEUE_PRIORITY - 1)
+
 
 typedef sys_snode_t wifimgr_snode_t;
 typedef sys_slist_t wifimgr_slist_t;
