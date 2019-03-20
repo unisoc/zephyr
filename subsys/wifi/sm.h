@@ -32,13 +32,18 @@ enum wifimgr_sm_ap_state {
 	WIFIMGR_SM_AP_STARTED,
 };
 
-struct wifimgr_state_machine {
+struct wifimgr_delayed_work {
+	wifimgr_workqueue wq;
 	wifimgr_work work;
+} dwork;
+
+struct wifimgr_state_machine {
+	sem_t exclsem;			/* exclusive access to the struct */
+	timer_t timerid;		/* timer for event */
+	struct wifimgr_delayed_work dwork;
 	unsigned int state;
 	unsigned int old_state;
-	unsigned int cur_cmd;	/* record the command under processing */
-	sem_t exclsem;		/* exclusive access to the struct */
-	timer_t timerid;	/* timer for event */
+	unsigned int cur_cmd;		/* record the command under processing */
 };
 
 const char *sta_sts2str(int state);

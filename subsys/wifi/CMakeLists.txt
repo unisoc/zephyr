@@ -4,7 +4,6 @@ zephyr_compile_options(
 zephyr_sources_ifdef(
   CONFIG_WIFIMGR
   api.c
-  autorun.c
   cmd_prcs.c
   ctrl_iface.c
   drv_iface.c
@@ -15,6 +14,7 @@ zephyr_sources_ifdef(
   wifimgr.c
   )
 zephyr_sources_ifdef(CONFIG_WIFIMGR_AP ap.c)
+zephyr_sources_ifdef(CONFIG_WIFIMGR_AUTORUN autorun.c)
 zephyr_sources_ifdef(CONFIG_WIFIMGR_CLI cli.c)
 zephyr_sources_ifdef(CONFIG_WIFIMGR_CONFIG_SAVING config.c)
 zephyr_sources_ifdef(CONFIG_WIFIMGR_DHCPC dhcpc.c)
