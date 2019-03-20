@@ -79,6 +79,7 @@ struct wifi_manager {
 	struct wifi_rtt_request sta_rtt_req;
 	struct wifi_rtt_response sta_rtt_resp;
 	struct wifimgr_ctrl_iface sta_ctrl;
+	struct wifimgr_delayed_work sta_autowork;
 
 	union wifi_capa ap_capa;
 	struct wifi_config ap_conf;
@@ -88,6 +89,7 @@ struct wifi_manager {
 	struct wifimgr_mac_list mac_acl;
 	struct wifimgr_set_mac_acl set_acl;
 	struct wifimgr_ctrl_iface ap_ctrl;
+	struct wifimgr_delayed_work ap_autowork;
 
 	struct cmd_processor prcs;
 	struct evt_listener lsnr;
@@ -99,11 +101,28 @@ struct wifi_manager {
 	struct wifimgr_ap_event ap_evt;
 };
 
+#ifdef CONFIG_WIFIMGR_STA
 int wifimgr_sta_init(void *handle);
 void wifimgr_sta_exit(void *handle);
+#else
+#define wifimgr_sta_init(...)
+#define wifimgr_sta_exit(...)
+#endif
+
+#ifdef CONFIG_WIFIMGR_AP
 int wifimgr_ap_init(void *handle);
 void wifimgr_ap_exit(void *handle);
+#else
+#define wifimgr_ap_init(...)
+#define wifimgr_ap_exit(...)
+#endif
 
-int wifimgr_autorun_init(void);
+#ifdef CONFIG_WIFIMGR_AUTORUN
+int wifimgr_sta_autorun_init(void *handle);
+int wifimgr_ap_autorun_init(void *handle);
+#else
+#define wifimgr_sta_autorun_init(...)
+#define wifimgr_ap_autorun_init(...)
+#endif
 
 #endif

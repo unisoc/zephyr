@@ -15,13 +15,15 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
 
+K_THREAD_STACK_DEFINE(wifimgr_ap_wq_stack, WIFIMGR_WORKQUEUE_STACK_SIZE);
+
 static int wifimgr_ap_stop(void *handle);
 static int wifimgr_ap_close(void *handle);
 
-void wifimgr_ap_event_timeout(wifimgr_work *work)
+void wifimgr_ap_event_timeout(struct wifimgr_delayed_work *dwork)
 {
 	struct wifimgr_state_machine *ap_sm =
-	    container_of(work, struct wifimgr_state_machine, work);
+	    container_of(dwork, struct wifimgr_state_machine, dwork);
 	unsigned int expected_evt;
 
 	/* Notify the external caller */
@@ -602,6 +604,7 @@ int wifimgr_ap_init(void *handle)
 	ret = wifimgr_sm_init(&mgr->ap_sm, wifimgr_ap_event_timeout);
 	if (ret)
 		wifimgr_err("failed to init WiFi AP state machine!\n");
+	wifimgr_create_workqueue(&mgr->ap_sm.dwork.wq, wifimgr_ap_wq_stack);
 
 	/* Initialize AP global control iface */
 	wifimgr_init_ctrl_iface(WIFIMGR_IFACE_NAME_AP, &mgr->ap_ctrl);

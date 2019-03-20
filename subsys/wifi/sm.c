@@ -520,9 +520,9 @@ int wifimgr_sm_init(struct wifimgr_state_machine *sm, void *work_handler)
 	int ret;
 
 	sem_init(&sm->exclsem, 0, 1);
-	wifimgr_init_work(&sm->work, work_handler);
+	wifimgr_init_work(&sm->dwork.work, work_handler);
 
-	ret = wifimgr_timer_init(&sm->work, wifimgr_timeout, &sm->timerid);
+	ret = wifimgr_timer_init(&sm->dwork, wifimgr_timeout, &sm->timerid);
 	if (ret < 0)
 		wifimgr_err("failed to init WiFi timer! %d\n", ret);
 
