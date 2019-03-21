@@ -93,24 +93,15 @@ static
 void wifi_drv_event_iface_scan_result(void *iface, int status,
 				      struct wifi_drv_scan_result_evt *entry)
 {
-	struct wifi_drv_scan_result_evt scan_res;
+	struct wifi_drv_scan_result_evt *scan_res = entry;
 	char evt_status = status;
 
-	if (!entry) {
+	if (!entry)
 		wifimgr_notify_event(WIFIMGR_EVT_SCAN_DONE, &evt_status,
 				     sizeof(evt_status));
-	} else {
-		if (entry->ssid && strlen(entry->ssid))
-			strcpy(scan_res.ssid, entry->ssid);
-		if (entry->bssid && !is_zero_ether_addr(entry->bssid))
-			memcpy(scan_res.bssid, entry->bssid, NET_LINK_ADDR_MAX_LENGTH);
-		scan_res.channel = entry->channel;
-		scan_res.rssi = entry->rssi;
-		scan_res.security = entry->security;
-
-		wifimgr_notify_event(WIFIMGR_EVT_SCAN_RESULT, &scan_res,
-				     sizeof(scan_res));
-	}
+	else
+		wifimgr_notify_event(WIFIMGR_EVT_SCAN_RESULT, scan_res,
+				     sizeof(struct wifi_drv_scan_result_evt));
 }
 
 int wifi_drv_scan(void *iface, unsigned char band, unsigned char channel)
@@ -132,20 +123,15 @@ static
 void wifi_drv_event_iface_rtt_response(void *iface, int status,
 				      struct wifi_drv_rtt_response_evt *entry)
 {
-	struct wifi_drv_rtt_response_evt rtt_resp;
+	struct wifi_drv_rtt_response_evt *rtt_resp = entry;
 	char evt_status = status;
 
-	if (!entry) {
+	if (!entry)
 		wifimgr_notify_event(WIFIMGR_EVT_RTT_DONE, &evt_status,
 				     sizeof(evt_status));
-	} else {
-		if (entry->bssid && !is_zero_ether_addr(entry->bssid))
-			memcpy(rtt_resp.bssid, entry->bssid, NET_LINK_ADDR_MAX_LENGTH);
-		rtt_resp.range = entry->range;
-
-		wifimgr_notify_event(WIFIMGR_EVT_RTT_RESPONSE, &rtt_resp,
-				     sizeof(rtt_resp));
-	}
+	else
+		wifimgr_notify_event(WIFIMGR_EVT_RTT_RESPONSE, rtt_resp,
+				     sizeof(struct wifi_drv_rtt_response_evt));
 }
 
 int wifi_drv_rtt(void *iface, struct wifi_rtt_peers *peers, unsigned char nr_peers)
