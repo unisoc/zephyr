@@ -247,6 +247,7 @@ static int wifimgr_sta_scan_result_event(void *arg)
 	sta_scan_res->channel = scan_res->channel;
 	sta_scan_res->rssi = scan_res->rssi;
 	sta_scan_res->security = scan_res->security;
+	sta_scan_res->rtt_supported = scan_res->rtt_supported;
 
 	/* Find specified AP */
 	if (!strcmp(scan_res->ssid, conf->ssid)) {
