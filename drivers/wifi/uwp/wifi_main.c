@@ -705,17 +705,9 @@ static int uwp_init(struct device *dev)
 		wifi_irq_init();
 
 		k_sleep(400); /* FIXME: workaround */
-		ret = wifi_rf_init();
-		if (ret) {
-			LOG_ERR("wifi rf init failed.");
-			return ret;
-		}
+		wifi_rf_init();
 
-		ret = wifi_cmd_get_cp_info(priv);
-		if (ret) {
-			LOG_ERR("Get cp info failed.");
-			return ret;
-		}
+		wifi_cmd_get_cp_info(priv);
 
 		priv->initialized = true;
 	}
