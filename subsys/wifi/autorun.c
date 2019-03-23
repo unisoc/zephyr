@@ -22,7 +22,7 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #ifdef CONFIG_WIFIMGR_STA
 #define WIFIMGR_AUTORUN_STA_RETRY	(3)
-struct wifimgr_delayed_work sta_autowork;
+struct k_work sta_autowork;
 timer_t sta_autorun_timerid;
 struct wifi_config sta_config;
 struct wifi_status sta_status;
@@ -30,7 +30,7 @@ static bool sta_connected;
 #endif
 
 #ifdef CONFIG_WIFIMGR_AP
-struct wifimgr_delayed_work ap_autowork;
+struct k_work ap_autowork;
 timer_t ap_autorun_timerid;
 struct wifi_config ap_config;
 struct wifi_status ap_status;
@@ -229,22 +229,32 @@ out:
 }
 #endif
 
-void wifimgr_autorun_timeout(void *sival_ptr)
+void wifimgr_autorun_handler(void *sival_ptr)
 {
-	struct wifimgr_delayed_work *dwork = (struct wifimgr_delayed_work *)sival_ptr;
+	struct k_work *work = (struct k_work *)sival_ptr;
 
-	wifimgr_submit_work(&dwork->work);
+	wifimgr_submit_work(work);
 }
 
-int wifimgr_autorun_init(void *handle)
+int wifimgr_autorun_init(void)
 {
+	struct k_work *autowork;
+	struct sigevent toevent;
 	int ret;
 #ifdef CONFIG_WIFIMGR_STA
-	wifimgr_init_work(&sta_autowork.work, (void *)wifimgr_autorun_sta);
-	ret = wifimgr_timer_init(&sta_autowork, wifimgr_autorun_timeout,
-				 &sta_autorun_timerid);
-	if (ret < 0)
+	autowork = &sta_autowork;
+	k_work_init(autowork, (void *)wifimgr_autorun_sta);
+	/* Create a POSIX timer to handle timeouts */
+	toevent.sigev_value.sival_ptr = autowork;
+	toevent.sigev_notify = SIGEV_SIGNAL;
+	toevent.sigev_notify_function = (void *)wifimgr_autorun_handler;
+	toevent.sigev_notify_attributes = NULL;
+
+	ret = timer_create(CLOCK_MONOTONIC, &toevent, &sta_autorun_timerid);
+	if (ret == -1) {
 		wifimgr_err("failed to init STA autorun!\n");
+		ret = -errno;
+	}
 
 	wifi_register_connection_notifier(wifimgr_autorun_notify_connect);
 	wifi_register_disconnection_notifier(wifimgr_autorun_notify_disconnect);
@@ -258,14 +268,23 @@ int wifimgr_autorun_init(void *handle)
 		wifi_unregister_disconnection_notifier
 		    (wifimgr_autorun_notify_disconnect);
 	}
-	sta_config.autorun = 60;
+
+	printf("start STA autorun!\n");
 #endif
 #ifdef CONFIG_WIFIMGR_AP
-	wifimgr_init_work(&ap_autowork.work, (void *)wifimgr_autorun_ap);
-	ret = wifimgr_timer_init(&ap_autowork, wifimgr_autorun_timeout,
-				 &ap_autorun_timerid);
-	if (ret < 0)
+	autowork = &ap_autowork;
+	k_work_init(autowork, (void *)wifimgr_autorun_ap);
+	/* Create a POSIX timer to handle timeouts */
+	toevent.sigev_value.sival_ptr = autowork;
+	toevent.sigev_notify = SIGEV_SIGNAL;
+	toevent.sigev_notify_function = (void *)wifimgr_autorun_handler;
+	toevent.sigev_notify_attributes = NULL;
+
+	ret = timer_create(CLOCK_MONOTONIC, &toevent, &ap_autorun_timerid);
+	if (ret == -1) {
 		wifimgr_err("failed to init AP autorun!\n");
+		ret = -errno;
+	}
 
 	wifimgr_register_new_station_notifier
 	    (wifimgr_autorun_notify_new_station);
@@ -280,6 +299,8 @@ int wifimgr_autorun_init(void *handle)
 		wifimgr_unregister_station_leave_notifier
 		    (wifimgr_autorun_notify_station_leave);
 	}
+
+	printf("start AP autorun!\n");
 #endif
 	return ret;
 }
