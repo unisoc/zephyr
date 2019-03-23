@@ -88,7 +88,6 @@ int wifi_drv_close(void *iface)
 	return drv_api->close(dev);
 }
 
-#ifdef CONFIG_WIFIMGR_STA
 static
 void wifi_drv_event_iface_scan_result(void *iface, int status,
 				      struct wifi_drv_scan_result_evt *entry)
@@ -119,6 +118,7 @@ int wifi_drv_scan(void *iface, unsigned char band, unsigned char channel)
 	return drv_api->scan(dev, &params, wifi_drv_event_iface_scan_result);
 }
 
+#ifdef CONFIG_WIFIMGR_STA
 static
 void wifi_drv_event_iface_rtt_response(void *iface, int status,
 				      struct wifi_drv_rtt_response_evt *entry)
