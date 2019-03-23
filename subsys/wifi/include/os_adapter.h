@@ -50,8 +50,7 @@ typedef struct k_work_q wifimgr_workqueue;
 typedef struct k_work wifimgr_work;
 
 #define wifimgr_init_work(...)		k_work_init(__VA_ARGS__)
-#define wifimgr_submit_work(...)	k_work_submit(__VA_ARGS__)
-#define wifimgr_submit_work_to_queue(...)	\
+#define wifimgr_queue_work(...)	\
 	k_work_submit_to_queue(__VA_ARGS__)
 #define wifimgr_create_workqueue(work_q, work_q_stack)		\
 	k_work_q_start(work_q, work_q_stack,			\
@@ -88,34 +87,6 @@ static inline void wifimgr_list_free(wifimgr_slist_t *list)
 	for (pos = container_of(wifimgr_list_peek_head(head), type, member);   \
 	     pos;                                                              \
 	     pos = container_of(wifimgr_list_peek_next(&pos->member), type, member))
-
-#ifndef MAC2STR
-#define MAC2STR(m) (m)[0], (m)[1], (m)[2], (m)[3], (m)[4], (m)[5]
-#define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
-#endif
-
-/**
- * is_zero_ether_addr - Determine if give Ethernet address is all zeros.
- * @addr: Pointer to a six-byte array containing the Ethernet address
- *
- * Return true if the address is all zeroes.
- */
-static inline bool is_zero_ether_addr(const char *addr)
-{
-	return (addr[0] | addr[1] | addr[2] | addr[3] | addr[4] | addr[5]) == 0;
-}
-
-/**
- * is_broadcast_ether_addr - Determine if the Ethernet address is broadcast
- * @addr: Pointer to a six-byte array containing the Ethernet address
- *
- * Return true if the address is the broadcast address.
- */
-static inline bool is_broadcast_ether_addr(const char *addr)
-{
-	return (addr[0] & addr[1] & addr[2] & addr[3] & addr[4] & addr[5]) ==
-	    0xff;
-}
 
 /**
  *

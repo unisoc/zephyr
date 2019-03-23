@@ -89,7 +89,7 @@ static void wifimgr_cli_show_status(char *iface_name,
 			printf("own MAC:\t" MACSTR "\n",
 			       MAC2STR(status->own_mac));
 
-		if (status->state == WIFIMGR_SM_STA_CONNECTED) {
+		if (status->state == WIFI_STATE_STA_CONNECTED) {
 			printf("----------------\n");
 			if (status->u.sta.host_bssid
 			    && !is_zero_ether_addr(status->u.sta.host_bssid))
@@ -103,7 +103,7 @@ static void wifimgr_cli_show_status(char *iface_name,
 			printf("BSSID:\t\t" MACSTR "\n",
 			       MAC2STR(status->own_mac));
 
-		if (status->state == WIFIMGR_SM_AP_STARTED) {
+		if (status->state == WIFI_STATE_AP_STARTED) {
 			int i;
 			char (*mac_addrs)[WIFIMGR_ETH_ALEN];
 

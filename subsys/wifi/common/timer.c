@@ -17,7 +17,7 @@ void wifimgr_timeout(void *sival_ptr)
 {
 	struct wifimgr_delayed_work *dwork = (struct wifimgr_delayed_work *)sival_ptr;
 
-	wifimgr_submit_work_to_queue(&dwork->wq, &dwork->work);
+	wifimgr_queue_work(&dwork->wq, &dwork->work);
 }
 
 int wifimgr_timer_start(timer_t timerid, unsigned int sec)
