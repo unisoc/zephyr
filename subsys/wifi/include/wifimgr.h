@@ -25,7 +25,6 @@
 #include "timer.h"
 #include "sm.h"
 #include "psk.h"
-#include "dhcpc.h"
 #include "led.h"
 
 #ifdef CONFIG_WIFI_STA_DRV_NAME

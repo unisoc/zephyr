@@ -18,7 +18,7 @@ LOG_MODULE_REGISTER(wifimgr);
 #include <init.h>
 #include <shell/shell.h>
 
-#include "wifimgr.h"
+#include "include/wifimgr.h"
 
 static struct wifi_manager wifimgr;
 
@@ -56,7 +56,7 @@ static int wifimgr_init(struct device *unused)
 		goto err;
 	}
 
-	ret = wifimgr_autorun_init();
+	ret = wifi_autorun_init();
 	if (ret)
 		wifimgr_err("failed to init WiFi autorun!\n");
 

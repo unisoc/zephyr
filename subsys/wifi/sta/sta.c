@@ -14,6 +14,7 @@
 LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
+#include "dhcpc.h"
 
 K_THREAD_STACK_DEFINE(wifimgr_sta_wq_stack, WIFIMGR_WORKQUEUE_STACK_SIZE);
 
