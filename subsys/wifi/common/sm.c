@@ -77,25 +77,25 @@ const char *sta_sts2str(int state)
 	char *str = NULL;
 
 	switch (state) {
-	case WIFIMGR_SM_STA_NODEV:
+	case WIFI_STATE_STA_NODEV:
 		str = "STA <UNAVAILABLE>";
 		break;
-	case WIFIMGR_SM_STA_READY:
+	case WIFI_STATE_STA_READY:
 		str = "STA <READY>";
 		break;
-	case WIFIMGR_SM_STA_SCANNING:
+	case WIFI_STATE_STA_SCANNING:
 		str = "STA <SCANNING>";
 		break;
-	case WIFIMGR_SM_STA_RTTING:
+	case WIFI_STATE_STA_RTTING:
 		str = "STA <RTTING>";
 		break;
-	case WIFIMGR_SM_STA_CONNECTING:
+	case WIFI_STATE_STA_CONNECTING:
 		str = "STA <CONNECTING>";
 		break;
-	case WIFIMGR_SM_STA_CONNECTED:
+	case WIFI_STATE_STA_CONNECTED:
 		str = "STA <CONNECTED>";
 		break;
-	case WIFIMGR_SM_STA_DISCONNECTING:
+	case WIFI_STATE_STA_DISCONNECTING:
 		str = "STA <DISCONNECTING>";
 		break;
 	default:
@@ -130,7 +130,7 @@ int sm_sta_query(struct wifimgr_state_machine *sta_sm)
 
 bool sm_sta_connected(struct wifimgr_state_machine *sta_sm)
 {
-	return sm_sta_query(sta_sm) == WIFIMGR_SM_STA_CONNECTED;
+	return sm_sta_query(sta_sm) == WIFI_STATE_STA_CONNECTED;
 }
 
 static int sm_sta_query_cmd(struct wifimgr_state_machine *sta_sm,
@@ -139,10 +139,10 @@ static int sm_sta_query_cmd(struct wifimgr_state_machine *sta_sm,
 	int ret = 0;
 
 	switch (sm_sta_query(sta_sm)) {
-	case WIFIMGR_SM_STA_SCANNING:
-	case WIFIMGR_SM_STA_RTTING:
-	case WIFIMGR_SM_STA_CONNECTING:
-	case WIFIMGR_SM_STA_DISCONNECTING:
+	case WIFI_STATE_STA_SCANNING:
+	case WIFI_STATE_STA_RTTING:
+	case WIFI_STATE_STA_CONNECTING:
+	case WIFI_STATE_STA_DISCONNECTING:
 		ret = -EBUSY;
 		break;
 	}
@@ -177,29 +177,29 @@ static void sm_sta_cmd_step(struct wifimgr_state_machine *sta_sm,
 	sta_sm->old_state = sta_sm->state;
 
 	switch (sta_sm->state) {
-	case WIFIMGR_SM_STA_NODEV:
+	case WIFI_STATE_STA_NODEV:
 		if (cmd_id == WIFIMGR_CMD_OPEN_STA)
-			sm_sta_step(sta_sm, WIFIMGR_SM_STA_READY);
+			sm_sta_step(sta_sm, WIFI_STATE_STA_READY);
 		break;
-	case WIFIMGR_SM_STA_READY:
+	case WIFI_STATE_STA_READY:
 		if (cmd_id == WIFIMGR_CMD_STA_SCAN)
-			sm_sta_step(sta_sm, WIFIMGR_SM_STA_SCANNING);
+			sm_sta_step(sta_sm, WIFI_STATE_STA_SCANNING);
 		else if (cmd_id == WIFIMGR_CMD_RTT_REQ)
-			sm_sta_step(sta_sm, WIFIMGR_SM_STA_RTTING);
+			sm_sta_step(sta_sm, WIFI_STATE_STA_RTTING);
 		else if (cmd_id == WIFIMGR_CMD_CONNECT)
-			sm_sta_step(sta_sm, WIFIMGR_SM_STA_CONNECTING);
+			sm_sta_step(sta_sm, WIFI_STATE_STA_CONNECTING);
 		else if (cmd_id == WIFIMGR_CMD_CLOSE_STA)
-			sm_sta_step(sta_sm, WIFIMGR_SM_STA_NODEV);
+			sm_sta_step(sta_sm, WIFI_STATE_STA_NODEV);
 		break;
-	case WIFIMGR_SM_STA_CONNECTED:
+	case WIFI_STATE_STA_CONNECTED:
 		if (cmd_id == WIFIMGR_CMD_STA_SCAN)
-			sm_sta_step(sta_sm, WIFIMGR_SM_STA_SCANNING);
+			sm_sta_step(sta_sm, WIFI_STATE_STA_SCANNING);
 		else if (cmd_id == WIFIMGR_CMD_RTT_REQ)
-			sm_sta_step(sta_sm, WIFIMGR_SM_STA_RTTING);
+			sm_sta_step(sta_sm, WIFI_STATE_STA_RTTING);
 		else if (cmd_id == WIFIMGR_CMD_DISCONNECT)
-			sm_sta_step(sta_sm, WIFIMGR_SM_STA_DISCONNECTING);
+			sm_sta_step(sta_sm, WIFI_STATE_STA_DISCONNECTING);
 		else if (cmd_id == WIFIMGR_CMD_CLOSE_STA)
-			sm_sta_step(sta_sm, WIFIMGR_SM_STA_NODEV);
+			sm_sta_step(sta_sm, WIFI_STATE_STA_NODEV);
 		break;
 	default:
 		break;
@@ -215,25 +215,25 @@ static void sm_sta_evt_step(struct wifimgr_state_machine *sta_sm,
 	sem_wait(&sta_sm->exclsem);
 
 	switch (sta_sm->state) {
-	case WIFIMGR_SM_STA_SCANNING:
+	case WIFI_STATE_STA_SCANNING:
 		if (evt_id == WIFIMGR_EVT_SCAN_DONE)
 			sm_sta_step(sta_sm, sta_sm->old_state);
 		break;
-	case WIFIMGR_SM_STA_RTTING:
+	case WIFI_STATE_STA_RTTING:
 		if (evt_id == WIFIMGR_EVT_RTT_DONE)
 			sm_sta_step(sta_sm, sta_sm->old_state);
 		break;
-	case WIFIMGR_SM_STA_CONNECTING:
+	case WIFI_STATE_STA_CONNECTING:
 		if (evt_id == WIFIMGR_EVT_CONNECT)
-			sm_sta_step(sta_sm, WIFIMGR_SM_STA_CONNECTED);
+			sm_sta_step(sta_sm, WIFI_STATE_STA_CONNECTED);
 		break;
-	case WIFIMGR_SM_STA_DISCONNECTING:
+	case WIFI_STATE_STA_DISCONNECTING:
 		if (evt_id == WIFIMGR_EVT_DISCONNECT)
-			sm_sta_step(sta_sm, WIFIMGR_SM_STA_READY);
+			sm_sta_step(sta_sm, WIFI_STATE_STA_READY);
 		break;
-	case WIFIMGR_SM_STA_CONNECTED:
+	case WIFI_STATE_STA_CONNECTED:
 		if (evt_id == WIFIMGR_EVT_DISCONNECT)
-			sm_sta_step(sta_sm, WIFIMGR_SM_STA_READY);
+			sm_sta_step(sta_sm, WIFI_STATE_STA_READY);
 		break;
 	default:
 		break;
@@ -288,13 +288,13 @@ const char *ap_sts2str(int state)
 	char *str = NULL;
 
 	switch (state) {
-	case WIFIMGR_SM_AP_NODEV:
+	case WIFI_STATE_AP_NODEV:
 		str = "AP <UNAVAILABLE>";
 		break;
-	case WIFIMGR_SM_AP_READY:
+	case WIFI_STATE_AP_READY:
 		str = "AP <READY>";
 		break;
-	case WIFIMGR_SM_AP_STARTED:
+	case WIFI_STATE_AP_STARTED:
 		str = "AP <STARTED>";
 		break;
 	default:
@@ -329,7 +329,7 @@ int sm_ap_query(struct wifimgr_state_machine *ap_sm)
 
 bool sm_ap_started(struct wifimgr_state_machine *ap_sm)
 {
-	return sm_ap_query(ap_sm) == WIFIMGR_SM_AP_STARTED;
+	return sm_ap_query(ap_sm) == WIFI_STATE_AP_STARTED;
 }
 
 static void sm_ap_step(struct wifimgr_state_machine *ap_sm,
@@ -348,21 +348,21 @@ static void sm_ap_cmd_step(struct wifimgr_state_machine *ap_sm,
 	ap_sm->old_state = ap_sm->state;
 
 	switch (ap_sm->state) {
-	case WIFIMGR_SM_AP_NODEV:
+	case WIFI_STATE_AP_NODEV:
 		if (cmd_id == WIFIMGR_CMD_OPEN_AP)
-			sm_ap_step(ap_sm, WIFIMGR_SM_AP_READY);
+			sm_ap_step(ap_sm, WIFI_STATE_AP_READY);
 		break;
-	case WIFIMGR_SM_AP_READY:
+	case WIFI_STATE_AP_READY:
 		if (cmd_id == WIFIMGR_CMD_START_AP)
-			sm_ap_step(ap_sm, WIFIMGR_SM_AP_STARTED);
+			sm_ap_step(ap_sm, WIFI_STATE_AP_STARTED);
 		else if (cmd_id == WIFIMGR_CMD_CLOSE_AP)
-			sm_ap_step(ap_sm, WIFIMGR_SM_AP_NODEV);
+			sm_ap_step(ap_sm, WIFI_STATE_AP_NODEV);
 		break;
-	case WIFIMGR_SM_AP_STARTED:
+	case WIFI_STATE_AP_STARTED:
 		if (cmd_id == WIFIMGR_CMD_STOP_AP)
-			sm_ap_step(ap_sm, WIFIMGR_SM_AP_READY);
+			sm_ap_step(ap_sm, WIFI_STATE_AP_READY);
 		else if (cmd_id == WIFIMGR_CMD_CLOSE_AP)
-			sm_ap_step(ap_sm, WIFIMGR_SM_AP_NODEV);
+			sm_ap_step(ap_sm, WIFI_STATE_AP_NODEV);
 		break;
 	default:
 		break;
