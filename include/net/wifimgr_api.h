@@ -42,6 +42,22 @@ struct wifi_config {
 	int autorun;
 };
 
+enum wifi_sta_state {
+	WIFI_STATE_STA_NODEV,
+	WIFI_STATE_STA_READY,
+	WIFI_STATE_STA_SCANNING,
+	WIFI_STATE_STA_RTTING,
+	WIFI_STATE_STA_CONNECTING,
+	WIFI_STATE_STA_CONNECTED,
+	WIFI_STATE_STA_DISCONNECTING,
+};
+
+enum wifi_ap_state {
+	WIFI_STATE_AP_NODEV,
+	WIFI_STATE_AP_READY,
+	WIFI_STATE_AP_STARTED,
+};
+
 struct wifi_status {
 	char state;
 	char own_mac[WIFIMGR_ETH_ALEN];
@@ -128,5 +144,33 @@ int wifi_ap_start_ap(void);
 int wifi_ap_stop_ap(void);
 int wifi_ap_del_station(char *mac);
 int wifi_ap_set_mac_acl(char subcmd, char *mac);
+
+#ifndef MAC2STR
+#define MAC2STR(m) (m)[0], (m)[1], (m)[2], (m)[3], (m)[4], (m)[5]
+#define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
+#endif
+
+/**
+ * is_zero_ether_addr - Determine if give Ethernet address is all zeros.
+ * @addr: Pointer to a six-byte array containing the Ethernet address
+ *
+ * Return true if the address is all zeroes.
+ */
+static inline bool is_zero_ether_addr(const char *addr)
+{
+	return (addr[0] | addr[1] | addr[2] | addr[3] | addr[4] | addr[5]) == 0;
+}
+
+/**
+ * is_broadcast_ether_addr - Determine if the Ethernet address is broadcast
+ * @addr: Pointer to a six-byte array containing the Ethernet address
+ *
+ * Return true if the address is the broadcast address.
+ */
+static inline bool is_broadcast_ether_addr(const char *addr)
+{
+	return (addr[0] & addr[1] & addr[2] & addr[3] & addr[4] & addr[5]) ==
+	    0xff;
+}
 
 #endif
