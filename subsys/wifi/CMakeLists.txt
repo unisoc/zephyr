@@ -1,29 +1,13 @@
-zephyr_compile_options(
-  )
+add_library(subsys__wifi INTERFACE)
 
-zephyr_sources_ifdef(
-  CONFIG_WIFIMGR
-  api.c
-  cmd_prcs.c
-  ctrl_iface.c
-  drv_iface.c
-  evt_lsnr.c
-  notifier.c
-  sm.c
-  timer.c
-  wifimgr.c
-  )
-zephyr_sources_ifdef(CONFIG_WIFIMGR_AP ap.c)
+target_include_directories(subsys__wifi INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_subdirectory(common)
+add_subdirectory_ifdef(CONFIG_WIFIMGR_AP ap)
+add_subdirectory_ifdef(CONFIG_WIFIMGR_STA sta)
+add_subdirectory_ifdef(CONFIG_WIFIMGR_SHELL shell)
+
+zephyr_sources_ifdef(CONFIG_WIFIMGR wifimgr.c)
 zephyr_sources_ifdef(CONFIG_WIFIMGR_AUTORUN autorun.c)
-zephyr_sources_ifdef(CONFIG_WIFIMGR_CLI cli.c)
-zephyr_sources_ifdef(CONFIG_WIFIMGR_CONFIG_SAVING config.c)
-zephyr_sources_ifdef(CONFIG_WIFIMGR_DHCPC dhcpc.c)
-zephyr_sources_ifdef(CONFIG_WIFIMGR_LED led.c)
-zephyr_sources_ifdef(CONFIG_WIFIMGR_PSK psk.c)
-zephyr_sources_ifdef(CONFIG_WIFIMGR_STA sta.c)
 
-if(CONFIG_WIFIMGR_PSK)
-  zephyr_sources(psk.c)
-else()
-  assert(CONFIG_MBEDTLS_LIBRARY "WIFIMGR_PSK was disabled!")
-endif()
+target_link_libraries(subsys__wifi INTERFACE zephyr_interface)

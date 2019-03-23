@@ -540,13 +540,6 @@ int wifimgr_ctrl_iface_send_cmd(struct wifimgr_ctrl_iface *ctrl, unsigned int cm
 	msg.reply = 0;
 	msg.buf_len = buf_len;
 	msg.buf = buf;
-	/*msg.buf = NULL;
-	if (buf_len) {
-		msg.buf = malloc(buf_len);
-		if (!msg.buf)
-			return -ENOMEM;
-		memcpy(msg.buf, buf, buf_len);
-	}*/
 
 	/* Send commands */
 	ret = mq_send(ctrl->mq, (const char *)&msg, sizeof(msg), 0);
@@ -581,8 +574,6 @@ int wifimgr_ctrl_iface_send_cmd(struct wifimgr_ctrl_iface *ctrl, unsigned int cm
 					    wifimgr_cmd2str(msg.cmd_id), ret);
 		}
 	}
-
-	/*free(msg.buf);*/
 
 	return ret;
 }
