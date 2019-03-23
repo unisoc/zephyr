@@ -16,22 +16,6 @@
 #define WIFIMGR_RTT_TIMEOUT	10
 #define WIFIMGR_EVENT_TIMEOUT	10
 
-enum wifimgr_sm_sta_state {
-	WIFIMGR_SM_STA_NODEV,
-	WIFIMGR_SM_STA_READY,
-	WIFIMGR_SM_STA_SCANNING,
-	WIFIMGR_SM_STA_RTTING,
-	WIFIMGR_SM_STA_CONNECTING,
-	WIFIMGR_SM_STA_CONNECTED,
-	WIFIMGR_SM_STA_DISCONNECTING,
-};
-
-enum wifimgr_sm_ap_state {
-	WIFIMGR_SM_AP_NODEV,
-	WIFIMGR_SM_AP_READY,
-	WIFIMGR_SM_AP_STARTED,
-};
-
 struct wifimgr_delayed_work {
 	wifimgr_workqueue wq;
 	wifimgr_work work;
