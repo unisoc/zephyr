@@ -118,7 +118,7 @@ void wifimgr_ap_exit(void *handle);
 #endif
 
 #ifdef CONFIG_WIFIMGR_AUTORUN
-int wifimgr_autorun_init(void *handle);
+int wifimgr_autorun_init(void);
 #else
 #define wifimgr_autorun_init(...)
 #endif
