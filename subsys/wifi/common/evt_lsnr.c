@@ -66,7 +66,8 @@ static struct evt_receiver *search_event(struct evt_listener *lsnr,
 	struct evt_receiver *rcvr;
 
 	/* Loop through list to find the corresponding event */
-	wifimgr_list_for_each_entry(rcvr, &lsnr->evt_list, struct evt_receiver, node) {
+	wifimgr_list_for_each_entry(rcvr, &lsnr->evt_list, struct evt_receiver,
+				    node) {
 		if (rcvr->expected_evt == evt_id)
 			return rcvr;
 	}

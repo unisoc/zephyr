@@ -1,6 +1,6 @@
 /*
  * @file
- * @brief DHCP header
+ * @brief DHCP client header
  */
 
 /*
