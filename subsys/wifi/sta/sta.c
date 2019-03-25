@@ -119,11 +119,12 @@ static int wifimgr_sta_disconnect_event(void *arg)
 	struct net_if *iface = (struct net_if *)mgr->sta_iface;
 
 	cmd_processor_remove_sender(&mgr->prcs, WIFIMGR_CMD_DISCONNECT);
-	memset(sts->u.sta.host_bssid, 0, WIFIMGR_ETH_ALEN);
+	memset(sts->u.sta.host_bssid, 0, WIFI_MAC_ADDR_LEN);
 	sts->u.sta.host_rssi = 0;
 
 	/* Notify the external caller */
-	wifimgr_ctrl_evt_disconnect(&mgr->sta_ctrl, &mgr->sta_ctrl.disc_chain, reason_code);
+	wifimgr_ctrl_evt_disconnect(&mgr->sta_ctrl, &mgr->sta_ctrl.disc_chain,
+				    reason_code);
 
 	if (iface)
 		wifimgr_dhcp_stop(iface);
@@ -168,7 +169,7 @@ static int wifimgr_sta_connect_event(void *arg)
 
 		if (!is_zero_ether_addr(conn->bssid))
 			memcpy(sts->u.sta.host_bssid, conn->bssid,
-			       WIFIMGR_ETH_ALEN);
+			       WIFI_MAC_ADDR_LEN);
 
 		if (iface)
 			wifimgr_dhcp_start(iface);
@@ -176,7 +177,8 @@ static int wifimgr_sta_connect_event(void *arg)
 	}
 
 	/* Notify the external caller */
-	wifimgr_ctrl_evt_connect(&mgr->sta_ctrl, &mgr->sta_ctrl.conn_chain, conn->status);
+	wifimgr_ctrl_evt_connect(&mgr->sta_ctrl, &mgr->sta_ctrl.conn_chain,
+				 conn->status);
 
 	return conn->status;
 }
@@ -242,7 +244,7 @@ static int wifimgr_sta_scan_result_event(void *arg)
 		strcpy(sta_scan_res->ssid, scan_res->ssid);
 
 	if (!is_zero_ether_addr(scan_res->bssid))
-		memcpy(sta_scan_res->bssid, scan_res->bssid, WIFIMGR_ETH_ALEN);
+		memcpy(sta_scan_res->bssid, scan_res->bssid, WIFI_MAC_ADDR_LEN);
 
 	sta_scan_res->band = scan_res->band;
 	sta_scan_res->channel = scan_res->channel;
@@ -255,7 +257,8 @@ static int wifimgr_sta_scan_result_event(void *arg)
 		/* Choose the first match when BSSID is not specified */
 		if (is_zero_ether_addr(conf->bssid))
 			sts->u.sta.host_found = 1;
-		else if (!strncmp(scan_res->bssid, conf->bssid, WIFIMGR_ETH_ALEN))
+		else if (!strncmp
+			 (scan_res->bssid, conf->bssid, WIFI_MAC_ADDR_LEN))
 			sts->u.sta.host_found = 1;
 	}
 
@@ -324,7 +327,7 @@ static int wifimgr_sta_rtt_response_event(void *arg)
 	struct wifi_rtt_response *sta_rtt_resp = &mgr->sta_rtt_resp;
 
 	if (!is_zero_ether_addr(rtt_resp->bssid))
-		memcpy(sta_rtt_resp->bssid, rtt_resp->bssid, WIFIMGR_ETH_ALEN);
+		memcpy(sta_rtt_resp->bssid, rtt_resp->bssid, WIFI_MAC_ADDR_LEN);
 
 	sta_rtt_resp->range = rtt_resp->range;
 
@@ -356,7 +359,6 @@ static int wifimgr_sta_rtt_req(void *handle)
 	    container_of(rtt_req, struct wifi_manager, sta_rtt_req);
 	int ret;
 
-	/*LOG_HEXDUMP_INF((char *)rtt_req, size, NULL);*/
 	ret = evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_RTT_RESPONSE,
 					false, wifimgr_sta_rtt_response_event,
 					&mgr->sta_evt);

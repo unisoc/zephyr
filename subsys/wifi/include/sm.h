@@ -27,7 +27,7 @@ struct wifimgr_state_machine {
 	struct wifimgr_delayed_work dwork;
 	unsigned int state;
 	unsigned int old_state;
-	unsigned int cur_cmd;		/* record the command under processing */
+	unsigned int cur_cmd;		/* record the current command */
 };
 
 const char *sta_sts2str(int state);
