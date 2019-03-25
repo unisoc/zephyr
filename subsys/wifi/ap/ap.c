@@ -105,7 +105,7 @@ static struct wifimgr_mac_node *search_mac(struct wifimgr_mac_list *mac_list,
 	/* Loop through list to find the corresponding event */
 	wifimgr_list_for_each_entry(mac_node, &mac_list->list,
 				    struct wifimgr_mac_node, node) {
-		if (!memcmp(mac_node->mac, mac, WIFIMGR_ETH_ALEN))
+		if (!memcmp(mac_node->mac, mac, WIFI_MAC_ADDR_LEN))
 			return mac_node;
 	}
 
@@ -122,7 +122,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 	struct wifimgr_mac_list *assoc_list = &mgr->assoc_list;
 	struct wifimgr_mac_list *mac_acl = &mgr->mac_acl;
 	struct wifimgr_mac_node *marked_sta = NULL;
-	char (*acl_mac_addrs)[WIFIMGR_ETH_ALEN] = NULL;
+	char (*acl_mac_addrs)[WIFI_MAC_ADDR_LEN] = NULL;
 	char drv_subcmd = 0;
 	unsigned char nr_acl = 0;
 	int ret = 0;
@@ -136,7 +136,8 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 	/* Check parmas and prepare ACL table for driver */
 	switch (set_acl->subcmd) {
 	case WIFIMGR_SUBCMD_ACL_BLOCK:
-		if ((mac_acl->nr + nr_acl) > mgr->ap_capa.ap.max_acl_mac_addrs) {
+		if ((mac_acl->nr + nr_acl) >
+		    mgr->ap_capa.ap.max_acl_mac_addrs) {
 			wifimgr_warn("Max number of ACL reached!");
 			return -ENOSPC;
 		}
@@ -149,7 +150,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 		}
 
 		drv_subcmd = WIFI_DRV_BLACKLIST_ADD;
-		acl_mac_addrs = (char (*)[WIFIMGR_ETH_ALEN])set_acl->mac;
+		acl_mac_addrs = (char (*)[WIFI_MAC_ADDR_LEN])set_acl->mac;
 		break;
 	case WIFIMGR_SUBCMD_ACL_UNBLOCK:
 		if (!mac_acl->nr) {
@@ -165,7 +166,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 		}
 
 		drv_subcmd = WIFI_DRV_BLACKLIST_DEL;
-		acl_mac_addrs = (char (*)[WIFIMGR_ETH_ALEN])set_acl->mac;
+		acl_mac_addrs = (char (*)[WIFI_MAC_ADDR_LEN])set_acl->mac;
 		break;
 	case WIFIMGR_SUBCMD_ACL_BLOCK_ALL:
 		if (!assoc_list->nr) {
@@ -210,7 +211,8 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 				ret = -ENOMEM;
 				break;
 			}
-			memcpy(marked_sta->mac, set_acl->mac, WIFIMGR_ETH_ALEN);
+			memcpy(marked_sta->mac, set_acl->mac,
+			       WIFI_MAC_ADDR_LEN);
 			wifimgr_list_append(&mac_acl->list, &marked_sta->node);
 			mac_acl->nr++;
 			wifimgr_info("Block ");
@@ -243,7 +245,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 		    wifimgr_list_peek_head(&mac_acl->list);
 		for (i = 0; (i < mac_acl->nr) || (marked_sta != NULL); i++) {
 			memcpy(sts->u.ap.acl_mac_addrs[i], marked_sta->mac,
-			       WIFIMGR_ETH_ALEN);
+			       WIFI_MAC_ADDR_LEN);
 			marked_sta = (struct wifimgr_mac_node *)
 			    wifimgr_list_peek_next(&marked_sta->node);
 		}
@@ -298,7 +300,7 @@ static int wifimgr_ap_new_station_event(void *arg)
 		assoc_sta = malloc(sizeof(struct wifimgr_mac_node));
 		if (!assoc_sta)
 			return -ENOMEM;
-		memcpy(assoc_sta->mac, new_sta->mac, WIFIMGR_ETH_ALEN);
+		memcpy(assoc_sta->mac, new_sta->mac, WIFI_MAC_ADDR_LEN);
 		wifimgr_list_append(&assoc_list->list, &assoc_sta->node);
 		assoc_list->nr++;
 		pending = true;
@@ -335,7 +337,7 @@ static int wifimgr_ap_new_station_event(void *arg)
 		    wifimgr_list_peek_head(&assoc_list->list);
 		for (i = 0; (i < assoc_list->nr) || (assoc_sta != NULL); i++) {
 			memcpy(sts->u.ap.sta_mac_addrs[i], assoc_sta->mac,
-			       WIFIMGR_ETH_ALEN);
+			       WIFI_MAC_ADDR_LEN);
 			assoc_sta = (struct wifimgr_mac_node *)
 			    wifimgr_list_peek_next(&assoc_sta->node);
 		}
@@ -352,7 +354,7 @@ static int wifimgr_ap_new_station_event(void *arg)
 static int wifimgr_ap_start(void *handle)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	union wifi_capa *capa = &mgr->ap_capa;
+	union wifi_drv_capa *capa = &mgr->ap_capa;
 	struct wifi_config *conf = &mgr->ap_conf;
 	struct wifimgr_mac_list *assoc_list = &mgr->assoc_list;
 	struct wifimgr_mac_list *mac_acl = &mgr->mac_acl;
@@ -378,7 +380,7 @@ static int wifimgr_ap_start(void *handle)
 	/* Initialize the associated station table */
 	if (!capa->ap.max_ap_assoc_sta)
 		capa->ap.max_ap_assoc_sta = WIFIMGR_MAX_STA_NR;
-	size = capa->ap.max_ap_assoc_sta * WIFIMGR_ETH_ALEN;
+	size = capa->ap.max_ap_assoc_sta * WIFI_MAC_ADDR_LEN;
 	sts->u.ap.sta_mac_addrs = malloc(size);
 	if (!sts->u.ap.sta_mac_addrs)
 		return -ENOMEM;
@@ -388,7 +390,7 @@ static int wifimgr_ap_start(void *handle)
 	/* Initialize the MAC ACL table */
 	if (!capa->ap.max_acl_mac_addrs)
 		capa->ap.max_acl_mac_addrs = WIFIMGR_MAX_STA_NR;
-	size = capa->ap.max_acl_mac_addrs * WIFIMGR_ETH_ALEN;
+	size = capa->ap.max_acl_mac_addrs * WIFI_MAC_ADDR_LEN;
 	sts->u.ap.acl_mac_addrs = malloc(size);
 	if (!sts->u.ap.acl_mac_addrs) {
 		free(sts->u.ap.sta_mac_addrs);

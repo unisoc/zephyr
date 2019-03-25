@@ -21,7 +21,8 @@ void wifimgr_timeout(void *sival_ptr);
 int wifimgr_timer_start(timer_t timerid, unsigned int sec);
 int wifimgr_interval_timer_start(timer_t timerid, unsigned int sec,
 				 unsigned int interval_sec);
-int wifimgr_timer_init(struct wifimgr_delayed_work *dwork, void *sighand, timer_t *timerid);
+int wifimgr_timer_init(struct wifimgr_delayed_work *dwork, void *sighand,
+		       timer_t *timerid);
 int wifimgr_timer_release(timer_t timerid);
 
 #endif

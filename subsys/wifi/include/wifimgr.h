@@ -12,11 +12,10 @@
 #ifndef _WIFIMGR_H_
 #define _WIFIMGR_H_
 
-#include <net/wifimgr_drv.h>
-#include <net/wifimgr_api.h>
+#include <net/wifi_drv.h>
+#include <net/wifi_api.h>
 
 #include "os_adapter.h"
-#include "api.h"
 #include "config.h"
 #include "cmd_prcs.h"
 #include "ctrl_iface.h"
@@ -46,7 +45,7 @@
 
 struct wifimgr_mac_node {
 	wifimgr_snode_t node;
-	char mac[WIFIMGR_ETH_ALEN];
+	char mac[WIFI_MAC_ADDR_LEN];
 };
 
 struct wifimgr_mac_list {
@@ -70,7 +69,7 @@ struct wifimgr_ap_event {
 };
 
 struct wifi_manager {
-	union wifi_capa sta_capa;
+	union wifi_drv_capa sta_capa;
 	struct wifi_config sta_conf;
 	struct wifi_status sta_sts;
 	struct wifimgr_state_machine sta_sm;
@@ -80,7 +79,7 @@ struct wifi_manager {
 	struct wifimgr_ctrl_iface sta_ctrl;
 	struct wifimgr_delayed_work sta_autowork;
 
-	union wifi_capa ap_capa;
+	union wifi_drv_capa ap_capa;
 	struct wifi_config ap_conf;
 	struct wifi_status ap_sts;
 	struct wifimgr_state_machine ap_sm;
