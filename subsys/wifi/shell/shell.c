@@ -1,6 +1,6 @@
 /*
  * @file
- * @brief A client to interact with WiFi manager
+ * @brief The shell client to interact with WiFi manager
  */
 
 /*
@@ -17,9 +17,8 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #include <init.h>
 #include <shell/shell.h>
-#include <net/wifimgr_api.h>
 
-#include "api.h"
+#include "ctrl_iface.h"
 #include "os_adapter.h"
 #include "sm.h"
 
@@ -65,7 +64,7 @@ static void wifimgr_cli_show_conf(char *iface_name, struct wifi_config *conf)
 		printf("Autorun:\toff\n");
 }
 
-static void wifimgr_cli_show_capa(char *iface_name, union wifi_capa *capa)
+static void wifimgr_cli_show_capa(char *iface_name, union wifi_drv_capa *capa)
 {
 	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
 		printf("STA Capability\n");
@@ -105,7 +104,7 @@ static void wifimgr_cli_show_status(char *iface_name,
 
 		if (status->state == WIFI_STATE_AP_STARTED) {
 			int i;
-			char (*mac_addrs)[WIFIMGR_ETH_ALEN];
+			char (*mac_addrs)[WIFI_MAC_ADDR_LEN];
 
 			printf("----------------\n");
 			printf("STA NR:\t%u\n", status->u.ap.nr_sta);
@@ -165,7 +164,7 @@ static int strtomac(char *mac_str, char *mac_addr)
 
 	mac = strtok(mac_str, ":");
 
-	for (i = 0; i < WIFIMGR_ETH_ALEN; i++) {
+	for (i = 0; i < WIFI_MAC_ADDR_LEN; i++) {
 		char *tail;
 
 		mac_addr[i] = strtol(mac, &tail, 16);
@@ -175,7 +174,7 @@ static int strtomac(char *mac_str, char *mac_addr)
 			break;
 	}
 
-	if (i != (WIFIMGR_ETH_ALEN - 1))
+	if (i != (WIFI_MAC_ADDR_LEN - 1))
 		return -EINVAL;
 
 	return 0;
@@ -249,9 +248,9 @@ static int wifimgr_cli_cmd_set_config(const struct shell *shell, size_t argc,
 			break;
 		case 'p':
 			if (!optarg || !strlen(optarg))
-				conf.security = WIFIMGR_SECURITY_OPEN;
+				conf.security = WIFI_SECURITY_OPEN;
 			else
-				conf.security = WIFIMGR_SECURITY_PSK;
+				conf.security = WIFI_SECURITY_PSK;
 			strcpy(conf.passphrase, optarg);
 			break;
 		case 'w':
@@ -327,7 +326,7 @@ static int wifimgr_cli_cmd_capa(const struct shell *shell, size_t argc,
 				char *argv[])
 {
 	char *iface_name;
-	union wifi_capa capa;
+	union wifi_drv_capa capa;
 	int ret;
 
 	if (argc != 2 || !argv[1])
@@ -484,7 +483,7 @@ static int wifimgr_cli_cmd_stop_ap(const struct shell *shell, size_t argc,
 static int wifimgr_cli_cmd_del_sta(const struct shell *shell, size_t argc,
 				   char *argv[])
 {
-	char mac_addr[WIFIMGR_ETH_ALEN];
+	char mac_addr[WIFI_MAC_ADDR_LEN];
 	int ret;
 
 	if (argc != 2 || !argv[1])
@@ -538,7 +537,7 @@ static int wifimgr_cli_cmd_set_mac_acl(const struct shell *shell, size_t argc,
 			if (!optarg) {
 				mac = NULL;
 			} else {
-				char mac_addr[WIFIMGR_ETH_ALEN];
+				char mac_addr[WIFI_MAC_ADDR_LEN];
 
 				ret = strtomac(optarg, mac_addr);
 				if (ret) {

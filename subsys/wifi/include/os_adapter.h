@@ -24,10 +24,6 @@
 
 #include <misc/slist.h>
 
-/*#include <net/net_linkaddr.h>*/
-
-/*#define WIFIMGR_ETH_ALEN	NET_LINK_ADDR_MAX_LENGTH*/
-
 #define wifimgr_err(...)	LOG_ERR(__VA_ARGS__)
 #define wifimgr_warn(...)	LOG_WRN(__VA_ARGS__)
 #define wifimgr_info(...)	printk(__VA_ARGS__)
@@ -83,10 +79,11 @@ static inline void wifimgr_list_free(wifimgr_slist_t *list)
 	} while (node);
 }
 
-#define wifimgr_list_for_each_entry(pos, head, type, member)                   \
+#define wifimgr_list_for_each_entry(pos, head, type, member)		       \
 	for (pos = container_of(wifimgr_list_peek_head(head), type, member);   \
-	     pos;                                                              \
-	     pos = container_of(wifimgr_list_peek_next(&pos->member), type, member))
+	     pos;							       \
+	     pos =							       \
+	     container_of(wifimgr_list_peek_next(&pos->member), type, member))
 
 /**
  *
