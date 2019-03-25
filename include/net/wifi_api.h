@@ -9,33 +9,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef _WIFIMGR_API_H_
-#define _WIFIMGR_API_H_
+#ifndef ZEPHYR_INCLUDE_NET_WIFI_API_H_
+#define ZEPHYR_INCLUDE_NET_WIFI_API_H_
 
-#include <net/wifimgr_drv.h>
+#include <net/wifi_drv.h>
 
-#define WIFIMGR_IFACE_NAME_STA	"sta"
-#define WIFIMGR_IFACE_NAME_AP	"ap"
-
-#define WIFIMGR_ETH_ALEN	NET_LINK_ADDR_MAX_LENGTH
-#define WIFIMGR_MAX_SSID_LEN	32
-#define WIFIMGR_MAX_PSPHR_LEN	63
-
-union wifi_capa {
-	struct {
-		unsigned char max_rtt_peers;
-	} sta;
-	struct {
-		unsigned char max_ap_assoc_sta;
-		unsigned char max_acl_mac_addrs;
-	} ap;
-};
+#define WIFI_MAC_ADDR_LEN	NET_LINK_ADDR_MAX_LENGTH
+#define WIFI_MAX_SSID_LEN	32
+#define WIFI_MAX_PSPHR_LEN	63
 
 struct wifi_config {
-	char ssid[WIFIMGR_MAX_SSID_LEN + 1];
-	char bssid[WIFIMGR_ETH_ALEN];
+	char ssid[WIFI_MAX_SSID_LEN + 1];
+	char bssid[WIFI_MAC_ADDR_LEN];
 	char security;
-	char passphrase[WIFIMGR_MAX_PSPHR_LEN + 1];
+	char passphrase[WIFI_MAX_PSPHR_LEN + 1];
 	unsigned char band;
 	unsigned char channel;
 	unsigned char ch_width;
@@ -60,32 +47,32 @@ enum wifi_ap_state {
 
 struct wifi_status {
 	char state;
-	char own_mac[WIFIMGR_ETH_ALEN];
+	char own_mac[WIFI_MAC_ADDR_LEN];
 	union {
 		struct {
 			char host_found;
-			char host_bssid[WIFIMGR_ETH_ALEN];
+			char host_bssid[WIFI_MAC_ADDR_LEN];
 			signed char host_rssi;
 		} sta;
 		struct {
 			unsigned char nr_sta;
-			char (*sta_mac_addrs)[WIFIMGR_ETH_ALEN];
+			char (*sta_mac_addrs)[WIFI_MAC_ADDR_LEN];
 			unsigned char nr_acl;
-			char (*acl_mac_addrs)[WIFIMGR_ETH_ALEN];
+			char (*acl_mac_addrs)[WIFI_MAC_ADDR_LEN];
 		} ap;
 	} u;
 };
 
 enum wifi_security {
-	WIFIMGR_SECURITY_UNKNOWN,
-	WIFIMGR_SECURITY_OPEN,
-	WIFIMGR_SECURITY_PSK,
-	WIFIMGR_SECURITY_OTHERS,
+	WIFI_SECURITY_UNKNOWN,
+	WIFI_SECURITY_OPEN,
+	WIFI_SECURITY_PSK,
+	WIFI_SECURITY_OTHERS,
 };
 
 struct wifi_scan_result {
-	char ssid[WIFIMGR_MAX_SSID_LEN];
-	char bssid[WIFIMGR_ETH_ALEN];
+	char ssid[WIFI_MAX_SSID_LEN];
+	char bssid[WIFI_MAC_ADDR_LEN];
 	unsigned char band;
 	unsigned char channel;
 	signed char rssi;
@@ -99,7 +86,7 @@ struct wifi_rtt_request {
 };
 
 struct wifi_rtt_response {
-	char bssid[WIFIMGR_ETH_ALEN];
+	char bssid[WIFI_MAC_ADDR_LEN];
 	int range;
 };
 
@@ -125,7 +112,7 @@ typedef void (*rtt_resp_cb_t)(struct wifi_rtt_response *rtt_resp);
 int wifi_sta_set_conf(struct wifi_config *conf);
 int wifi_sta_clear_conf(void);
 int wifi_sta_get_conf(struct wifi_config *conf);
-int wifi_sta_get_capa(union wifi_capa *capa);
+int wifi_sta_get_capa(union wifi_drv_capa *capa);
 int wifi_sta_get_status(struct wifi_status *sts);
 int wifi_sta_open(void);
 int wifi_sta_close(void);
@@ -136,7 +123,7 @@ int wifi_sta_disconnect(void);
 int wifi_ap_set_conf(struct wifi_config *conf);
 int wifi_ap_clear_conf(void);
 int wifi_ap_get_conf(struct wifi_config *conf);
-int wifi_ap_get_capa(union wifi_capa *capa);
+int wifi_ap_get_capa(union wifi_drv_capa *capa);
 int wifi_ap_get_status(struct wifi_status *sts);
 int wifi_ap_open(void);
 int wifi_ap_close(void);
@@ -149,28 +136,5 @@ int wifi_ap_set_mac_acl(char subcmd, char *mac);
 #define MAC2STR(m) (m)[0], (m)[1], (m)[2], (m)[3], (m)[4], (m)[5]
 #define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
 #endif
-
-/**
- * is_zero_ether_addr - Determine if give Ethernet address is all zeros.
- * @addr: Pointer to a six-byte array containing the Ethernet address
- *
- * Return true if the address is all zeroes.
- */
-static inline bool is_zero_ether_addr(const char *addr)
-{
-	return (addr[0] | addr[1] | addr[2] | addr[3] | addr[4] | addr[5]) == 0;
-}
-
-/**
- * is_broadcast_ether_addr - Determine if the Ethernet address is broadcast
- * @addr: Pointer to a six-byte array containing the Ethernet address
- *
- * Return true if the address is the broadcast address.
- */
-static inline bool is_broadcast_ether_addr(const char *addr)
-{
-	return (addr[0] & addr[1] & addr[2] & addr[3] & addr[4] & addr[5]) ==
-	    0xff;
-}
 
 #endif
