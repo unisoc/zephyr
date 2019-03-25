@@ -8,7 +8,7 @@
 #define __WIFI_MAIN_H__
 
 #include <zephyr.h>
-#include <net/wifimgr_drv.h>
+#include <net/wifi_drv.h>
 
 
 #define WIFI_MODE_NONE (0)
