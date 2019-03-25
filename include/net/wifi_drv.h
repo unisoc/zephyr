@@ -1,6 +1,6 @@
 /*
  * @file
- * @brief WiFi manager callbacks for the WiFi driver
+ * @brief Driver interfaces and callbacks for WiFi manager
  */
 
 /*
@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef _WIFIMGR_DRV_H_
-#define _WIFIMGR_DRV_H_
+#ifndef ZEPHYR_INCLUDE_NET_WIFI_DRV_H_
+#define ZEPHYR_INCLUDE_NET_WIFI_DRV_H_
 
 #include <net/ethernet.h>
 #include <net/wifi.h>
@@ -133,5 +133,28 @@ struct wifi_drv_api {
 	int (*hw_test)(struct device *dev, int ictx_id, char *t_buf,
 		       unsigned int t_len, char *r_buf, unsigned int *r_len);
 };
+
+/**
+ * is_zero_ether_addr - Determine if give Ethernet address is all zeros.
+ * @addr: Pointer to a six-byte array containing the Ethernet address
+ *
+ * Return true if the address is all zeroes.
+ */
+static inline bool is_zero_ether_addr(const char *addr)
+{
+	return (addr[0] | addr[1] | addr[2] | addr[3] | addr[4] | addr[5]) == 0;
+}
+
+/**
+ * is_broadcast_ether_addr - Determine if the Ethernet address is broadcast
+ * @addr: Pointer to a six-byte array containing the Ethernet address
+ *
+ * Return true if the address is the broadcast address.
+ */
+static inline bool is_broadcast_ether_addr(const char *addr)
+{
+	return (addr[0] & addr[1] & addr[2] & addr[3] & addr[4] & addr[5]) ==
+	    0xff;
+}
 
 #endif
