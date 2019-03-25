@@ -12,9 +12,6 @@
 #ifndef _WIFIMGR_DRV_IFACE_H_
 #define _WIFIMGR_DRV_IFACE_H_
 
-#include <net/wifimgr_drv.h>
-
-#include "ctrl_iface.h"
 #include "os_adapter.h"
 
 enum event_type {
@@ -33,11 +30,12 @@ enum event_type {
 
 void *wifi_drv_init(char *devname);
 int wifi_drv_get_mac(void *iface, char *mac);
-int wifi_drv_get_capa(void *iface, union wifi_capa *capa);
+int wifi_drv_get_capa(void *iface, union wifi_drv_capa *capa);
 int wifi_drv_open(void *iface);
 int wifi_drv_close(void *iface);
 int wifi_drv_scan(void *iface, unsigned char band, unsigned char channel);
-int wifi_drv_rtt(void *iface, struct wifi_rtt_peers *peers, unsigned char nr_peers);
+int wifi_drv_rtt(void *iface, struct wifi_rtt_peers *peers,
+		 unsigned char nr_peers);
 int wifi_drv_connect(void *iface, char *ssid, char *bssid, char *psk,
 		     unsigned char psk_len, unsigned char channel);
 int wifi_drv_disconnect(void *iface);

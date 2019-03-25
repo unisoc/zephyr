@@ -1,6 +1,6 @@
 /*
  * @file
- * @brief Autorun of WiFi manager, including both STA and AP.
+ * @brief Autorun WiFi repeater, using both STA and AP.
  */
 
 /*
@@ -16,7 +16,7 @@
 LOG_MODULE_DECLARE(wifimgr);
 
 #include <init.h>
-#include <net/wifimgr_api.h>
+#include <net/wifi_api.h>
 #include <posix/sys/types.h>
 #include <posix/time.h>
 
@@ -69,7 +69,7 @@ static void wifi_autorun_scan_result(struct wifi_scan_result *scan_res)
 		if (is_zero_ether_addr(sta_config.bssid))
 			sta_status.u.sta.host_found = 1;
 		else if (!strncmp
-			 (scan_res->bssid, sta_config.bssid, WIFIMGR_ETH_ALEN))
+			 (scan_res->bssid, sta_config.bssid, WIFI_MAC_ADDR_LEN))
 			sta_status.u.sta.host_found = 1;
 	}
 }

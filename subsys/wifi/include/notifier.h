@@ -12,7 +12,7 @@
 #ifndef _WIFI_NOTIFIER_H_
 #define _WIFI_NOTIFIER_H_
 
-#include <net/wifimgr_api.h>
+#include <net/wifi_api.h>
 
 #include "os_adapter.h"
 

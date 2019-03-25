@@ -1,6 +1,6 @@
 /*
  * @file
- * @brief APIs for the external caller
+ * @brief WiFi manager APIs for the external caller
  */
 
 /*
@@ -11,10 +11,6 @@
 
 #if defined(CONFIG_WIFIMGR_STA) || defined(CONFIG_WIFIMGR_AP)
 
-#include <net/wifimgr_api.h>
-
-#include "api.h"
-#include "config.h"
 #include "ctrl_iface.h"
 
 int wifi_register_connection_notifier(wifi_notifier_fn_t notifier_call)
@@ -77,7 +73,7 @@ int wifi_sta_get_conf(struct wifi_config *conf)
 	return wifimgr_ctrl_iface_get_conf(WIFIMGR_IFACE_NAME_STA, conf);
 }
 
-int wifi_sta_get_capa(union wifi_capa *capa)
+int wifi_sta_get_capa(union wifi_drv_capa *capa)
 {
 	return wifimgr_ctrl_iface_get_capa(WIFIMGR_IFACE_NAME_STA, capa);
 }
@@ -167,7 +163,7 @@ int wifi_ap_get_conf(struct wifi_config *conf)
 	return wifimgr_ctrl_iface_get_conf(WIFIMGR_IFACE_NAME_AP, conf);
 }
 
-int wifi_ap_get_capa(union wifi_capa *capa)
+int wifi_ap_get_capa(union wifi_drv_capa *capa)
 {
 	return wifimgr_ctrl_iface_get_capa(WIFIMGR_IFACE_NAME_AP, capa);
 }
