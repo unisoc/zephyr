@@ -15,7 +15,7 @@ LOG_MODULE_DECLARE(wifimgr);
 
 #if defined(CONFIG_WIFIMGR_STA) || defined(CONFIG_WIFIMGR_AP)
 
-#include <net/wifimgr_drv.h>
+#include <net/wifi_drv.h>
 
 #include "os_adapter.h"
 #include "drv_iface.h"
@@ -42,28 +42,21 @@ int wifi_drv_get_mac(void *iface, char *mac)
 	if (!mac)
 		return -EINVAL;
 
-	memcpy(mac, net_if_get_link_addr(iface)->addr, NET_LINK_ADDR_MAX_LENGTH);
+	memcpy(mac, net_if_get_link_addr(iface)->addr,
+	       NET_LINK_ADDR_MAX_LENGTH);
 
 	return 0;
 }
 
-int wifi_drv_get_capa(void *iface, union wifi_capa *capa)
+int wifi_drv_get_capa(void *iface, union wifi_drv_capa *capa)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
 	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
-	union wifi_drv_capa drv_capa;
-	int ret;
 
 	if (!drv_api->get_capa)
 		return -EIO;
 
-	ret = drv_api->get_capa(dev, &drv_capa);
-	if (!ret) {
-		capa->ap.max_ap_assoc_sta = drv_capa.ap.max_ap_assoc_sta;
-		capa->ap.max_acl_mac_addrs = drv_capa.ap.max_acl_mac_addrs;
-	}
-
-	return ret;
+	return drv_api->get_capa(dev, capa);
 }
 
 int wifi_drv_open(void *iface)
@@ -121,7 +114,7 @@ int wifi_drv_scan(void *iface, unsigned char band, unsigned char channel)
 #ifdef CONFIG_WIFIMGR_STA
 static
 void wifi_drv_event_iface_rtt_response(void *iface, int status,
-				      struct wifi_drv_rtt_response_evt *entry)
+				       struct wifi_drv_rtt_response_evt *entry)
 {
 	struct wifi_drv_rtt_response_evt *rtt_resp = entry;
 	char evt_status = status;
@@ -134,7 +127,8 @@ void wifi_drv_event_iface_rtt_response(void *iface, int status,
 				     sizeof(struct wifi_drv_rtt_response_evt));
 }
 
-int wifi_drv_rtt(void *iface, struct wifi_rtt_peers *peers, unsigned char nr_peers)
+int wifi_drv_rtt(void *iface, struct wifi_rtt_peers *peers,
+		 unsigned char nr_peers)
 {
 	struct device *dev = net_if_get_device((struct net_if *)iface);
 	struct wifi_drv_api *drv_api = (struct wifi_drv_api *)dev->driver_api;
@@ -146,14 +140,16 @@ int wifi_drv_rtt(void *iface, struct wifi_rtt_peers *peers, unsigned char nr_pee
 	params.nr_peers = nr_peers;
 	params.peers = peers;
 
-	return drv_api->rtt_req(dev, &params, wifi_drv_event_iface_rtt_response);
+	return drv_api->rtt_req(dev, &params,
+				wifi_drv_event_iface_rtt_response);
 }
 
 static void wifi_drv_event_disconnect(void *iface, int status)
 {
 	char reason_code = status;
 
-	wifimgr_notify_event(WIFIMGR_EVT_DISCONNECT, &reason_code, sizeof(reason_code));
+	wifimgr_notify_event(WIFIMGR_EVT_DISCONNECT, &reason_code,
+			     sizeof(reason_code));
 }
 
 int wifi_drv_disconnect(void *iface)

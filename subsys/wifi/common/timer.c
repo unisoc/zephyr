@@ -9,13 +9,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #include "os_adapter.h"
 #include "sm.h"
 
 void wifimgr_timeout(void *sival_ptr)
 {
-	struct wifimgr_delayed_work *dwork = (struct wifimgr_delayed_work *)sival_ptr;
+	struct wifimgr_delayed_work *dwork =
+	    (struct wifimgr_delayed_work *)sival_ptr;
 
 	wifimgr_queue_work(&dwork->wq, &dwork->work);
 }
@@ -57,7 +57,8 @@ int wifimgr_interval_timer_start(timer_t timerid, unsigned int sec,
 	return ret;
 }
 
-int wifimgr_timer_init(struct wifimgr_delayed_work *dwork, void *sighand, timer_t *timerid)
+int wifimgr_timer_init(struct wifimgr_delayed_work *dwork, void *sighand,
+		       timer_t *timerid)
 {
 	struct sigevent toevent;
 	int ret;

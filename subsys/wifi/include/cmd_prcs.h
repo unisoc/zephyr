@@ -12,6 +12,8 @@
 #ifndef _WIFIMGR_CMD_PRCS_H_
 #define _WIFIMGR_CMD_PRCS_H_
 
+#include "ctrl_iface.h"
+
 #define WIFIMGR_CMD_PROCESSOR		"wifimgr_cmd_processor"
 #define WIFIMGR_CMD_PROCESSOR_PRIORITY	(1)
 #define WIFIMGR_CMD_PROCESSOR_STACKSIZE	(4096)
