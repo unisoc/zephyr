@@ -21,7 +21,12 @@
 int pbkdf2_sha1(const char *passphrase, const char *ssid, int iterations,
 		char *buf, size_t buflen);
 #else
-#define pbkdf2_sha1(...)
+static
+inline int pbkdf2_sha1(const char *passphrase, const char *ssid, int iterations,
+		       char *buf, size_t buflen)
+{
+	return 0;
+}
 #endif
 
 #endif

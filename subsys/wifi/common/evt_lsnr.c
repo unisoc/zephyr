@@ -258,7 +258,7 @@ int wifimgr_evt_listener_init(struct evt_listener *handle)
 
 	/* Starts internal threads to listen for frames and events */
 	pthread_attr_init(&tattr);
-	sparam.priority = WIFIMGR_EVT_LISTENER_PRIORITY;
+	sparam.sched_priority = WIFIMGR_EVT_LISTENER_PRIORITY;
 	pthread_attr_setschedparam(&tattr, &sparam);
 	pthread_attr_setstack(&tattr, &evt_stacks[0][0],
 			      WIFIMGR_EVT_LISTENER_STACKSIZE);

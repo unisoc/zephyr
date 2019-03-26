@@ -22,42 +22,48 @@ static struct wifimgr_ctrl_iface *ap_ctrl;
 
 int wifimgr_register_connection_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_register_notifier(&sta_ctrl->conn_chain, notifier_call);
+	return wifimgr_register_notifier(&sta_ctrl->conn_chain, notifier_call);
 }
 
 int wifimgr_unregister_connection_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_unregister_notifier(&sta_ctrl->conn_chain, notifier_call);
+	return wifimgr_unregister_notifier(&sta_ctrl->conn_chain,
+					   notifier_call);
 }
 
 int wifimgr_register_disconnection_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_register_notifier(&sta_ctrl->disc_chain, notifier_call);
+	return wifimgr_register_notifier(&sta_ctrl->disc_chain, notifier_call);
 }
 
 int wifimgr_unregister_disconnection_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_unregister_notifier(&sta_ctrl->disc_chain, notifier_call);
+	return wifimgr_unregister_notifier(&sta_ctrl->disc_chain,
+					   notifier_call);
 }
 
 int wifimgr_register_new_station_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_register_notifier(&ap_ctrl->new_sta_chain, notifier_call);
+	return wifimgr_register_notifier(&ap_ctrl->new_sta_chain,
+					 notifier_call);
 }
 
 int wifimgr_unregister_new_station_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_unregister_notifier(&ap_ctrl->new_sta_chain, notifier_call);
+	return wifimgr_unregister_notifier(&ap_ctrl->new_sta_chain,
+					   notifier_call);
 }
 
 int wifimgr_register_station_leave_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_register_notifier(&ap_ctrl->sta_leave_chain, notifier_call);
+	return wifimgr_register_notifier(&ap_ctrl->sta_leave_chain,
+					 notifier_call);
 }
 
 int wifimgr_unregister_station_leave_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_unregister_notifier(&ap_ctrl->sta_leave_chain, notifier_call);
+	return wifimgr_unregister_notifier(&ap_ctrl->sta_leave_chain,
+					   notifier_call);
 }
 
 void wifimgr_ctrl_evt_scan_result(void *handle,
@@ -83,6 +89,58 @@ void wifimgr_ctrl_evt_scan_done(void *handle, char status)
 	fflush(stdout);
 
 	wifimgr_ctrl_iface_wakeup(ctrl);
+}
+
+static int wifimgr_ctrl_iface_send_cmd(struct wifimgr_ctrl_iface *ctrl,
+				       unsigned int cmd_id,
+				       void *buf, int buf_len)
+{
+	struct cmd_message msg;
+	struct timespec ts;
+	int prio;
+	int ret;
+
+	msg.cmd_id = cmd_id;
+	msg.reply = 0;
+	msg.buf_len = buf_len;
+	msg.buf = buf;
+
+	/* Send commands */
+	ret = mq_send(ctrl->mq, (const char *)&msg, sizeof(msg), 0);
+	if (ret == -1) {
+		wifimgr_err("failed to send [%s]! errno %d\n",
+			    wifimgr_cmd2str(msg.cmd_id), errno);
+		ret = -errno;
+	} else {
+		wifimgr_dbg("send [%s], buf: 0x%08x\n",
+			    wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
+
+		/* Receive command replys */
+		ret = clock_gettime(CLOCK_MONOTONIC, &ts);
+		if (ret)
+			wifimgr_err("failed to get clock time! %d\n", ret);
+		ts.tv_sec += WIFIMGR_CMD_TIMEOUT;
+		ret =
+		    mq_timedreceive(ctrl->mq, (char *)&msg, sizeof(msg), &prio,
+				    &ts);
+		if (ret == -1) {
+			wifimgr_err("failed to get command reply! errno %d\n",
+				    errno);
+			if (errno == ETIME)
+				wifimgr_err("[%s] timeout!\n",
+					    wifimgr_cmd2str(msg.cmd_id));
+			ret = -errno;
+		} else {
+			wifimgr_dbg("recv [%s] reply: %d\n",
+				    wifimgr_cmd2str(msg.cmd_id), msg.reply);
+			ret = msg.reply;
+			if (ret)
+				wifimgr_err("failed to exec [%s]! %d\n",
+					    wifimgr_cmd2str(msg.cmd_id), ret);
+		}
+	}
+
+	return ret;
 }
 
 #ifdef CONFIG_WIFIMGR_STA
@@ -550,57 +608,6 @@ int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac)
 }
 #endif
 
-int wifimgr_ctrl_iface_send_cmd(struct wifimgr_ctrl_iface *ctrl,
-				unsigned int cmd_id, void *buf, int buf_len)
-{
-	struct cmd_message msg;
-	struct timespec ts;
-	int prio;
-	int ret;
-
-	msg.cmd_id = cmd_id;
-	msg.reply = 0;
-	msg.buf_len = buf_len;
-	msg.buf = buf;
-
-	/* Send commands */
-	ret = mq_send(ctrl->mq, (const char *)&msg, sizeof(msg), 0);
-	if (ret == -1) {
-		wifimgr_err("failed to send [%s]! errno %d\n",
-			    wifimgr_cmd2str(msg.cmd_id), errno);
-		ret = -errno;
-	} else {
-		wifimgr_dbg("send [%s], buf: 0x%08x\n",
-			    wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
-
-		/* Receive command replys */
-		ret = clock_gettime(CLOCK_MONOTONIC, &ts);
-		if (ret)
-			wifimgr_err("failed to get clock time! %d\n", ret);
-		ts.tv_sec += WIFIMGR_CMD_TIMEOUT;
-		ret =
-		    mq_timedreceive(ctrl->mq, (char *)&msg, sizeof(msg), &prio,
-				    &ts);
-		if (ret == -1) {
-			wifimgr_err("failed to get command reply! errno %d\n",
-				    errno);
-			if (errno == ETIME)
-				wifimgr_err("[%s] timeout!\n",
-					    wifimgr_cmd2str(msg.cmd_id));
-			ret = -errno;
-		} else {
-			wifimgr_dbg("recv [%s] reply: %d\n",
-				    wifimgr_cmd2str(msg.cmd_id), msg.reply);
-			ret = msg.reply;
-			if (ret)
-				wifimgr_err("failed to exec [%s]! %d\n",
-					    wifimgr_cmd2str(msg.cmd_id), ret);
-		}
-	}
-
-	return ret;
-}
-
 int wifimgr_ctrl_iface_wait_event(char *iface_name)
 {
 	struct wifimgr_ctrl_iface *ctrl;
@@ -635,7 +642,7 @@ int wifimgr_ctrl_iface_wakeup(struct wifimgr_ctrl_iface *ctrl)
 	return ret;
 }
 
-int wifimgr_init_ctrl_iface(char *iface_name, struct wifimgr_ctrl_iface *ctrl)
+int wifimgr_ctrl_iface_init(char *iface_name, struct wifimgr_ctrl_iface *ctrl)
 {
 	struct mq_des *mq;
 	struct mq_attr attr;
@@ -677,7 +684,7 @@ int wifimgr_init_ctrl_iface(char *iface_name, struct wifimgr_ctrl_iface *ctrl)
 	return ret;
 }
 
-int wifimgr_destroy_ctrl_iface(char *iface_name,
+int wifimgr_ctrl_iface_destroy(char *iface_name,
 			       struct wifimgr_ctrl_iface *ctrl)
 {
 	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
@@ -702,5 +709,7 @@ int wifimgr_destroy_ctrl_iface(char *iface_name,
 		mq_close(ctrl->mq);
 
 	sem_destroy(&ctrl->syncsem);
+
+	return 0;
 }
 #endif
