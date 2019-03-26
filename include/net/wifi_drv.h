@@ -13,7 +13,10 @@
 #define ZEPHYR_INCLUDE_NET_WIFI_DRV_H_
 
 #include <net/ethernet.h>
-#include <net/wifi.h>
+
+#define WIFI_MAC_ADDR_LEN	NET_LINK_ADDR_MAX_LENGTH
+#define WIFI_MAX_SSID_LEN	32
+#define WIFI_MAX_PSPHR_LEN	63
 
 #define WIFI_DRV_BLACKLIST_ADD	(1)
 #define WIFI_DRV_BLACKLIST_DEL	(2)
@@ -72,7 +75,7 @@ struct wifi_drv_connect_evt {
 
 struct wifi_drv_scan_result_evt {
 	char bssid[NET_LINK_ADDR_MAX_LENGTH];
-	char ssid[WIFI_SSID_MAX_LEN];
+	char ssid[WIFI_MAX_SSID_LEN];
 	char ssid_length;
 	unsigned char band;
 	unsigned char channel;
