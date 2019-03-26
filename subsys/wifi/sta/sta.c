@@ -81,7 +81,7 @@ static int wifimgr_sta_get_config(void *handle)
 	struct wifi_config *conf = (struct wifi_config *)handle;
 
 	/* Load config form non-volatile memory */
-	memset(conf, 0, sizeof(conf));
+	memset(conf, 0, sizeof(struct wifi_config));
 	wifimgr_config_load(conf, WIFIMGR_SETTING_STA_PATH);
 
 	return 0;
@@ -513,7 +513,7 @@ int wifimgr_sta_init(void *handle)
 	wifimgr_create_workqueue(&mgr->sta_sm.dwork.wq, wifimgr_sta_wq_stack);
 
 	/* Initialize STA global control */
-	wifimgr_init_ctrl_iface(WIFIMGR_IFACE_NAME_STA, &mgr->sta_ctrl);
+	wifimgr_ctrl_iface_init(WIFIMGR_IFACE_NAME_STA, &mgr->sta_ctrl);
 
 	return ret;
 }
@@ -523,7 +523,7 @@ void wifimgr_sta_exit(void *handle)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 
 	/* Deinitialize STA global control */
-	wifimgr_destroy_ctrl_iface(WIFIMGR_IFACE_NAME_STA, &mgr->sta_ctrl);
+	wifimgr_ctrl_iface_destroy(WIFIMGR_IFACE_NAME_STA, &mgr->sta_ctrl);
 
 	/* Deinitialize STA state machine */
 	wifimgr_sm_exit(&mgr->sta_sm);

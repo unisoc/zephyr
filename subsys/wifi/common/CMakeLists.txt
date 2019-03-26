@@ -14,3 +14,6 @@ zephyr_library_sources_ifdef(CONFIG_WIFIMGR_LED led.c)
 zephyr_library_sources_ifdef(CONFIG_WIFIMGR_PSK psk.c)
 
 zephyr_library_link_libraries(subsys__wifi)
+
+zephyr_link_interface_ifdef(CONFIG_MBEDTLS mbedTLS)
+zephyr_link_libraries_ifdef(CONFIG_MBEDTLS mbedTLS)
