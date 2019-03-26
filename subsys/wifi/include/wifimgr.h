@@ -103,7 +103,10 @@ struct wifi_manager {
 int wifimgr_sta_init(void *handle);
 void wifimgr_sta_exit(void *handle);
 #else
-#define wifimgr_sta_init(...)
+static inline int wifimgr_sta_init(void *handle)
+{
+	return 0;
+}
 #define wifimgr_sta_exit(...)
 #endif
 
@@ -111,14 +114,20 @@ void wifimgr_sta_exit(void *handle);
 int wifimgr_ap_init(void *handle);
 void wifimgr_ap_exit(void *handle);
 #else
-#define wifimgr_ap_init(...)
+static inline int wifimgr_ap_init(void *handle)
+{
+	return 0;
+}
 #define wifimgr_ap_exit(...)
 #endif
 
 #ifdef CONFIG_WIFIMGR_AUTORUN
-int wifimgr_autorun_init(void);
+int wifi_autorun_init(void);
 #else
-#define wifimgr_autorun_init(...)
+static inline int wifi_autorun_init(void)
+{
+	return 0;
+}
 #endif
 
 #endif

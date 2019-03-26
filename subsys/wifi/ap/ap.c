@@ -42,19 +42,17 @@ static int wifimgr_ap_set_config(void *handle)
 	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
 
 	if (!memiszero(conf, sizeof(struct wifi_config)))
-		wifimgr_config_clear(conf, WIFIMGR_SETTING_AP_PATH);
-	else
-		wifimgr_config_save(conf, WIFIMGR_SETTING_AP_PATH);
+		return wifimgr_config_clear(conf, WIFIMGR_SETTING_AP_PATH);
 
-	return 0;
+	return wifimgr_config_save(conf, WIFIMGR_SETTING_AP_PATH);
 }
 
 static int wifimgr_ap_get_config(void *handle)
 {
-	struct wifimgr_config *conf = (struct wifimgr_config *)handle;
+	struct wifi_config *conf = (struct wifi_config *)handle;
 
 	/* Load config form non-volatile memory */
-	memset(conf, 0, sizeof(conf));
+	memset(conf, 0, sizeof(struct wifi_config));
 	wifimgr_config_load(conf, WIFIMGR_SETTING_AP_PATH);
 
 	return 0;
@@ -609,7 +607,7 @@ int wifimgr_ap_init(void *handle)
 	wifimgr_create_workqueue(&mgr->ap_sm.dwork.wq, wifimgr_ap_wq_stack);
 
 	/* Initialize AP global control iface */
-	wifimgr_init_ctrl_iface(WIFIMGR_IFACE_NAME_AP, &mgr->ap_ctrl);
+	wifimgr_ctrl_iface_init(WIFIMGR_IFACE_NAME_AP, &mgr->ap_ctrl);
 
 	return ret;
 }
@@ -619,7 +617,7 @@ void wifimgr_ap_exit(void *handle)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 
 	/* Deinitialize AP global control */
-	wifimgr_destroy_ctrl_iface(WIFIMGR_IFACE_NAME_AP, &mgr->ap_ctrl);
+	wifimgr_ctrl_iface_destroy(WIFIMGR_IFACE_NAME_AP, &mgr->ap_ctrl);
 
 	/* Deinitialize AP state machine */
 	wifimgr_sm_exit(&mgr->ap_sm);

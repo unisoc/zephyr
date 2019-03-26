@@ -15,42 +15,42 @@
 
 int wifi_register_connection_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_register_connection_notifier(notifier_call);
+	return wifimgr_register_connection_notifier(notifier_call);
 }
 
 int wifi_unregister_connection_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_unregister_connection_notifier(notifier_call);
+	return wifimgr_unregister_connection_notifier(notifier_call);
 }
 
 int wifi_register_disconnection_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_register_disconnection_notifier(notifier_call);
+	return wifimgr_register_disconnection_notifier(notifier_call);
 }
 
 int wifi_unregister_disconnection_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_unregister_disconnection_notifier(notifier_call);
+	return wifimgr_unregister_disconnection_notifier(notifier_call);
 }
 
 int wifi_register_new_station_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_register_new_station_notifier(notifier_call);
+	return wifimgr_register_new_station_notifier(notifier_call);
 }
 
 int wifi_unregister_new_station_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_unregister_new_station_notifier(notifier_call);
+	return wifimgr_unregister_new_station_notifier(notifier_call);
 }
 
 int wifi_register_station_leave_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_register_station_leave_notifier(notifier_call);
+	return wifimgr_register_station_leave_notifier(notifier_call);
 }
 
 int wifi_unregister_station_leave_notifier(wifi_notifier_fn_t notifier_call)
 {
-	wifimgr_unregister_station_leave_notifier(notifier_call);
+	return wifimgr_unregister_station_leave_notifier(notifier_call);
 }
 
 #ifdef CONFIG_WIFIMGR_STA

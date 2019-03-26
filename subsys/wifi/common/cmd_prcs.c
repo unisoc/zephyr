@@ -187,7 +187,7 @@ int wifimgr_cmd_processor_init(struct cmd_processor *handle)
 
 	/* Starts internal threads to process commands */
 	pthread_attr_init(&tattr);
-	sparam.priority = WIFIMGR_CMD_PROCESSOR_PRIORITY;
+	sparam.sched_priority = WIFIMGR_CMD_PROCESSOR_PRIORITY;
 	pthread_attr_setschedparam(&tattr, &sparam);
 	pthread_attr_setstack(&tattr, &cmd_stacks[0][0],
 			      WIFIMGR_CMD_PROCESSOR_STACKSIZE);

@@ -17,7 +17,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <posix/sys/types.h>
+#include <posix/posix_types.h>
 #include <posix/pthread.h>
 #include <posix/semaphore.h>
 #include <posix/mqueue.h>
