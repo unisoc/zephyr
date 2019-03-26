@@ -19,7 +19,7 @@
 struct wifimgr_delayed_work {
 	wifimgr_workqueue wq;
 	wifimgr_work work;
-} dwork;
+};
 
 struct wifimgr_state_machine {
 	sem_t exclsem;			/* exclusive access to the struct */
@@ -30,14 +30,30 @@ struct wifimgr_state_machine {
 	unsigned int cur_cmd;		/* record the current command */
 };
 
-const char *sta_sts2str(int state);
-int sm_sta_query(struct wifimgr_state_machine *sta_sm);
-bool sm_sta_connected(struct wifimgr_state_machine *sta_sm);
-void sm_sta_step_back(struct wifimgr_state_machine *sta_sm);
+int sm_sta_timer_start(struct wifimgr_state_machine *sm, unsigned int cmd_id);
+int sm_sta_timer_stop(struct wifimgr_state_machine *sm, unsigned int evt_id);
 
-const char *ap_sts2str(int state);
-int sm_ap_query(struct wifimgr_state_machine *ap_sm);
-bool sm_ap_started(struct wifimgr_state_machine *ap_sm);
+bool is_sta_common_cmd(unsigned int cmd_id);
+bool is_sta_cmd(unsigned int cmd_id);
+bool is_sta_evt(unsigned int evt_id);
+int sm_sta_query(struct wifimgr_state_machine *sm);
+bool sm_sta_connected(struct wifimgr_state_machine *sm);
+int sm_sta_query_cmd(struct wifimgr_state_machine *sm, unsigned int cmd_id);
+void sm_sta_step(struct wifimgr_state_machine *sm, unsigned int next_state);
+void sm_sta_step_back(struct wifimgr_state_machine *sm);
+void sm_sta_cmd_step(struct wifimgr_state_machine *sm, unsigned int cmd_id);
+void sm_sta_evt_step(struct wifimgr_state_machine *sm, unsigned int evt_id);
+
+int sm_ap_timer_start(struct wifimgr_state_machine *sm, unsigned int cmd_id);
+int sm_ap_timer_stop(struct wifimgr_state_machine *sm, unsigned int evt_id);
+bool is_ap_common_cmd(unsigned int cmd_id);
+bool is_ap_cmd(unsigned int cmd_id);
+bool is_ap_evt(unsigned int evt_id);
+int sm_ap_query(struct wifimgr_state_machine *sm);
+bool sm_ap_started(struct wifimgr_state_machine *sm);
+int sm_ap_query_cmd(struct wifimgr_state_machine *sm, unsigned int cmd_id);
+void sm_ap_step(struct wifimgr_state_machine *sm, unsigned int next_state);
+void sm_ap_cmd_step(struct wifimgr_state_machine *sm, unsigned int cmd_id);
 
 const char *wifimgr_cmd2str(int cmd);
 const char *wifimgr_evt2str(int evt);

@@ -71,6 +71,15 @@ struct wifimgr_ctrl_iface {
 	struct wifimgr_notifier_chain sta_leave_chain;
 };
 
+int wifimgr_register_connection_notifier(wifi_notifier_fn_t notifier_call);
+int wifimgr_unregister_connection_notifier(wifi_notifier_fn_t notifier_call);
+int wifimgr_register_disconnection_notifier(wifi_notifier_fn_t notifier_call);
+int wifimgr_unregister_disconnection_notifier(wifi_notifier_fn_t notifier_call);
+int wifimgr_register_new_station_notifier(wifi_notifier_fn_t notifier_call);
+int wifimgr_unregister_new_station_notifier(wifi_notifier_fn_t notifier_call);
+int wifimgr_register_station_leave_notifier(wifi_notifier_fn_t notifier_call);
+int wifimgr_unregister_station_leave_notifier(wifi_notifier_fn_t notifier_call);
+
 void wifimgr_ctrl_evt_scan_result(void *handle,
 				  struct wifi_scan_result *scan_res);
 void wifimgr_ctrl_evt_scan_done(void *handle, char status);
@@ -112,28 +121,5 @@ int wifimgr_ctrl_iface_wakeup(struct wifimgr_ctrl_iface *ctrl);
 int wifimgr_ctrl_iface_init(char *iface_name, struct wifimgr_ctrl_iface *ctrl);
 int wifimgr_ctrl_iface_destroy(char *iface_name,
 			       struct wifimgr_ctrl_iface *ctrl);
-
-static inline const char *security2str(int security)
-{
-	char *str = NULL;
-
-	switch (security) {
-	case WIFI_SECURITY_UNKNOWN:
-		str = "UNKNOWN\t";
-		break;
-	case WIFI_SECURITY_OPEN:
-		str = "OPEN\t";
-		break;
-	case WIFI_SECURITY_PSK:
-		str = "WPA/WPA2";
-		break;
-	case WIFI_SECURITY_OTHERS:
-		str = "OTHERS\t";
-		break;
-	default:
-		break;
-	}
-	return str;
-}
 
 #endif
