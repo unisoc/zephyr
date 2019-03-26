@@ -14,10 +14,6 @@
 
 #include <net/wifi_drv.h>
 
-#define WIFI_MAC_ADDR_LEN	NET_LINK_ADDR_MAX_LENGTH
-#define WIFI_MAX_SSID_LEN	32
-#define WIFI_MAX_PSPHR_LEN	63
-
 struct wifi_config {
 	char ssid[WIFI_MAX_SSID_LEN + 1];
 	char bssid[WIFI_MAC_ADDR_LEN];
@@ -136,5 +132,82 @@ int wifi_ap_set_mac_acl(char subcmd, char *mac);
 #define MAC2STR(m) (m)[0], (m)[1], (m)[2], (m)[3], (m)[4], (m)[5]
 #define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
 #endif
+
+static inline const char *security2str(int security)
+{
+	char *str = NULL;
+
+	switch (security) {
+	case WIFI_SECURITY_UNKNOWN:
+		str = "UNKNOWN\t";
+		break;
+	case WIFI_SECURITY_OPEN:
+		str = "OPEN\t";
+		break;
+	case WIFI_SECURITY_PSK:
+		str = "WPA/WPA2";
+		break;
+	case WIFI_SECURITY_OTHERS:
+		str = "OTHERS\t";
+		break;
+	default:
+		break;
+	}
+	return str;
+}
+
+static inline const char *ap_sts2str(int state)
+{
+	char *str = NULL;
+
+	switch (state) {
+	case WIFI_STATE_AP_NODEV:
+		str = "AP <UNAVAILABLE>";
+		break;
+	case WIFI_STATE_AP_READY:
+		str = "AP <READY>";
+		break;
+	case WIFI_STATE_AP_STARTED:
+		str = "AP <STARTED>";
+		break;
+	default:
+		str = "AP <UNKNOWN>";
+		break;
+	}
+	return str;
+}
+
+static inline const char *sta_sts2str(int state)
+{
+	char *str = NULL;
+
+	switch (state) {
+	case WIFI_STATE_STA_NODEV:
+		str = "STA <UNAVAILABLE>";
+		break;
+	case WIFI_STATE_STA_READY:
+		str = "STA <READY>";
+		break;
+	case WIFI_STATE_STA_SCANNING:
+		str = "STA <SCANNING>";
+		break;
+	case WIFI_STATE_STA_RTTING:
+		str = "STA <RTTING>";
+		break;
+	case WIFI_STATE_STA_CONNECTING:
+		str = "STA <CONNECTING>";
+		break;
+	case WIFI_STATE_STA_CONNECTED:
+		str = "STA <CONNECTED>";
+		break;
+	case WIFI_STATE_STA_DISCONNECTING:
+		str = "STA <DISCONNECTING>";
+		break;
+	default:
+		str = "STA <UNKNOWN>";
+		break;
+	}
+	return str;
+}
 
 #endif
