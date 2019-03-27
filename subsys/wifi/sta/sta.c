@@ -240,6 +240,12 @@ static int wifimgr_sta_scan_result_event(void *arg)
 	struct wifi_config *conf = &mgr->sta_conf;
 	struct wifi_status *sts = &mgr->sta_sts;
 
+	/* ignore the duplicate result */
+	if (!strcmp(scan_res->ssid, sta_scan_res->ssid) &&
+	    !strncmp (scan_res->bssid, sta_scan_res->bssid, WIFI_MAC_ADDR_LEN) &&
+	    (scan_res->channel == sta_scan_res->security))
+		return 0;
+
 	if (strlen(scan_res->ssid))
 		strcpy(sta_scan_res->ssid, scan_res->ssid);
 

@@ -12,12 +12,6 @@
 #include <string.h>
 
 #if defined(CONFIG_MBEDTLS)
-/*#if !defined(CONFIG_MBEDTLS_CFG_FILE)
-#include "mbedtls/config.h"
-#else
-#include CONFIG_MBEDTLS_CFG_FILE
-#endif [> CONFIG_MBEDTLS_CFG_FILE <]*/
-/*#include <mbedtls/pkcs5.h>*/
 #include "mbedtls/pkcs5.h"
 #endif /* CONFIG_MBEDTLS */
 
