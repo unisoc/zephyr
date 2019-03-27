@@ -38,9 +38,6 @@
 #define container_of(ptr, type, member) \
 	CONTAINER_OF(ptr, type, member)
 
-#define malloc(size)		k_malloc(size)
-#define free(ptr)		k_free(ptr)
-
 #define WIFIMGR_WORKQUEUE_STACK_SIZE	1024
 typedef struct k_work_q wifimgr_workqueue;
 typedef struct k_work wifimgr_work;

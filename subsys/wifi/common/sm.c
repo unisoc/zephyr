@@ -1,6 +1,6 @@
 /*
  * @file
- * @brief State machine related functions
+ * @brief State machine handling
  */
 
 /*
@@ -16,361 +16,6 @@
 LOG_MODULE_DECLARE(wifimgr);
 
 #include "wifimgr.h"
-
-#ifdef CONFIG_WIFIMGR_STA
-static int sm_sta_timer_start(struct wifimgr_state_machine *sta_sm,
-			      unsigned int cmd_id)
-{
-	int ret = 0;
-
-	switch (cmd_id) {
-	case WIFIMGR_CMD_STA_SCAN:
-		ret =
-		    wifimgr_timer_start(sta_sm->timerid, WIFIMGR_SCAN_TIMEOUT);
-		break;
-	case WIFIMGR_CMD_RTT_REQ:
-		ret =
-		    wifimgr_timer_start(sta_sm->timerid, WIFIMGR_RTT_TIMEOUT);
-		break;
-	case WIFIMGR_CMD_CONNECT:
-	case WIFIMGR_CMD_DISCONNECT:
-		ret =
-		    wifimgr_timer_start(sta_sm->timerid, WIFIMGR_EVENT_TIMEOUT);
-		break;
-	default:
-		break;
-	}
-
-	if (ret)
-		wifimgr_err("failed to start STA timer! %d\n", ret);
-
-	return ret;
-}
-
-static int sm_sta_timer_stop(struct wifimgr_state_machine *sta_sm,
-			     unsigned int evt_id)
-{
-	int ret = 0;
-
-	switch (evt_id) {
-	case WIFIMGR_EVT_SCAN_DONE:
-	case WIFIMGR_EVT_RTT_DONE:
-	case WIFIMGR_EVT_CONNECT:
-		ret = wifimgr_timer_stop(sta_sm->timerid);
-		break;
-	case WIFIMGR_EVT_DISCONNECT:
-		if (sta_sm->cur_cmd == WIFIMGR_CMD_DISCONNECT)
-			ret = wifimgr_timer_stop(sta_sm->timerid);
-		break;
-	default:
-		break;
-	}
-
-	if (ret)
-		wifimgr_err("failed to stop STA timer! %d\n", ret);
-
-	return ret;
-}
-
-const char *sta_sts2str(int state)
-{
-	char *str = NULL;
-
-	switch (state) {
-	case WIFI_STATE_STA_NODEV:
-		str = "STA <UNAVAILABLE>";
-		break;
-	case WIFI_STATE_STA_READY:
-		str = "STA <READY>";
-		break;
-	case WIFI_STATE_STA_SCANNING:
-		str = "STA <SCANNING>";
-		break;
-	case WIFI_STATE_STA_RTTING:
-		str = "STA <RTTING>";
-		break;
-	case WIFI_STATE_STA_CONNECTING:
-		str = "STA <CONNECTING>";
-		break;
-	case WIFI_STATE_STA_CONNECTED:
-		str = "STA <CONNECTED>";
-		break;
-	case WIFI_STATE_STA_DISCONNECTING:
-		str = "STA <DISCONNECTING>";
-		break;
-	default:
-		str = "STA <UNKNOWN>";
-		break;
-	}
-	return str;
-}
-
-static bool is_sta_common_cmd(unsigned int cmd_id)
-{
-	return ((cmd_id >= 0)
-		&& (cmd_id < WIFIMGR_CMD_OPEN_STA));
-}
-
-static bool is_sta_cmd(unsigned int cmd_id)
-{
-	return ((cmd_id >= WIFIMGR_CMD_OPEN_STA)
-		&& (cmd_id < WIFIMGR_CMD_GET_AP_CONFIG));
-}
-
-static bool is_sta_evt(unsigned int evt_id)
-{
-	return ((evt_id >= WIFIMGR_EVT_SCAN_RESULT)
-		&& (evt_id <= WIFIMGR_EVT_DISCONNECT));
-}
-
-int sm_sta_query(struct wifimgr_state_machine *sta_sm)
-{
-	return sta_sm->state;
-}
-
-bool sm_sta_connected(struct wifimgr_state_machine *sta_sm)
-{
-	return sm_sta_query(sta_sm) == WIFI_STATE_STA_CONNECTED;
-}
-
-static int sm_sta_query_cmd(struct wifimgr_state_machine *sta_sm,
-			    unsigned int cmd_id)
-{
-	int ret = 0;
-
-	switch (sm_sta_query(sta_sm)) {
-	case WIFI_STATE_STA_SCANNING:
-	case WIFI_STATE_STA_RTTING:
-	case WIFI_STATE_STA_CONNECTING:
-	case WIFI_STATE_STA_DISCONNECTING:
-		ret = -EBUSY;
-		break;
-	}
-
-	return ret;
-}
-
-static void sm_sta_step(struct wifimgr_state_machine *sta_sm,
-			unsigned int next_state)
-{
-	sta_sm->old_state = sta_sm->state;
-	sta_sm->state = next_state;
-	wifimgr_info("(%s) -> (%s)\n", sta_sts2str(sta_sm->old_state),
-		     sta_sts2str(sta_sm->state));
-}
-
-void sm_sta_step_back(struct wifimgr_state_machine *sta_sm)
-{
-	wifimgr_info("(%s) -> (%s)\n", sta_sts2str(sta_sm->state),
-		     sta_sts2str(sta_sm->old_state));
-
-	sem_wait(&sta_sm->exclsem);
-	if (sta_sm->state != sta_sm->old_state)
-		sta_sm->state = sta_sm->old_state;
-	sem_post(&sta_sm->exclsem);
-}
-
-static void sm_sta_cmd_step(struct wifimgr_state_machine *sta_sm,
-			    unsigned int cmd_id)
-{
-	sem_wait(&sta_sm->exclsem);
-	sta_sm->old_state = sta_sm->state;
-
-	switch (sta_sm->state) {
-	case WIFI_STATE_STA_NODEV:
-		if (cmd_id == WIFIMGR_CMD_OPEN_STA)
-			sm_sta_step(sta_sm, WIFI_STATE_STA_READY);
-		break;
-	case WIFI_STATE_STA_READY:
-		if (cmd_id == WIFIMGR_CMD_STA_SCAN)
-			sm_sta_step(sta_sm, WIFI_STATE_STA_SCANNING);
-		else if (cmd_id == WIFIMGR_CMD_RTT_REQ)
-			sm_sta_step(sta_sm, WIFI_STATE_STA_RTTING);
-		else if (cmd_id == WIFIMGR_CMD_CONNECT)
-			sm_sta_step(sta_sm, WIFI_STATE_STA_CONNECTING);
-		else if (cmd_id == WIFIMGR_CMD_CLOSE_STA)
-			sm_sta_step(sta_sm, WIFI_STATE_STA_NODEV);
-		break;
-	case WIFI_STATE_STA_CONNECTED:
-		if (cmd_id == WIFIMGR_CMD_STA_SCAN)
-			sm_sta_step(sta_sm, WIFI_STATE_STA_SCANNING);
-		else if (cmd_id == WIFIMGR_CMD_RTT_REQ)
-			sm_sta_step(sta_sm, WIFI_STATE_STA_RTTING);
-		else if (cmd_id == WIFIMGR_CMD_DISCONNECT)
-			sm_sta_step(sta_sm, WIFI_STATE_STA_DISCONNECTING);
-		else if (cmd_id == WIFIMGR_CMD_CLOSE_STA)
-			sm_sta_step(sta_sm, WIFI_STATE_STA_NODEV);
-		break;
-	default:
-		break;
-	}
-
-	sta_sm->cur_cmd = cmd_id;
-	sem_post(&sta_sm->exclsem);
-}
-
-static void sm_sta_evt_step(struct wifimgr_state_machine *sta_sm,
-			    unsigned int evt_id)
-{
-	sem_wait(&sta_sm->exclsem);
-
-	switch (sta_sm->state) {
-	case WIFI_STATE_STA_SCANNING:
-		if (evt_id == WIFIMGR_EVT_SCAN_DONE)
-			sm_sta_step(sta_sm, sta_sm->old_state);
-		break;
-	case WIFI_STATE_STA_RTTING:
-		if (evt_id == WIFIMGR_EVT_RTT_DONE)
-			sm_sta_step(sta_sm, sta_sm->old_state);
-		break;
-	case WIFI_STATE_STA_CONNECTING:
-		if (evt_id == WIFIMGR_EVT_CONNECT)
-			sm_sta_step(sta_sm, WIFI_STATE_STA_CONNECTED);
-		break;
-	case WIFI_STATE_STA_DISCONNECTING:
-		if (evt_id == WIFIMGR_EVT_DISCONNECT)
-			sm_sta_step(sta_sm, WIFI_STATE_STA_READY);
-		break;
-	case WIFI_STATE_STA_CONNECTED:
-		if (evt_id == WIFIMGR_EVT_DISCONNECT)
-			sm_sta_step(sta_sm, WIFI_STATE_STA_READY);
-		break;
-	default:
-		break;
-	}
-
-	sem_post(&sta_sm->exclsem);
-}
-#endif
-
-static int sm_ap_timer_start(struct wifimgr_state_machine *ap_sm,
-			     unsigned int cmd_id)
-{
-	int ret = 0;
-
-	switch (cmd_id) {
-	case WIFIMGR_CMD_DEL_STA:
-		ret =
-		    wifimgr_timer_start(ap_sm->timerid, WIFIMGR_EVENT_TIMEOUT);
-		break;
-	default:
-		break;
-	}
-
-	if (ret)
-		wifimgr_err("failed to start AP timer! %d\n", ret);
-
-	return ret;
-}
-
-static int sm_ap_timer_stop(struct wifimgr_state_machine *ap_sm,
-			    unsigned int evt_id)
-{
-	int ret = 0;
-
-	switch (evt_id) {
-	case WIFIMGR_EVT_NEW_STATION:
-		if (ap_sm->cur_cmd == WIFIMGR_CMD_DEL_STA)
-			ret = wifimgr_timer_stop(ap_sm->timerid);
-		break;
-	default:
-		break;
-	}
-
-	if (ret)
-		wifimgr_err("failed to stop AP timer! %d\n", ret);
-
-	return ret;
-}
-
-const char *ap_sts2str(int state)
-{
-	char *str = NULL;
-
-	switch (state) {
-	case WIFI_STATE_AP_NODEV:
-		str = "AP <UNAVAILABLE>";
-		break;
-	case WIFI_STATE_AP_READY:
-		str = "AP <READY>";
-		break;
-	case WIFI_STATE_AP_STARTED:
-		str = "AP <STARTED>";
-		break;
-	default:
-		str = "AP <UNKNOWN>";
-		break;
-	}
-	return str;
-}
-
-static bool is_ap_common_cmd(unsigned int cmd_id)
-{
-	return ((cmd_id >= WIFIMGR_CMD_GET_AP_CONFIG)
-		&& (cmd_id < WIFIMGR_CMD_OPEN_AP));
-}
-
-static bool is_ap_cmd(unsigned int cmd_id)
-{
-	return ((cmd_id >= WIFIMGR_CMD_OPEN_AP)
-		&& (cmd_id < WIFIMGR_CMD_MAX));
-}
-
-static bool is_ap_evt(unsigned int evt_id)
-{
-	return ((evt_id >= WIFIMGR_EVT_NEW_STATION)
-		&& (evt_id <= WIFIMGR_EVT_MAX));
-}
-
-int sm_ap_query(struct wifimgr_state_machine *ap_sm)
-{
-	return ap_sm->state;
-}
-
-bool sm_ap_started(struct wifimgr_state_machine *ap_sm)
-{
-	return sm_ap_query(ap_sm) == WIFI_STATE_AP_STARTED;
-}
-
-static void sm_ap_step(struct wifimgr_state_machine *ap_sm,
-		       unsigned int next_state)
-{
-	ap_sm->old_state = ap_sm->state;
-	ap_sm->state = next_state;
-	wifimgr_info("(%s) -> (%s)\n", ap_sts2str(ap_sm->old_state),
-		     ap_sts2str(ap_sm->state));
-}
-
-static void sm_ap_cmd_step(struct wifimgr_state_machine *ap_sm,
-			   unsigned int cmd_id)
-{
-	sem_wait(&ap_sm->exclsem);
-	ap_sm->old_state = ap_sm->state;
-
-	switch (ap_sm->state) {
-	case WIFI_STATE_AP_NODEV:
-		if (cmd_id == WIFIMGR_CMD_OPEN_AP)
-			sm_ap_step(ap_sm, WIFI_STATE_AP_READY);
-		break;
-	case WIFI_STATE_AP_READY:
-		if (cmd_id == WIFIMGR_CMD_START_AP)
-			sm_ap_step(ap_sm, WIFI_STATE_AP_STARTED);
-		else if (cmd_id == WIFIMGR_CMD_CLOSE_AP)
-			sm_ap_step(ap_sm, WIFI_STATE_AP_NODEV);
-		break;
-	case WIFI_STATE_AP_STARTED:
-		if (cmd_id == WIFIMGR_CMD_STOP_AP)
-			sm_ap_step(ap_sm, WIFI_STATE_AP_READY);
-		else if (cmd_id == WIFIMGR_CMD_CLOSE_AP)
-			sm_ap_step(ap_sm, WIFI_STATE_AP_NODEV);
-		break;
-	default:
-		break;
-	}
-
-	ap_sm->cur_cmd = cmd_id;
-	sem_post(&ap_sm->exclsem);
-}
 
 const char *wifimgr_cmd2str(int cmd)
 {
@@ -420,10 +65,14 @@ const char *wifimgr_sts2str_cmd(void *handle, unsigned int cmd_id)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 
+#ifdef CONFIG_WIFIMGR_STA
 	if (is_sta_cmd(cmd_id) || is_sta_common_cmd(cmd_id) == true)
 		return sta_sts2str(mgr->sta_sm.state);
-	else if (is_ap_cmd(cmd_id) == true || is_ap_common_cmd(cmd_id))
+#endif
+#ifdef CONFIG_WIFIMGR_AP
+	if (is_ap_cmd(cmd_id) == true || is_ap_common_cmd(cmd_id))
 		return ap_sts2str(mgr->ap_sm.state);
+#endif
 
 	return NULL;
 }
@@ -432,10 +81,14 @@ const char *wifimgr_sts2str_evt(void *handle, unsigned int evt_id)
 {
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 
+#ifdef CONFIG_WIFIMGR_STA
 	if (is_sta_evt(evt_id) == true)
 		return sta_sts2str(mgr->sta_sm.state);
-	else if (is_ap_evt(evt_id) == true)
+#endif
+#ifdef CONFIG_WIFIMGR_AP
+	if (is_ap_evt(evt_id) == true)
 		return ap_sts2str(mgr->ap_sm.state);
+#endif
 
 	return NULL;
 }
@@ -445,11 +98,14 @@ int wifimgr_sm_query_cmd(void *handle, unsigned int cmd_id)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	int ret = 0;
 
-	if (is_sta_cmd(cmd_id) == true) {
+#ifdef CONFIG_WIFIMGR_STA
+	if (is_sta_cmd(cmd_id) == true)
 		ret = sm_sta_query_cmd(&mgr->sta_sm, cmd_id);
-	} else if (is_ap_cmd(cmd_id) == true) {
-		/* softAP does not need query cmd for now */
-	}
+#endif
+#ifdef CONFIG_WIFIMGR_AP
+	if (is_ap_cmd(cmd_id) == true)
+		ret = sm_ap_query_cmd(&mgr->ap_sm, cmd_id);
+#endif
 
 	return ret;
 }
@@ -459,6 +115,7 @@ void wifimgr_sm_cmd_step(void *handle, unsigned int cmd_id, char indication)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_state_machine *sm;
 
+#ifdef CONFIG_WIFIMGR_STA
 	if (is_sta_cmd(cmd_id) == true) {
 		sm = &mgr->sta_sm;
 		if (!indication) {
@@ -471,7 +128,10 @@ void wifimgr_sm_cmd_step(void *handle, unsigned int cmd_id, char indication)
 				    wifimgr_cmd2str(cmd_id),
 				    sta_sts2str(sm->state));
 		}
-	} else if (is_ap_cmd(cmd_id) == true) {
+	}
+#endif
+#ifdef CONFIG_WIFIMGR_AP
+	if (is_ap_cmd(cmd_id) == true) {
 		sm = &mgr->ap_sm;
 		if (!indication) {
 			/* Step to next state and start timer on success */
@@ -484,6 +144,7 @@ void wifimgr_sm_cmd_step(void *handle, unsigned int cmd_id, char indication)
 				    ap_sts2str(sm->state));
 		}
 	}
+#endif
 }
 
 void wifimgr_sm_evt_step(void *handle, unsigned int evt_id, char indication)
@@ -491,9 +152,10 @@ void wifimgr_sm_evt_step(void *handle, unsigned int evt_id, char indication)
 	struct wifi_manager *mgr = (struct wifi_manager *)handle;
 	struct wifimgr_state_machine *sm = NULL;
 
-	/* Stop timer when receiving an event */
+#ifdef CONFIG_WIFIMGR_STA
 	if (is_sta_evt(evt_id) == true) {
 		sm = &mgr->sta_sm;
+		/* Stop timer when receiving an event */
 		sm_sta_timer_stop(sm, evt_id);
 		if (!indication) {
 			/* Step to next state on success */
@@ -503,11 +165,16 @@ void wifimgr_sm_evt_step(void *handle, unsigned int evt_id, char indication)
 			/*Roll back to previous state on failure */
 			sm_sta_step_back(sm);
 		}
-	} else if (is_ap_evt(evt_id) == true) {
+	}
+#endif
+#ifdef CONFIG_WIFIMGR_AP
+	if (is_ap_evt(evt_id) == true) {
 		sm = &mgr->ap_sm;
+		/* Stop timer when receiving an event */
 		sm_ap_timer_stop(sm, evt_id);
 		/* softAP does not need step evt/back for now */
 	}
+#endif
 
 }
 

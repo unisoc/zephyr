@@ -19,6 +19,7 @@ LOG_MODULE_DECLARE(wifimgr);
 #include <net/wifi_api.h>
 #include <posix/sys/types.h>
 #include <posix/time.h>
+#include <stdio.h>
 
 #ifdef CONFIG_WIFIMGR_STA
 #define WIFIMGR_AUTORUN_STA_RETRY	(3)

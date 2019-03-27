@@ -71,7 +71,7 @@ int wifimgr_unregister_notifier(struct wifimgr_notifier_chain *chain,
 {
 	struct wifimgr_notifier *notifier;
 
-	if (!chain || !notifier)
+	if (!chain || !notifier_call)
 		return -EINVAL;
 
 	/* Get exclusive access to the struct */

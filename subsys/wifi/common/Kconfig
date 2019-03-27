@@ -9,7 +9,6 @@ config WIFIMGR_CONFIG_SAVING
 	bool "Enable Saving Config"
 	select FCB
 	select SETTINGS
-	default y
 	help
 	  Enable Saving & Cleaning WiFi Configuration.
 
@@ -17,13 +16,11 @@ config WIFIMGR_PSK
 	bool "Enable PSK calculation"
 	depends on MBEDTLS
 	depends on MBEDTLS_BUILTIN
-	default y
 	help
 	  Enable PSK calculation.
 
 config WIFIMGR_LED
 	bool "Enable LED indiction"
-	default n
         depends on LED_UWP
 	help
 	  Enable LED indiction of WiFi manger.
