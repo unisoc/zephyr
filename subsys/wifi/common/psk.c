@@ -10,7 +10,10 @@
  */
 
 #include <string.h>
-#include <mbedtls/pkcs5.h>
+
+#if defined(CONFIG_MBEDTLS)
+#include "mbedtls/pkcs5.h"
+#endif /* CONFIG_MBEDTLS */
 
 #include "psk.h"
 

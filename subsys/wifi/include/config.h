@@ -51,11 +51,27 @@ int wifimgr_settings_save(void *handle, char *path, bool clear);
 #define wifimgr_config_clear(...) \
 	wifimgr_settings_save(__VA_ARGS__, true)
 #else
-#define wifimgr_config_init(...)
 #define wifimgr_config_exit(...)
-#define wifimgr_config_load(...)
-#define wifimgr_config_save(...)
-#define wifimgr_config_clear(...)
+
+static inline int wifimgr_config_init(void *handle, char *path)
+{
+	return 0;
+}
+
+static inline int wifimgr_config_load(void *handle, char *path)
+{
+	return 0;
+}
+
+static inline int wifimgr_config_save(void *handle, char *path)
+{
+	return 0;
+}
+
+static inline int wifimgr_config_clear(void *handle, char *path)
+{
+	return 0;
+}
 #endif
 
 #endif
