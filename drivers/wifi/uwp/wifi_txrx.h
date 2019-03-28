@@ -278,7 +278,7 @@ struct hw_addr_buff_t {
 	struct  tx_ctrl tx_ctrl;
 	unsigned short number;
 	unsigned short rsvd;
-	unsigned char pcie_addr[0][ADDR_LEN];
+	unsigned char pcie_addr[ADDR_LEN];
 } __packed;
 
 
