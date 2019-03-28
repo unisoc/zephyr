@@ -519,21 +519,22 @@ static int wifi_tx_fill_msdu_dscr(struct wifi_device *wifi_dev,
 			   struct net_pkt *pkt, u8_t type, u8_t offset)
 {
 	u32_t addr = 0;
-	u32_t reserve_len = net_pkt_ll_reserve(pkt);
-	struct tx_msdu_dscr *dscr = NULL;
+	struct net_buf *frag;
+	struct tx_msdu_dscr *dscr;
 
-	net_pkt_set_ll_reserve(pkt,
-			sizeof(struct tx_msdu_dscr) +
-			net_pkt_ll_reserve(pkt));
-	LOG_DBG("size msdu: %d", sizeof(struct tx_msdu_dscr));
+	frag = pkt->frags;
+	net_buf_add(frag, sizeof(struct tx_msdu_dscr));
+	memset(frag->data, 0x00,
+		sizeof(struct tx_msdu_dscr) + CONFIG_NET_BUF_USER_DATA_SIZE);
 
-	dscr = (struct tx_msdu_dscr *)net_pkt_ll(pkt);
-	memset(dscr, 0x00, sizeof(struct tx_msdu_dscr));
+	dscr = (struct tx_msdu_dscr *)
+		(frag->data + CONFIG_NET_BUF_USER_DATA_SIZE);
+	frag->data += CONFIG_NET_BUF_USER_DATA_SIZE;
+
 	addr = (u32_t)dscr;
 	SPRD_AP_TO_CP_ADDR(addr);
 	dscr->next_buf_addr_low = addr;
 	dscr->next_buf_addr_high = 0x0;
-
 	dscr->tx_ctrl.checksum_offload = 0;
 	dscr->common.type =
 		(type == SPRDWL_TYPE_CMD ? SPRDWL_TYPE_CMD : SPRDWL_TYPE_DATA);
@@ -546,7 +547,7 @@ static int wifi_tx_fill_msdu_dscr(struct wifi_device *wifi_dev,
 		dscr->common.interface = WIFI_DEV_AP;
 	}
 
-	dscr->pkt_len = reserve_len + net_pkt_get_len(pkt);
+	dscr->pkt_len = net_pkt_get_len(pkt);
 	dscr->offset = 11;
 	/* TODO */
 	dscr->tx_ctrl.sw_rate = (type == SPRDWL_TYPE_DATA_SPECIAL ? 1 : 0);
@@ -566,23 +567,21 @@ static int wifi_tx_fill_msdu_dscr(struct wifi_device *wifi_dev,
 	return 0;
 }
 
-static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
+static int uwp_tx(struct device *dev, struct net_pkt *pkt)
 {
-	struct device *dev;
 	struct net_buf *frag;
 	struct wifi_device *wifi_dev;
 	bool first_frag = true;
-	u8_t *data_ptr;
-	u16_t data_len;
+	u8_t *data_ptr = NULL;
+	u16_t data_len = 0;
 	u16_t total_len;
 	u32_t addr;
 	u16_t max_len;
 
-	if (!iface) {
+	if (!dev || !pkt) {
 		return -EINVAL;
 	}
 
-	dev = net_if_get_device(iface);
 	wifi_dev = get_wifi_dev_by_dev(dev);
 	if (!wifi_dev) {
 		LOG_ERR("Unable to find wifi dev by dev %p", dev);
@@ -604,42 +603,46 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 
 	wifi_tx_fill_msdu_dscr(wifi_dev, pkt, SPRDWL_TYPE_DATA, 0);
 
-	total_len = net_pkt_ll_reserve(pkt) + net_pkt_get_len(pkt);
+	total_len = net_pkt_get_len(pkt);
 
-	LOG_DBG("wifi tx data: %d bytes, reserve: %d bytes",
-		    total_len, net_pkt_ll_reserve(pkt));
+	LOG_DBG("wifi tx data: %d bytes", total_len);
 
 	for (frag = pkt->frags; frag; frag = frag->frags) {
 		if (first_frag) {
-			data_ptr = net_pkt_ll(pkt);
-			data_len = net_pkt_ll_reserve(pkt) + frag->len;
+			data_ptr = net_pkt_ip_data(pkt);
+			data_len = frag->len;
 			first_frag = false;
 		} else {
-			data_ptr = frag->data;
-			data_len = frag->len;
-
-		}
-
-		addr = (u32_t)data_ptr;
-		/* FIXME Save pkt addr before payload. */
-		uwp_save_addr_before_payload(addr, (void *)pkt);
-
-		SPRD_AP_TO_CP_ADDR(addr);
-
-		max_len = MTU + sizeof(struct tx_msdu_dscr)
-			+ L2_HEADER_LEN;
-		if (data_len > max_len) {
-			LOG_ERR("Exceed max length %d data_len %d",
-					max_len, data_len);
+			memcpy(data_ptr + data_len, frag->data, frag->len);
+			data_len += frag->len;
 			net_buf_unref(frag);
-			return -EINVAL;
 		}
+	}
 
-		if (wifi_tx_data((void *)addr, data_len)) {
-			LOG_WRN("Send data failed.");
-			net_buf_unref(frag);
-			return -EIO;
-		}
+	if (!data_ptr) {
+		LOG_ERR("Invalid frag");
+		return -EINVAL;
+	}
+
+	addr = (u32_t)data_ptr;
+	/* FIXME Save pkt addr before payload. */
+	uwp_save_addr_before_payload(addr, (void *)pkt);
+
+	SPRD_AP_TO_CP_ADDR(addr);
+
+	max_len = MTU + sizeof(struct tx_msdu_dscr)
+		+ L2_HEADER_LEN;
+	if (data_len > max_len) {
+		LOG_ERR("Exceed max length %d data_len %d",
+				max_len, data_len);
+		net_buf_unref(frag);
+		return -EINVAL;
+	}
+
+	if (wifi_tx_data((void *)addr, data_len)) {
+		LOG_WRN("Send data failed.");
+		net_buf_unref(frag);
+		return -EIO;
 	}
 
 	return 0;
@@ -648,7 +651,7 @@ static int uwp_iface_tx(struct net_if *iface, struct net_pkt *pkt)
 
 static const struct wifi_drv_api uwp_api = {
 	.eth_api.iface_api.init = uwp_iface_init,
-	.eth_api.iface_api.send = uwp_iface_tx,
+	.eth_api.send           = uwp_tx,
 	.get_capa               = uwp_mgmt_get_capa,
 	.open                   = uwp_mgmt_open,
 	.close                  = uwp_mgmt_close,
