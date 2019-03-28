@@ -44,6 +44,12 @@ static int wifimgr_init(struct device *unused)
 		goto err;
 	}
 
+	ret = wifimgr_config_init();
+	if (ret) {
+		wifimgr_err("failed to init WiFi config!\n");
+		goto err;
+	}
+
 	ret = wifimgr_sta_init(mgr);
 	if (ret) {
 		wifimgr_err("failed to init WiFi STA!\n");
