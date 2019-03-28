@@ -1,4 +1,4 @@
-# Kconfig - WiFi Staion configuration options
+# Kconfig - WiFi Station configuration options
 #
 # Copyright (c) 2018 UNISOC Corporation
 #
@@ -8,17 +8,17 @@
 config WIFIMGR_STA
 	bool "Enable STA mode"
 	default n
-        help
-          Enable STA mode.
+	help
+	  Enable STA mode.
 
 if WIFIMGR_STA
 
 config WIFIMGR_LED_STA
 	int "STA LED"
 	default 2
-        depends on WIFIMGR_LED
-        help
-          Specify the STA LED.
+	depends on WIFIMGR_LED
+	help
+	  Specify the STA LED.
 
 config WIFIMGR_DHCPC
 	bool "Enable DHCP client"

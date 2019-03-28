@@ -21,14 +21,14 @@ config WIFIMGR_PSK
 
 config WIFIMGR_LED
 	bool "Enable LED indiction"
-        depends on LED_UWP
+	depends on LED_UWP
 	help
 	  Enable LED indiction of WiFi manger.
 
 config WIFIMGR_LED_NAME
 	string "LED device name"
 	default "led"
-        depends on WIFIMGR_LED
-        help
-          Specify the LED device name.
+	depends on WIFIMGR_LED
+	help
+	  Specify the LED device name.
 
