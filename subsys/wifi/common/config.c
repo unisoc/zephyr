@@ -114,7 +114,7 @@ static int wifimgr_settings_save_one(struct wifimgr_settings_map *setting,
 			    *(int *)setting->valptr);
 	}
 
-	snprintf(abs_path, sizeof(abs_path), "%s/%s", path, setting->name);
+	snprintk(abs_path, sizeof(abs_path), "%s/%s", path, setting->name);
 	ret = settings_save_one(abs_path, setting->valptr, setting->vallen);
 	if (ret)
 		wifimgr_err("failed to save %s! %d\n", abs_path, ret);
@@ -160,7 +160,7 @@ void wifimgr_settings_init_one(struct wifimgr_settings_map *setting,
 	setting->mask = mask;
 }
 
-static int wifimgr_settings_init(struct wifi_config *conf, char *path)
+int wifimgr_settings_init(struct wifi_config *conf, char *path)
 {
 	int settings_size = sizeof(struct wifimgr_settings_map) *
 	    ARRAY_SIZE(wifimgr_setting_keynames);
@@ -189,10 +189,9 @@ static int wifimgr_settings_init(struct wifi_config *conf, char *path)
 				  SETTINGS_STRING, false);
 	i++;
 	/* Initialize BSSID setting map */
-	if (!strcmp(path, WIFIMGR_SETTING_STA_PATH))
-		mask = false;
-	else
+	if (!strcmp(path, WIFIMGR_SETTING_AP_PATH))
 		mask = true;
+
 	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
 				  conf->bssid, sizeof(conf->bssid),
 				  SETTINGS_STRING, mask);
@@ -218,10 +217,9 @@ static int wifimgr_settings_init(struct wifi_config *conf, char *path)
 				  SETTINGS_INT8, false);
 	i++;
 	/* Initialize Channel width setting map */
-	if (!strcmp(path, WIFIMGR_SETTING_AP_PATH))
-		mask = false;
-	else
+	if (!strcmp(path, WIFIMGR_SETTING_STA_PATH))
 		mask = true;
+
 	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
 				  &conf->ch_width, sizeof(conf->ch_width),
 				  SETTINGS_INT8, false);
@@ -261,9 +259,8 @@ int wifimgr_config_load(void *handle, char *path)
 	return ret;
 }
 
-int wifimgr_config_init(void *handle, char *path)
+int wifimgr_config_init(void)
 {
-	struct wifi_config *conf = (struct wifi_config *)handle;
 	int ret;
 
 	ret = settings_subsys_init();
@@ -273,15 +270,13 @@ int wifimgr_config_init(void *handle, char *path)
 	}
 
 	ret = settings_register(&wifimgr_settings_handler);
-	if (ret) {
+	if (ret)
 		wifimgr_err("failed to register setting handlers! %d\n", ret);
-		return ret;
-	}
-
+/*
 	ret = wifimgr_settings_init(conf, path);
 	if (ret)
 		wifimgr_err("failed to init settings map! %d\n", ret);
-
+*/
 	return ret;
 }
 

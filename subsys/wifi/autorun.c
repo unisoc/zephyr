@@ -11,10 +11,6 @@
 
 #if defined(CONFIG_WIFIMGR_STA) || defined(CONFIG_WIFIMGR_AP)
 
-#define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
-#include <logging/log.h>
-LOG_MODULE_DECLARE(wifimgr);
-
 #include <init.h>
 #include <net/wifi_api.h>
 #include <posix/posix_types.h>
