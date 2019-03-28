@@ -9,11 +9,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#if defined(CONFIG_WIFIMGR_STA) || defined(CONFIG_WIFIMGR_AP)
-
 #define LOG_LEVEL CONFIG_WIFIMGR_LOG_LEVEL
 #include <logging/log.h>
 LOG_MODULE_DECLARE(wifimgr);
+
+#if defined(CONFIG_WIFIMGR_STA) || defined(CONFIG_WIFIMGR_AP)
 
 #include "wifimgr.h"
 

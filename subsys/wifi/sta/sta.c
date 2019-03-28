@@ -451,7 +451,7 @@ static int wifimgr_sta_drv_init(struct wifi_manager *mgr)
 	struct net_if *iface = NULL;
 	int ret;
 
-	/* Intialize driver interface */
+	/* Initialize driver interface */
 	iface = wifi_drv_init(devname);
 	if (!iface) {
 		wifimgr_err("failed to init WiFi STA driver!\n");
@@ -498,11 +498,11 @@ int wifimgr_sta_init(void *handle)
 				 wifimgr_sta_open, mgr);
 
 	/* Initialize STA config */
-	ret = wifimgr_config_init(&mgr->sta_conf, WIFIMGR_SETTING_STA_PATH);
+	ret = wifimgr_settings_init(&mgr->sta_conf, WIFIMGR_SETTING_STA_PATH);
 	if (ret)
 		wifimgr_warn("failed to init WiFi STA config!\n");
 
-	/* Intialize STA driver */
+	/* Initialize STA driver */
 	ret = wifimgr_sta_drv_init(mgr);
 	if (ret) {
 		wifimgr_err("failed to init WiFi STA driver!\n");

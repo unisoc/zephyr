@@ -8,17 +8,17 @@
 config WIFIMGR_AP
 	bool "Enable AP mode"
 	default n
-        help
-          Enable AP mode.
+	help
+	  Enable AP mode.
 
 if WIFIMGR_AP
 
 config WIFIMGR_LED_AP
 	int "AP LED"
 	default 3
-        depends on WIFIMGR_LED
-        help
-          Specify the AP LED.
+	depends on WIFIMGR_LED
+	help
+	  Specify the AP LED.
 
 endif # WIFIMGR_AP
 

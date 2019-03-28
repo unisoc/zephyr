@@ -115,7 +115,7 @@ static int wifimgr_ctrl_iface_send_cmd(struct wifimgr_ctrl_iface *ctrl,
 		wifimgr_dbg("send [%s], buf: 0x%08x\n",
 			    wifimgr_cmd2str(msg.cmd_id), *(int *)msg.buf);
 
-		/* Receive command replys */
+		/* Receive command replies */
 		ret = clock_gettime(CLOCK_MONOTONIC, &ts);
 		if (ret)
 			wifimgr_err("failed to get clock time! %d\n", ret);

@@ -8,12 +8,12 @@
 menu "WiFi"
 
 config WIFIMGR
-        bool "WiFi Manager"
+	bool "WiFi Manager"
 	select WIFI
 	select POSIX_API
 	select PTHREAD_IPC
 	select POSIX_MQUEUE
-        help
+	help
 	  Enable the WiFi Manager.
 	  By default, WiFi manger is build as only a library.
 
