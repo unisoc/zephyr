@@ -240,17 +240,14 @@ static int wifimgr_sta_scan_result_event(void *arg)
 	struct wifi_config *conf = &mgr->sta_conf;
 	struct wifi_status *sts = &mgr->sta_sts;
 
-	/* ignore the duplicate result */
-	if (!strcmp(scan_res->ssid, sta_scan_res->ssid) &&
-	    !strncmp (scan_res->bssid, sta_scan_res->bssid, WIFI_MAC_ADDR_LEN) &&
-	    (scan_res->channel == sta_scan_res->security))
+	/* Drop the invalid result */
+	if (is_zero_ether_addr(scan_res->bssid))
 		return 0;
+
+	memcpy(sta_scan_res->bssid, scan_res->bssid, WIFI_MAC_ADDR_LEN);
 
 	if (strlen(scan_res->ssid))
 		strcpy(sta_scan_res->ssid, scan_res->ssid);
-
-	if (!is_zero_ether_addr(scan_res->bssid))
-		memcpy(sta_scan_res->bssid, scan_res->bssid, WIFI_MAC_ADDR_LEN);
 
 	sta_scan_res->band = scan_res->band;
 	sta_scan_res->channel = scan_res->channel;
@@ -263,7 +260,7 @@ static int wifimgr_sta_scan_result_event(void *arg)
 		/* Choose the first match when BSSID is not specified */
 		if (is_zero_ether_addr(conf->bssid))
 			sts->u.sta.host_found = 1;
-		else if (!strncmp
+		else if (!memcmp
 			 (scan_res->bssid, conf->bssid, WIFI_MAC_ADDR_LEN))
 			sts->u.sta.host_found = 1;
 	}
