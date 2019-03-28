@@ -558,9 +558,8 @@ static int wifimgr_cli_cmd_set_mac_acl(const struct shell *shell, size_t argc,
 }
 #endif
 
-SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
-	SHELL_CMD(get_config, NULL,
-	 WIFIMGR_CMD_COMMON_HELP,
+SHELL_STATIC_SUBCMD_SET_CREATE(wifimgr_commands,
+	SHELL_CMD(get_config, NULL, WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cli_cmd_get_config),
 	SHELL_CMD(set_config, NULL,
 #ifdef CONFIG_WIFIMGR_STA
@@ -575,44 +574,33 @@ SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
 #endif
 	 ,
 	 wifimgr_cli_cmd_set_config),
-	SHELL_CMD(clear_config, NULL,
-	 WIFIMGR_CMD_COMMON_HELP,
+	SHELL_CMD(clear_config, NULL, WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cli_cmd_clear_config),
-	SHELL_CMD(capa, NULL,
-	 WIFIMGR_CMD_COMMON_HELP,
+	SHELL_CMD(capa, NULL, WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cli_cmd_capa),
-	SHELL_CMD(status, NULL,
-	 WIFIMGR_CMD_COMMON_HELP,
+	SHELL_CMD(status, NULL, WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cli_cmd_status),
-	SHELL_CMD(open, NULL,
-	 WIFIMGR_CMD_COMMON_HELP,
+	SHELL_CMD(open, NULL, WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cli_cmd_open),
-	SHELL_CMD(close, NULL,
-	 WIFIMGR_CMD_COMMON_HELP,
+	SHELL_CMD(close, NULL, WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cli_cmd_close),
 	SHELL_CMD(scan, NULL,
 	 WIFIMGR_CMD_COMMON_HELP" <band (optional)> <channel (optional)>",
 	 wifimgr_cli_cmd_scan),
 #ifdef CONFIG_WIFIMGR_STA
-	SHELL_CMD(rtt_req, NULL,
-	 "-m <BSSID> -c <channel>",
+	SHELL_CMD(rtt_req, NULL, "-m <BSSID> -c <channel>",
 	 wifimgr_cli_cmd_rtt_req),
-	SHELL_CMD(connect, NULL,
-	 NULL,
+	SHELL_CMD(connect, NULL, NULL,
 	 wifimgr_cli_cmd_connect),
-	SHELL_CMD(disconnect, NULL,
-	 NULL,
+	SHELL_CMD(disconnect, NULL, NULL,
 	 wifimgr_cli_cmd_disconnect),
 #endif
 #ifdef CONFIG_WIFIMGR_AP
-	SHELL_CMD(start_ap, NULL,
-	 NULL,
+	SHELL_CMD(start_ap, NULL, NULL,
 	 wifimgr_cli_cmd_start_ap),
-	SHELL_CMD(stop_ap, NULL,
-	 NULL,
+	SHELL_CMD(stop_ap, NULL, NULL,
 	 wifimgr_cli_cmd_stop_ap),
-	SHELL_CMD(del_sta, NULL,
-	 "<MAC address (to be deleted)>",
+	SHELL_CMD(del_sta, NULL, "<MAC address (to be deleted)>",
 	 wifimgr_cli_cmd_del_sta),
 	SHELL_CMD(mac_acl, NULL,
 	 "-a (block all connected stations)"
@@ -622,7 +610,7 @@ SHELL_CREATE_STATIC_SUBCMD_SET(wifimgr_commands) {
 	 wifimgr_cli_cmd_set_mac_acl),
 #endif
 	SHELL_SUBCMD_SET_END
-};
+);
 
 SHELL_CMD_REGISTER(wifimgr, &wifimgr_commands, "WiFi Manager commands", NULL);
 #endif
