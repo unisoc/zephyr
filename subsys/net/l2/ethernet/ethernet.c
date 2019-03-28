@@ -457,7 +457,10 @@ static struct net_buf *ethernet_fill_header(struct ethernet_context *ctx,
 				    hdr_frag->len,
 				    &hdr_vlan->src, &hdr_vlan->dst);
 	} else {
-		hdr = (struct net_eth_hdr *)(hdr_frag->data);
+		/* hdr = (struct net_eth_hdr *)(hdr_frag->data); */
+		/* Reserve msdu and user data */
+		hdr = (struct net_eth_hdr *)
+			(hdr_frag->data + 16 + CONFIG_NET_BUF_USER_DATA_SIZE);
 
 		if (!ethernet_fill_in_dst_on_ipv4_mcast(pkt, &hdr->dst) &&
 		    !ethernet_fill_in_dst_on_ipv6_mcast(pkt, &hdr->dst)) {
