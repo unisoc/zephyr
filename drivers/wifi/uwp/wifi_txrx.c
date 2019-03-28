@@ -59,7 +59,7 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 	int i = 0;
 	u32_t data_len;
 
-	rx_pkt = net_pkt_get_reserve_rx(0, K_FOREVER);
+	rx_pkt = net_pkt_rx_alloc(K_FOREVER);
 	if (!rx_pkt) {
 		LOG_ERR("Could not allocate rx packet.");
 		return -ENOMEM;
@@ -254,12 +254,12 @@ int wifi_tx_data(void *data, int len)
 	addr_buf.offset = 7;
 	addr_buf.tx_ctrl.pcie_mh_readcomp = 1;
 
-	memset(addr_buf.pcie_addr[0], 0, SPRDWL_PHYS_LEN);
-	memcpy(addr_buf.pcie_addr[0], &data, 4);  /* Copy addr to addr buf. */
+	memset(addr_buf.pcie_addr, 0, SPRDWL_PHYS_LEN);
+	memcpy(addr_buf.pcie_addr, &data, 4);  /* Copy addr to addr buf. */
 
 	ret = wifi_ipc_send(SMSG_CH_WIFI_DATA_NOR, QUEUE_PRIO_NORMAL,
 			    (void *)&addr_buf,
-			    1 * SPRDWL_PHYS_LEN + sizeof(struct hw_addr_buff_t),
+			    sizeof(struct hw_addr_buff_t),
 			    WIFI_DATA_NOR_MSG_OFFSET);
 	if (ret < 0) {
 		LOG_ERR("IPC send fail %d", ret);
@@ -290,7 +290,7 @@ static int wifi_tx_empty_buf_(int num)
 
 	for (i = 0; i < num; i++) {
 		/* Reserve a data frag to receive the frame. */
-		pkt_buf = net_pkt_get_reserve_rx_data(0, K_FOREVER);
+		pkt_buf = net_pkt_get_reserve_rx_data(K_FOREVER);
 		if (!pkt_buf) {
 			LOG_ERR("Could not allocate rx buf %d.", i);
 			return -ENOMEM;
