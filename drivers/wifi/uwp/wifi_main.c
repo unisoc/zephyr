@@ -38,6 +38,8 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 #define MTU (1500)
 
+#define NET_BUF_TIMEOUT K_MSEC(100)
+
 #define SEC1 (1)
 #define SEC2 (2)
 
@@ -519,17 +521,17 @@ static int wifi_tx_fill_msdu_dscr(struct wifi_device *wifi_dev,
 			   struct net_pkt *pkt, u8_t type, u8_t offset)
 {
 	u32_t addr = 0;
-	struct net_buf *frag;
 	struct tx_msdu_dscr *dscr;
+	/* First frag for msdu header. */
+	struct net_buf *frag = pkt->frags;
 
-	frag = pkt->frags;
+	/* Reserve 4-byte space for pkt addr. */
+	frag->data += 4;
+	dscr = (struct tx_msdu_dscr *)frag->data;
+
 	net_buf_add(frag, sizeof(struct tx_msdu_dscr));
-	memset(frag->data, 0x00,
-		sizeof(struct tx_msdu_dscr) + CONFIG_NET_BUF_USER_DATA_SIZE);
 
-	dscr = (struct tx_msdu_dscr *)
-		(frag->data + CONFIG_NET_BUF_USER_DATA_SIZE);
-	frag->data += CONFIG_NET_BUF_USER_DATA_SIZE;
+	memset(dscr, 0x00, sizeof(struct tx_msdu_dscr));
 
 	addr = (u32_t)dscr;
 	SPRD_AP_TO_CP_ADDR(addr);
@@ -570,6 +572,7 @@ static int wifi_tx_fill_msdu_dscr(struct wifi_device *wifi_dev,
 static int uwp_tx(struct device *dev, struct net_pkt *pkt)
 {
 	struct net_buf *frag;
+	struct net_buf *hdr_frag;
 	struct wifi_device *wifi_dev;
 	bool first_frag = true;
 	u8_t *data_ptr = NULL;
@@ -585,21 +588,26 @@ static int uwp_tx(struct device *dev, struct net_pkt *pkt)
 	wifi_dev = get_wifi_dev_by_dev(dev);
 	if (!wifi_dev) {
 		LOG_ERR("Unable to find wifi dev by dev %p", dev);
-		net_pkt_unref(pkt);
 		return -EINVAL;
 	}
 
 	if (!wifi_dev->opened
 			&& wifi_dev->mode == WIFI_MODE_AP) {
 		LOG_WRN("AP mode %d not opened.", wifi_dev->mode);
-		net_pkt_unref(pkt);
 		return -EWOULDBLOCK;
 	} else if (!wifi_dev->connected
 			&& wifi_dev->mode == WIFI_MODE_STA) {
 		LOG_WRN("STA mode %d not connected.", wifi_dev->mode);
-		net_pkt_unref(pkt);
 		return -EWOULDBLOCK;
 	}
+
+	hdr_frag = net_pkt_get_frag(pkt, NET_BUF_TIMEOUT);
+	if (!hdr_frag) {
+		LOG_ERR("Not enough mem");
+		return -ENOMEM;
+	}
+
+	net_pkt_frag_insert(pkt, hdr_frag);
 
 	wifi_tx_fill_msdu_dscr(wifi_dev, pkt, SPRDWL_TYPE_DATA, 0);
 
@@ -615,7 +623,6 @@ static int uwp_tx(struct device *dev, struct net_pkt *pkt)
 		} else {
 			memcpy(data_ptr + data_len, frag->data, frag->len);
 			data_len += frag->len;
-			net_buf_unref(frag);
 		}
 	}
 
@@ -625,6 +632,7 @@ static int uwp_tx(struct device *dev, struct net_pkt *pkt)
 	}
 
 	addr = (u32_t)data_ptr;
+
 	/* FIXME Save pkt addr before payload. */
 	uwp_save_addr_before_payload(addr, (void *)pkt);
 
@@ -635,13 +643,11 @@ static int uwp_tx(struct device *dev, struct net_pkt *pkt)
 	if (data_len > max_len) {
 		LOG_ERR("Exceed max length %d data_len %d",
 				max_len, data_len);
-		net_buf_unref(frag);
 		return -EINVAL;
 	}
 
 	if (wifi_tx_data((void *)addr, data_len)) {
 		LOG_WRN("Send data failed.");
-		net_buf_unref(frag);
 		return -EIO;
 	}
 
