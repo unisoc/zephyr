@@ -23,6 +23,7 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 #include "wifi_rf.h"
 #include "wifi_cmdevt.h"
 #include "wifi_txrx.h"
+#include "wifi_mem.h"
 #include "sipc.h"
 #include "uwp_hal.h"
 
@@ -37,8 +38,6 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 #define HOSTNAME_MAX_SIZE (64)
 
 #define MTU (1500)
-
-#define NET_BUF_TIMEOUT K_MSEC(100)
 
 #define SEC1 (1)
 #define SEC2 (2)
@@ -141,7 +140,7 @@ static int uwp_mgmt_open(struct device *dev)
 	/* Open mode at first time */
 	if (!priv->wifi_dev[WIFI_DEV_STA].opened
 			&& !priv->wifi_dev[WIFI_DEV_AP].opened) {
-		wifi_tx_empty_buf(TOTAL_RX_ADDR_NUM);
+		wifi_alloc_rx_buf(CONFIG_WIFI_UWP_RX_BUF_COUNT);
 	}
 
 	wifi_dev->opened = true;
@@ -518,18 +517,11 @@ static void uwp_iface_init(struct net_if *iface)
 }
 
 static int wifi_tx_fill_msdu_dscr(struct wifi_device *wifi_dev,
-			   struct net_pkt *pkt, u8_t type, u8_t offset)
+			   void *data, u16_t total_len, u8_t type,
+			   u8_t offset)
 {
 	u32_t addr = 0;
-	struct tx_msdu_dscr *dscr;
-	/* First frag for msdu header. */
-	struct net_buf *frag = pkt->frags;
-
-	/* Reserve 4-byte space for pkt addr. */
-	frag->data += 4;
-	dscr = (struct tx_msdu_dscr *)frag->data;
-
-	net_buf_add(frag, sizeof(struct tx_msdu_dscr));
+	struct tx_msdu_dscr *dscr = (struct tx_msdu_dscr *)data;
 
 	memset(dscr, 0x00, sizeof(struct tx_msdu_dscr));
 
@@ -549,7 +541,7 @@ static int wifi_tx_fill_msdu_dscr(struct wifi_device *wifi_dev,
 		dscr->common.interface = WIFI_DEV_AP;
 	}
 
-	dscr->pkt_len = net_pkt_get_len(pkt);
+	dscr->pkt_len = total_len + sizeof(struct tx_msdu_dscr);
 	dscr->offset = 11;
 	/* TODO */
 	dscr->tx_ctrl.sw_rate = (type == SPRDWL_TYPE_DATA_SPECIAL ? 1 : 0);
@@ -571,10 +563,7 @@ static int wifi_tx_fill_msdu_dscr(struct wifi_device *wifi_dev,
 
 static int uwp_tx(struct device *dev, struct net_pkt *pkt)
 {
-	struct net_buf *frag;
-	struct net_buf *hdr_frag;
 	struct wifi_device *wifi_dev;
-	bool first_frag = true;
 	u8_t *data_ptr = NULL;
 	u16_t data_len = 0;
 	u16_t total_len;
@@ -601,40 +590,28 @@ static int uwp_tx(struct device *dev, struct net_pkt *pkt)
 		return -EWOULDBLOCK;
 	}
 
-	hdr_frag = net_pkt_get_frag(pkt, NET_BUF_TIMEOUT);
-	if (!hdr_frag) {
-		LOG_ERR("Not enough mem");
+	data_ptr = get_data_buf(TX_BUF_LIST);
+	if (!data_ptr) {
+		LOG_ERR("Cannot alloc tx buf.");
 		return -ENOMEM;
 	}
 
-	net_pkt_frag_insert(pkt, hdr_frag);
-
-	wifi_tx_fill_msdu_dscr(wifi_dev, pkt, SPRDWL_TYPE_DATA, 0);
-
 	total_len = net_pkt_get_len(pkt);
+
+	wifi_tx_fill_msdu_dscr(wifi_dev, data_ptr,
+			total_len, SPRDWL_TYPE_DATA, 0);
+
+	net_pkt_read(pkt, data_ptr + sizeof(struct tx_msdu_dscr),
+			total_len);
+
+	total_len += sizeof(struct tx_msdu_dscr);
+	net_pkt_unref(pkt);
 
 	LOG_DBG("wifi tx data: %d bytes", total_len);
 
-	for (frag = pkt->frags; frag; frag = frag->frags) {
-		if (first_frag) {
-			data_ptr = frag->data;
-			data_len = frag->len;
-			first_frag = false;
-		} else {
-			memcpy(data_ptr + data_len, frag->data, frag->len);
-			data_len += frag->len;
-		}
-	}
-
-	if (!data_ptr) {
-		LOG_ERR("Invalid frag");
-		return -EINVAL;
-	}
+	LOG_HEXDUMP_DBG(data_ptr, total_len, "tx data");
 
 	addr = (u32_t)data_ptr;
-
-	/* FIXME Save pkt addr before payload. */
-	uwp_save_addr_before_payload(addr, (void *)pkt);
 
 	SPRD_AP_TO_CP_ADDR(addr);
 

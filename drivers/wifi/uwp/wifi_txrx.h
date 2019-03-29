@@ -18,8 +18,7 @@
 
 #define ADDR_LEN (5)
 
-#define MAX_RX_ADDR_NUM CONFIG_WIFI_UWP_MAX_RX_ADDR_NUM
-#define TOTAL_RX_ADDR_NUM CONFIG_WIFI_UWP_TOTAL_RX_ADDR_NUM
+#define MAX_RX_ADDR_COUNT CONFIG_WIFI_UWP_MAX_RX_ADDR_COUNT
 
 #define SPRD_CP_DRAM_BEGIN (SPRD_AP_DRAM_BEGIN + SPRD_AP_CP_DRAM_MAP_BASE)
 #define SPRD_CP_DRAM_END (SPRD_AP_DRAM_END + SPRD_AP_CP_DRAM_MAP_BASE)
@@ -259,7 +258,7 @@ struct rx_empty_buff {
 	struct sprdwl_common_hdr common;
 	unsigned char type;
 	unsigned char num;
-	unsigned char addr[MAX_RX_ADDR_NUM][ADDR_LEN];
+	unsigned char addr[MAX_RX_ADDR_COUNT][ADDR_LEN];
 } __packed;
 
 /* 0 for cmd, 1 for event, 2 for data, 3 for mh data. */
@@ -309,7 +308,7 @@ enum {
 
 int wifi_tx_cmd(void *data, int len);
 int wifi_txrx_init(struct wifi_priv *priv);
-int wifi_tx_empty_buf(int num);
+int wifi_alloc_rx_buf(int num);
 int wifi_tx_data(void *data, int len);
 int wifi_release_rx_buf(void);
 
