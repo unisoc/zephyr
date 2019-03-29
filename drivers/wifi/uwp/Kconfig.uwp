@@ -24,12 +24,26 @@ config WIFI_AP_DRV_NAME
 	string "SoftAP driver name"
 	default "WIFI_AP"
 
-config WIFI_UWP_MAX_RX_ADDR_NUM
-	int "Max rx addr num each time"
+config WIFI_UWP_MAX_RX_ADDR_COUNT
+	int "Max rx addr count each time"
+	default 32
+	help
+	  Max count CP can receive each time.
+
+config WIFI_UWP_NET_BUF_START_ADDR
+	int "Net buffer start address(decimal number)"
+	default 1702911
+
+config WIFI_UWP_TX_BUF_COUNT
+	int "TX buffer count"
 	default 32
 
-config WIFI_UWP_TOTAL_RX_ADDR_NUM
-	int "Total rx addr num"
-	default 120
+config WIFI_UWP_RX_BUF_COUNT
+	int "RX buffer count"
+	default 96
+
+config WIFI_UWP_NET_BUF_SIZE
+	int "Net buffer size"
+	default 1800
 
 endif

@@ -6,5 +6,6 @@ if(CONFIG_WIFI_UWP)
 	wifi_txrx.c
 	wifi_ipc.c
 	wifi_main.c
+	wifi_mem.c
     )
 endif()
