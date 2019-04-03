@@ -143,7 +143,7 @@ static void wifi_autorun_sta(struct k_work *work)
 	}
 
 	switch (sta_status.state) {
-	case WIFI_STATE_STA_NODEV:
+	case WIFI_STATE_STA_UNAVAIL:
 		/* Open STA */
 		ret = wifi_sta_open();
 		if (ret) {
@@ -217,7 +217,7 @@ static void wifi_autorun_ap(struct k_work *work)
 	}
 
 	switch (ap_status.state) {
-	case WIFI_STATE_AP_NODEV:
+	case WIFI_STATE_AP_UNAVAIL:
 		/* Open AP */
 		ret = wifi_ap_open();
 		if (ret) {
