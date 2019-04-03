@@ -99,7 +99,7 @@ void sm_ap_cmd_step(struct wifimgr_state_machine *sm, unsigned int cmd_id)
 	sm->old_state = sm->state;
 
 	switch (sm->state) {
-	case WIFI_STATE_AP_NODEV:
+	case WIFI_STATE_AP_UNAVAIL:
 		if (cmd_id == WIFIMGR_CMD_OPEN_AP)
 			sm_ap_step(sm, WIFI_STATE_AP_READY);
 		break;
@@ -107,13 +107,13 @@ void sm_ap_cmd_step(struct wifimgr_state_machine *sm, unsigned int cmd_id)
 		if (cmd_id == WIFIMGR_CMD_START_AP)
 			sm_ap_step(sm, WIFI_STATE_AP_STARTED);
 		else if (cmd_id == WIFIMGR_CMD_CLOSE_AP)
-			sm_ap_step(sm, WIFI_STATE_AP_NODEV);
+			sm_ap_step(sm, WIFI_STATE_AP_UNAVAIL);
 		break;
 	case WIFI_STATE_AP_STARTED:
 		if (cmd_id == WIFIMGR_CMD_STOP_AP)
 			sm_ap_step(sm, WIFI_STATE_AP_READY);
 		else if (cmd_id == WIFIMGR_CMD_CLOSE_AP)
-			sm_ap_step(sm, WIFI_STATE_AP_NODEV);
+			sm_ap_step(sm, WIFI_STATE_AP_UNAVAIL);
 		break;
 	default:
 		break;

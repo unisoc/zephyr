@@ -133,7 +133,7 @@ void sm_sta_cmd_step(struct wifimgr_state_machine *sm, unsigned int cmd_id)
 	sm->old_state = sm->state;
 
 	switch (sm->state) {
-	case WIFI_STATE_STA_NODEV:
+	case WIFI_STATE_STA_UNAVAIL:
 		if (cmd_id == WIFIMGR_CMD_OPEN_STA)
 			sm_sta_step(sm, WIFI_STATE_STA_READY);
 		break;
@@ -145,7 +145,7 @@ void sm_sta_cmd_step(struct wifimgr_state_machine *sm, unsigned int cmd_id)
 		else if (cmd_id == WIFIMGR_CMD_CONNECT)
 			sm_sta_step(sm, WIFI_STATE_STA_CONNECTING);
 		else if (cmd_id == WIFIMGR_CMD_CLOSE_STA)
-			sm_sta_step(sm, WIFI_STATE_STA_NODEV);
+			sm_sta_step(sm, WIFI_STATE_STA_UNAVAIL);
 		break;
 	case WIFI_STATE_STA_CONNECTED:
 		if (cmd_id == WIFIMGR_CMD_STA_SCAN)
@@ -155,7 +155,7 @@ void sm_sta_cmd_step(struct wifimgr_state_machine *sm, unsigned int cmd_id)
 		else if (cmd_id == WIFIMGR_CMD_DISCONNECT)
 			sm_sta_step(sm, WIFI_STATE_STA_DISCONNECTING);
 		else if (cmd_id == WIFIMGR_CMD_CLOSE_STA)
-			sm_sta_step(sm, WIFI_STATE_STA_NODEV);
+			sm_sta_step(sm, WIFI_STATE_STA_UNAVAIL);
 		break;
 	default:
 		break;
