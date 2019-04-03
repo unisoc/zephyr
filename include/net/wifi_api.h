@@ -54,7 +54,7 @@ struct wifi_config {
 };
 
 enum wifi_sta_state {
-	WIFI_STATE_STA_NODEV,
+	WIFI_STATE_STA_UNAVAIL,
 	WIFI_STATE_STA_READY,
 	WIFI_STATE_STA_SCANNING,
 	WIFI_STATE_STA_RTTING,
@@ -64,7 +64,7 @@ enum wifi_sta_state {
 };
 
 enum wifi_ap_state {
-	WIFI_STATE_AP_NODEV,
+	WIFI_STATE_AP_UNAVAIL,
 	WIFI_STATE_AP_READY,
 	WIFI_STATE_AP_STARTED,
 };
@@ -567,7 +567,7 @@ static inline const char *ap_sts2str(int state)
 	char *str = NULL;
 
 	switch (state) {
-	case WIFI_STATE_AP_NODEV:
+	case WIFI_STATE_AP_UNAVAIL:
 		str = "AP <UNAVAILABLE>";
 		break;
 	case WIFI_STATE_AP_READY:
@@ -588,8 +588,8 @@ static inline const char *sta_sts2str(int state)
 	char *str = NULL;
 
 	switch (state) {
-	case WIFI_STATE_STA_NODEV:
-		str = "STA <UNAVAILABLE>";
+	case WIFI_STATE_STA_UNAVAIL:
+		str = "STA <UNAVAIL>";
 		break;
 	case WIFI_STATE_STA_READY:
 		str = "STA <READY>";
