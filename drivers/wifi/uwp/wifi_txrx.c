@@ -156,7 +156,7 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 
 	if (i != 0) {
 		/* Allocate new empty buffer to cp. */
-		_wifi_alloc_rx_buf(1);
+		_wifi_alloc_rx_buf(i);
 	}
 
 	return 0;
