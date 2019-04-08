@@ -688,7 +688,10 @@ static int uwp_init(struct device *dev)
 
 		wifi_cmdevt_init();
 		wifi_txrx_init(priv);
+
+#ifdef CONFIG_SOC_UWP5661
 		wifi_irq_init();
+#endif
 
 		k_sleep(400); /* FIXME: workaround */
 		wifi_rf_init();
