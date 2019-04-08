@@ -339,8 +339,7 @@ static int uart1_uwp_init(struct device *dev)
 	uwp_sys_enable(BIT(APB_EB_UART1));
 	uwp_sys_reset(BIT(APB_EB_UART1));
 
-	uwp_uart_set_cdk(uart, DIV_ROUND(dev_cfg->sys_clk_freq,
-			dev_data->baud_rate));
+	uwp_uart_set_cdk(uart, DT_UART_1_UWP_CLOCK/DT_UART_1_UWP_SPEED);
 	uwp_uart_set_stop_bit_num(uart, 1);
 	uwp_uart_set_byte_len(uart, 3);
 
