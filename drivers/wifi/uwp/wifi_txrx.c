@@ -123,8 +123,14 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 			iface = priv->wifi_dev[WIFI_DEV_AP].iface;
 			break;
 		default:
+			iface = NULL;
 			LOG_ERR("Unknown ctx_id %d", ctx_id);
 			break;
+		}
+
+		if (!iface) {
+			LOG_ERR("Invalid iface");
+			continue;
 		}
 
 		rx_pkt = net_pkt_rx_alloc_with_buffer(iface,
@@ -132,7 +138,7 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 				0, NET_BUF_TIMEOUT);
 		if (!rx_pkt) {
 			LOG_ERR("Could not allocate packet");
-			return -ENOMEM;
+			continue;
 		}
 
 		data_ptr = (u8_t *)payload + rx_msdu->msdu_offset;
@@ -141,15 +147,10 @@ int wifi_rx_complete_handle(struct wifi_priv *priv, void *data, int len)
 
 		LOG_HEXDUMP_DBG(data_ptr, data_len, "rx data");
 
-		if (!iface) {
-			LOG_ERR("Iface null.");
+		if (net_recv_data(iface, rx_pkt) < 0) {
+			LOG_ERR("PKT %p not received by L2 stack.",
+					rx_pkt);
 			net_pkt_unref(rx_pkt);
-		} else {
-			if (net_recv_data(iface, rx_pkt) < 0) {
-				LOG_ERR("PKT %p not received by L2 stack.",
-						rx_pkt);
-				net_pkt_unref(rx_pkt);
-			}
 		}
 
 	}
