@@ -82,7 +82,7 @@
 
 		wdog: watchdog@40001000 {
 			compatible = "unisoc,uwp-watchdog";
-			reg = <0x40001000 0x30>;
+			reg = <0x40010000 0x30>;
 			interrupts = <40 0>;
 			label = "UWP_WDT";
 		};
