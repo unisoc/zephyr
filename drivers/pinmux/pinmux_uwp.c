@@ -73,7 +73,9 @@ const struct pinmux_driver_api uwp_pinmux_api = {
 	.input = uwp_pinmux_input,
 };
 
+#ifdef CONFIG_PINMUX_UWP
 DEVICE_AND_API_INIT(uwp_pmux_dev, CONFIG_PINMUX_UWP_DEV_NAME, uwp_pinmux_init,
 			NULL, NULL, PRE_KERNEL_1,
 			CONFIG_PINMUX_INIT_PRIORITY,
 			&uwp_pinmux_api);
+#endif
