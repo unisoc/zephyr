@@ -31,10 +31,10 @@ static struct wifimgr_settings_map *wifimgr_ap_settings_map;
 static struct wifimgr_settings_map *settings;
 static char *settings_category;
 
-static int wifimgr_settings_set(int argc, char **argv, char *val)
+static int wifimgr_settings_set(int argc, char **argv, void *value_ctx)
 {
 	int cnt = ARRAY_SIZE(wifimgr_setting_keynames);
-	int i;
+	int i, rc;
 
 	if (argc >= 1) {
 		for (i = 0; i < cnt; i++) {
@@ -48,27 +48,23 @@ static int wifimgr_settings_set(int argc, char **argv, char *val)
 				if (settings[i].mask)
 					continue;
 
+				memset(settings[i].valptr, 0,
+				       settings[i].vallen);
+
+				rc = settings_val_read_cb(value_ctx,
+						     settings[i].valptr,
+						     settings[i].vallen);
+				wifimgr_dbg("settings_val_read_cb callback rc: %d\n", rc);
+				assert(rc >= 0);
+
 				if (settings[i].type == SETTINGS_STRING) {
-					memset(settings[i].valptr, 0,
-					       settings[i].vallen);
-					settings_bytes_from_str(val,
-								settings
-								[i].valptr,
-								&settings
-								[i].vallen);
-					wifimgr_dbg("val: %s\n",
+					wifimgr_dbg("SETTINGS_STRING val: %s\n",
 						    (char *)settings[i].valptr);
 				} else if (settings[i].type == SETTINGS_INT8) {
-					SETTINGS_VALUE_SET(val, SETTINGS_INT8,
-							   *(char *)
-							   settings[i].valptr);
-					wifimgr_dbg("val: %d\n", *(char *)
+					wifimgr_dbg("SETTINGS_INT8 val: %d\n", *(char *)
 						    settings[i].valptr);
 				} else if (settings[i].type == SETTINGS_INT32) {
-					SETTINGS_VALUE_SET(val, SETTINGS_INT32,
-							   *(int *)
-							   settings[i].valptr);
-					wifimgr_dbg("val: %d\n",
+					wifimgr_dbg("SETTINGS_INT32 val: %d\n",
 						    *(int *)settings[i].valptr);
 				}
 
@@ -89,8 +85,6 @@ static int wifimgr_settings_save_one(struct wifimgr_settings_map *setting,
 				     char *path, bool clear)
 {
 	char abs_path[WIFIMGR_SETTING_NAME_LEN + 1];
-	char val[WIFIMGR_SETTING_VAL_LEN];
-	char *valptr = NULL;
 	int ret;
 
 	if (setting->mask)
@@ -104,38 +98,24 @@ static int wifimgr_settings_save_one(struct wifimgr_settings_map *setting,
 			 && !strlen(setting->valptr) && !clear)
 			return 0;
 
-		wifimgr_dbg("name:%s, val:%s\n", setting->name,
+		wifimgr_dbg("SETTINGS_STRING name:%s, val:%s\n", setting->name,
 			    (char *)setting->valptr);
-		valptr =
-		    settings_str_from_bytes(setting->valptr, setting->vallen,
-					    val, sizeof(val));
 	} else if (setting->type == SETTINGS_INT8) {
 		if ((*(char *)setting->valptr == 0) && !clear)
 			return 0;
 
-		wifimgr_dbg("name:%s, val:%d\n", setting->name,
+		wifimgr_dbg("SETTINGS_INT8 name:%s, val:%d\n", setting->name,
 			    *(char *)setting->valptr);
-		valptr =
-		    settings_str_from_value(SETTINGS_INT8, setting->valptr, val,
-					    sizeof(val));
 	} else if (setting->type == SETTINGS_INT32) {
 		if ((*(int *)setting->valptr == 0) && !clear)
 			return 0;
 
-		wifimgr_dbg("name:%s, val:%d\n", setting->name,
+		wifimgr_dbg("SETTINGS_INT32 name:%s, val:%d\n", setting->name,
 			    *(int *)setting->valptr);
-		valptr =
-		    settings_str_from_value(SETTINGS_INT32, setting->valptr,
-					    val, sizeof(val));
-	}
-
-	if (!valptr) {
-		wifimgr_err("failed to convert %s!\n", setting->name);
-		return -EINVAL;
 	}
 
 	snprintf(abs_path, sizeof(abs_path), "%s/%s", path, setting->name);
-	ret = settings_save_one(abs_path, valptr);
+	ret = settings_save_one(abs_path, setting->valptr, setting->vallen);
 	if (ret)
 		wifimgr_err("failed to save %s! %d\n", abs_path, ret);
 
