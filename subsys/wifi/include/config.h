@@ -33,11 +33,27 @@
 #define WIFIMGR_SETTING_STA_PATH	"wifimgr/sta"
 #define WIFIMGR_SETTING_AP_PATH		"wifimgr/ap"
 
+/**
+ * Type of settings value.
+ */
+enum settings_type {
+	SETTINGS_NONE = 0,
+	SETTINGS_INT8,
+	SETTINGS_INT16,
+	SETTINGS_INT32,
+	SETTINGS_INT64,
+	SETTINGS_STRING,
+	SETTINGS_BYTES,
+	SETTINGS_FLOAT,
+	SETTINGS_DOUBLE,
+	SETTINGS_BOOL,
+} __attribute__((__packed__));
+
 struct wifimgr_settings_map {
 	char name[WIFIMGR_SETTING_NAME_LEN + 1];
 	void *valptr;
 	int vallen;
-	/*enum settings_type type;*/
+	enum settings_type type;
 	bool mask;
 };
 
