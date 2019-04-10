@@ -272,11 +272,7 @@ int wifimgr_config_init(void)
 	ret = settings_register(&wifimgr_settings_handler);
 	if (ret)
 		wifimgr_err("failed to register setting handlers! %d\n", ret);
-/*
-	ret = wifimgr_settings_init(conf, path);
-	if (ret)
-		wifimgr_err("failed to init settings map! %d\n", ret);
-*/
+
 	return ret;
 }
 
