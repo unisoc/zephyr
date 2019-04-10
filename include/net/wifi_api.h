@@ -113,7 +113,8 @@ int wifi_sta_get_status(struct wifi_status *sts);
 int wifi_sta_open(void);
 int wifi_sta_close(void);
 int wifi_sta_scan(scan_res_cb_t scan_res_cb);
-int wifi_sta_rtt_request(struct wifi_rtt_request *rtt_req, rtt_resp_cb_t rtt_resp_cb);
+int wifi_sta_rtt_request(struct wifi_rtt_request *rtt_req,
+			 rtt_resp_cb_t rtt_resp_cb);
 int wifi_sta_connect(void);
 int wifi_sta_disconnect(void);
 int wifi_ap_set_conf(struct wifi_config *conf);
