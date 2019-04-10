@@ -82,12 +82,12 @@
 		};
 #endif
 
-#if defined(CONFIG_FS_FLASH_STORAGE_PARTITION)
+// #if defined(CONFIG_FS_FLASH_STORAGE_PARTITION)
 		storage_partition: partition@300000 {
 			label = "storage";
 			reg = <0x000300000 0x00100000>;
 		};
-#endif
+// #endif
 
 	};
 };
