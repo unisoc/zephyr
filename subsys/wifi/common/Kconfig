@@ -21,7 +21,7 @@ config WIFIMGR_PSK
 
 config WIFIMGR_LED
 	bool "Enable LED indiction"
-	depends on LED_UWP
+	depends on LED
 	help
 	  Enable LED indiction of WiFi manger.
 

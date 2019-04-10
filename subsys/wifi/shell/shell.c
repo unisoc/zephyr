@@ -28,98 +28,107 @@
 #define WIFIMGR_CMD_COMMON_HELP	NULL
 #endif
 
-static void wifimgr_cli_show_conf(char *iface_name, struct wifi_config *conf)
+static void wifimgr_cli_show_conf(const struct shell *shell, char *iface_name,
+				  struct wifi_config *conf)
 {
 	if (!memiszero(conf, sizeof(struct wifi_config))) {
-		printf("No config found!\n");
+		shell_print(shell, "No config found!");
 		return;
 	}
 
 	if (conf->ssid && strlen(conf->ssid))
-		printf("SSID:\t\t%s\n", conf->ssid);
+		shell_print(shell, "SSID:\t\t%s", conf->ssid);
 	if (conf->bssid && !is_zero_ether_addr(conf->bssid))
-		printf("BSSID:\t\t" MACSTR "\n", MAC2STR(conf->bssid));
+		shell_print(shell, "BSSID:\t\t" MACSTR "",
+			    MAC2STR(conf->bssid));
 
 	if (conf->security)
-		printf("Security:\t%s\n", security2str(conf->security));
+		shell_print(shell, "Security:\t%s",
+			    security2str(conf->security));
 	if (conf->passphrase && strlen(conf->passphrase))
-		printf("Passphrase:\t%s\n", conf->passphrase);
+		shell_print(shell, "Passphrase:\t%s", conf->passphrase);
 
 	if (conf->band)
-		printf("Band:\t%u\n", conf->band);
+		shell_print(shell, "Band:\t%u", conf->band);
 	if (conf->channel)
-		printf("Channel:\t%u\n", conf->channel);
+		shell_print(shell, "Channel:\t%u", conf->channel);
 	if (conf->ch_width)
-		printf("Channel Width:\t%u\n", conf->ch_width);
+		shell_print(shell, "Channel Width:\t%u", conf->ch_width);
 
 	if (conf->autorun)
-		printf("----------------\n");
+		shell_print(shell, "----------------");
 	if (conf->autorun > 0)
-		printf("Autorun:\t%ds\n", conf->autorun);
+		shell_print(shell, "Autorun:\t%ds", conf->autorun);
 	else if (conf->autorun < 0)
-		printf("Autorun:\toff\n");
+		shell_print(shell, "Autorun:\toff");
 }
 
-static void wifimgr_cli_show_capa(char *iface_name, union wifi_drv_capa *capa)
+static void wifimgr_cli_show_capa(const struct shell *shell, char *iface_name,
+				  union wifi_drv_capa *capa)
 {
 	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
-		printf("STA Capability\n");
+		shell_print(shell, "STA Capability");
 		if (capa->sta.max_rtt_peers)
-			printf("Max RTT NR:\t%u\n", capa->sta.max_rtt_peers);
+			shell_print(shell, "Max RTT NR:\t%u",
+				    capa->sta.max_rtt_peers);
 	} else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP)) {
-		printf("AP Capability\n");
+		shell_print(shell, "AP Capability");
 		if (capa->ap.max_ap_assoc_sta)
-			printf("Max STA NR:\t%u\n", capa->ap.max_ap_assoc_sta);
+			shell_print(shell, "Max STA NR:\t%u",
+				    capa->ap.max_ap_assoc_sta);
 		if (capa->ap.max_acl_mac_addrs)
-			printf("Max ACL NR:\t%u\n", capa->ap.max_acl_mac_addrs);
+			shell_print(shell, "Max ACL NR:\t%u",
+				    capa->ap.max_acl_mac_addrs);
 	}
 }
 
-static void wifimgr_cli_show_status(char *iface_name,
+static void wifimgr_cli_show_status(const struct shell *shell, char *iface_name,
 				    struct wifi_status *status)
 {
 	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA)) {
-		printf("STA Status:\t%s\n", sta_sts2str(status->state));
+		shell_print(shell, "STA Status:\t%s",
+			    sta_sts2str(status->state));
 		if (status->own_mac && !is_zero_ether_addr(status->own_mac))
-			printf("own MAC:\t" MACSTR "\n",
-			       MAC2STR(status->own_mac));
+			shell_print(shell, "own MAC:\t" MACSTR "",
+				    MAC2STR(status->own_mac));
 
 		if (status->state == WIFI_STATE_STA_CONNECTED) {
-			printf("----------------\n");
+			shell_print(shell, "----------------");
 			if (status->u.sta.host_bssid
 			    && !is_zero_ether_addr(status->u.sta.host_bssid))
-				printf("Host BSSID:\t" MACSTR "\n",
-				       MAC2STR(status->u.sta.host_bssid));
-			printf("Host RSSI:\t%d\n", status->u.sta.host_rssi);
+				shell_print(shell, "Host BSSID:\t" MACSTR "",
+					    MAC2STR(status->u.sta.host_bssid));
+			shell_print(shell, "Host RSSI:\t%d",
+				    status->u.sta.host_rssi);
 		}
 	} else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP)) {
-		printf("AP Status:\t%s\n", ap_sts2str(status->state));
+		shell_print(shell, "AP Status:\t%s", ap_sts2str(status->state));
 		if (status->own_mac && !is_zero_ether_addr(status->own_mac))
-			printf("BSSID:\t\t" MACSTR "\n",
-			       MAC2STR(status->own_mac));
+			shell_print(shell, "BSSID:\t\t" MACSTR "",
+				    MAC2STR(status->own_mac));
 
 		if (status->state == WIFI_STATE_AP_STARTED) {
 			int i;
 			char (*mac_addrs)[WIFI_MAC_ADDR_LEN];
 
-			printf("----------------\n");
-			printf("STA NR:\t%u\n", status->u.ap.nr_sta);
+			shell_print(shell, "----------------");
+			shell_print(shell, "STA NR:\t%u", status->u.ap.nr_sta);
 			if (status->u.ap.nr_sta) {
-				printf("STA:\n");
+				shell_print(shell, "STA:");
 				mac_addrs = status->u.ap.sta_mac_addrs;
 				for (i = 0; i < status->u.ap.nr_sta; i++)
-					printf("\t\t" MACSTR "\n",
-					       MAC2STR(mac_addrs[i]));
+					shell_print(shell, "\t\t" MACSTR "",
+						    MAC2STR(mac_addrs[i]));
 			}
 
-			printf("----------------\n");
-			printf("ACL NR:\t%u\n", status->u.ap.nr_acl);
+			shell_print(shell, "----------------");
+			shell_print(shell, "ACL NR:\t%u", status->u.ap.nr_acl);
 			if (status->u.ap.nr_acl) {
-				printf("ACL:\n");
+				shell_print(shell, "ACL:");
 				mac_addrs = status->u.ap.acl_mac_addrs;
 				for (i = 0; i < status->u.ap.nr_acl; i++)
-					printf("\t\t" MACSTR "\n",
-					       MAC2STR(mac_addrs[i]));
+					shell_print(shell, "\t\t" MACSTR "",
+						    MAC2STR(mac_addrs[i]));
 			}
 		}
 	}
@@ -189,9 +198,9 @@ static int wifimgr_cli_cmd_set_config(const struct shell *shell, size_t argc,
 	iface_name = argv[1];
 
 	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		printf("Setting STA Config ...\n");
+		shell_print(shell, "Setting STA Config ...");
 	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		printf("Setting AP Config ...\n");
+		shell_print(shell, "Setting AP Config ...");
 	else
 		return -EINVAL;
 
@@ -203,21 +212,21 @@ static int wifimgr_cli_cmd_set_config(const struct shell *shell, size_t argc,
 		case 'a':
 			conf.autorun = atoi(optarg);
 			if (!conf.autorun) {
-				printf("invalid autorun!\n");
+				shell_error(shell, "invalid autorun!");
 				return -EINVAL;
 			}
 			break;
 		case 'b':
 			conf.band = atoi(optarg);
 			if (!conf.band) {
-				printf("invalid band!\n");
+				shell_error(shell, "invalid band!");
 				return -EINVAL;
 			}
 			break;
 		case 'c':
 			conf.channel = atoi(optarg);
 			if (!conf.channel) {
-				printf("invalid channel!\n");
+				shell_error(shell, "invalid channel!");
 				return -EINVAL;
 			}
 			break;
@@ -226,18 +235,19 @@ static int wifimgr_cli_cmd_set_config(const struct shell *shell, size_t argc,
 				int ret = strtomac(optarg, conf.bssid);
 
 				if (ret) {
-					printf("invalid BSSID!\n");
+					shell_error(shell, "invalid BSSID!");
 					return ret;
 				}
 			} else {
-				printf("invalid option '-%c' for '%s'\n",
-				       choice, iface_name);
+				shell_error(shell,
+					    "invalid option '-%c' for '%s'",
+					    choice, iface_name);
 				return -EINVAL;
 			}
 			break;
 		case 'n':
 			if (!optarg || !strlen(optarg)) {
-				printf("invalid SSID!\n");
+				shell_error(shell, "invalid SSID!");
 				return -EINVAL;
 			}
 			strcpy(conf.ssid, optarg);
@@ -253,12 +263,14 @@ static int wifimgr_cli_cmd_set_config(const struct shell *shell, size_t argc,
 			if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP)) {
 				conf.ch_width = atoi(optarg);
 				if (!conf.ch_width) {
-					printf("invalid channel width!\n");
+					shell_error(shell,
+						    "invalid channel width!");
 					return -EINVAL;
 				}
 			} else {
-				printf("invalid option '-%c' for '%s'\n",
-				       choice, iface_name);
+				shell_error(shell,
+					    "invalid option '-%c' for '%s'",
+					    choice, iface_name);
 				return -EINVAL;
 			}
 			break;
@@ -281,9 +293,9 @@ static int wifimgr_cli_cmd_clear_config(const struct shell *shell, size_t argc,
 	iface_name = argv[1];
 
 	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		printf("Clearing STA Config ...\n");
+		shell_print(shell, "Clearing STA Config ...");
 	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		printf("Clearing AP Config ...\n");
+		shell_print(shell, "Clearing AP Config ...");
 	else
 		return -EINVAL;
 
@@ -304,16 +316,16 @@ static int wifimgr_cli_cmd_get_config(const struct shell *shell, size_t argc,
 	iface_name = argv[1];
 
 	if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_STA))
-		printf("STA Config\n");
+		shell_print(shell, "STA Config");
 	else if (!strcmp(iface_name, WIFIMGR_IFACE_NAME_AP))
-		printf("AP Config\n");
+		shell_print(shell, "AP Config");
 	else
 		return -EINVAL;
 
 	memset(&conf, 0, sizeof(conf));
 	ret = wifimgr_ctrl_iface_get_conf(iface_name, &conf);
 	if (!ret)
-		wifimgr_cli_show_conf(iface_name, &conf);
+		wifimgr_cli_show_conf(shell, iface_name, &conf);
 
 	return ret;
 }
@@ -332,7 +344,7 @@ static int wifimgr_cli_cmd_capa(const struct shell *shell, size_t argc,
 	memset(&capa, 0, sizeof(capa));
 	ret = wifimgr_ctrl_iface_get_capa(iface_name, &capa);
 	if (!ret)
-		wifimgr_cli_show_capa(iface_name, &capa);
+		wifimgr_cli_show_capa(shell, iface_name, &capa);
 
 	return ret;
 }
@@ -351,7 +363,7 @@ static int wifimgr_cli_cmd_status(const struct shell *shell, size_t argc,
 	memset(&sts, 0, sizeof(sts));
 	ret = wifimgr_ctrl_iface_get_status(iface_name, &sts);
 	if (!ret)
-		wifimgr_cli_show_status(iface_name, &sts);
+		wifimgr_cli_show_status(shell, iface_name, &sts);
 
 	return ret;
 }
@@ -420,21 +432,21 @@ static int wifimgr_cli_cmd_rtt_req(const struct shell *shell, size_t argc,
 		case 'b':
 			peer->band = atoi(optarg);
 			if (!peer->band) {
-				printf("invalid band!\n");
+				shell_error(shell, "invalid band!");
 				return -EINVAL;
 			}
 			break;
 		case 'c':
 			peer->channel = atoi(optarg);
 			if (!peer->channel) {
-				printf("invalid channel!\n");
+				shell_error(shell, "invalid channel!");
 				return -EINVAL;
 			}
 			break;
 		case 'm':
 			ret = strtomac(optarg, peer->bssid);
 			if (ret) {
-				printf("invalid BSSID!\n");
+				shell_error(shell, "invalid BSSID!");
 				return ret;
 			}
 			break;
@@ -487,14 +499,15 @@ static int wifimgr_cli_cmd_del_sta(const struct shell *shell, size_t argc,
 
 	ret = strtomac(argv[1], mac_addr);
 	if (ret) {
-		printf("invalid MAC address!\n");
+		shell_error(shell, "invalid MAC address!");
 		return ret;
 	}
 
 	if (is_broadcast_ether_addr(mac_addr))
-		printf("Deauth all stations!\n");
+		shell_print(shell, "Deauth all stations!");
 	else
-		printf("Deauth station (" MACSTR ")\n", MAC2STR(mac_addr));
+		shell_print(shell, "Deauth station (" MACSTR ")",
+			    MAC2STR(mac_addr));
 
 	ret = wifimgr_ctrl_iface_del_station(mac_addr);
 
@@ -537,7 +550,8 @@ static int wifimgr_cli_cmd_set_mac_acl(const struct shell *shell, size_t argc,
 
 				ret = strtomac(optarg, mac_addr);
 				if (ret) {
-					printf("invalid MAC address!\n");
+					shell_error(shell,
+						    "invalid MAC address!");
 					return ret;
 				}
 				mac = mac_addr;
