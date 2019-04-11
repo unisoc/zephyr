@@ -22,8 +22,8 @@
 
 #define WIFIMGR_SETTING_NAME_SSID		"ssid"
 #define WIFIMGR_SETTING_NAME_BSSID		"bssid"
-#define WIFIMGR_SETTING_NAME_SECURITY		"security"
 #define WIFIMGR_SETTING_NAME_PSPHR		"passphrase"
+#define WIFIMGR_SETTING_NAME_SECURITY		"security"
 #define WIFIMGR_SETTING_NAME_BAND		"band"
 #define WIFIMGR_SETTING_NAME_CHANNEL		"channel"
 #define WIFIMGR_SETTING_NAME_CHANNEL_WIDTH	"ch_width"
@@ -34,26 +34,23 @@
 #define WIFIMGR_SETTING_AP_PATH		"wifimgr/ap"
 
 /**
- * Type of settings value.
+ * enum of settings key id.
  */
-enum settings_type {
-	SETTINGS_NONE = 0,
-	SETTINGS_INT8,
-	SETTINGS_INT16,
-	SETTINGS_INT32,
-	SETTINGS_INT64,
-	SETTINGS_STRING,
-	SETTINGS_BYTES,
-	SETTINGS_FLOAT,
-	SETTINGS_DOUBLE,
-	SETTINGS_BOOL,
-} __attribute__((__packed__));
+enum wifi_variables_id {
+	WIFIMGR_SETTING_ID_SSID = 0x00,
+	WIFIMGR_SETTING_ID_BSSID,
+	WIFIMGR_SETTING_ID_PSPHR,
+	WIFIMGR_SETTING_ID_SECURITY,
+	WIFIMGR_SETTING_ID_BAND,
+	WIFIMGR_SETTING_ID_CHANNEL,
+	WIFIMGR_SETTING_ID_CHANNEL_WIDTH,
+	WIFIMGR_SETTING_ID_AUTORUN
+};
 
 struct wifimgr_settings_map {
 	char name[WIFIMGR_SETTING_NAME_LEN + 1];
 	void *valptr;
 	int vallen;
-	enum settings_type type;
 	bool mask;
 };
 
