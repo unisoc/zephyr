@@ -36,16 +36,6 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 #include "wifi_rf_ivy5662.h"
 #endif
 
-/**
- * We do not need <socket/include/socket.h>
- * It seems there is a bug in ASF side: if OS is already defining sockaddr
- * and all, ASF will not need to define it. Unfortunately its socket.h does
- * but also defines some NM API functions there (??), so we need to redefine
- * those here.
- */
-#define __SOCKET_H__
-#define HOSTNAME_MAX_SIZE (64)
-
 #define MTU (1500)
 
 #define SEC1 (1)
