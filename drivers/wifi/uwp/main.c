@@ -19,10 +19,10 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 #include <net/net_if.h>
 #include <net/ethernet.h>
 
-#include "wifi_main.h"
-#include "wifi_cmdevt.h"
-#include "wifi_txrx.h"
-#include "wifi_mem.h"
+#include "main.h"
+#include "cmdevt.h"
+#include "txrx.h"
+#include "mem.h"
 #include "sipc.h"
 #include "uwp_hal.h"
 
@@ -326,9 +326,8 @@ static int uwp_mgmt_session_req(struct device *dev,
 }
 
 static int uwp_mgmt_hw_test(struct device *dev,
-		int ictx_id, char *t_buf,
-		unsigned int t_len, char *r_buf,
-		unsigned int *r_len)
+		char *t_buf, unsigned int t_len,
+		char *r_buf, unsigned int *r_len)
 {
 	struct wifi_device *wifi_dev;
 
@@ -342,8 +341,8 @@ static int uwp_mgmt_hw_test(struct device *dev,
 		return -EINVAL;
 	}
 
-	return wifi_cmd_hw_test(wifi_dev, ictx_id,
-			t_buf, t_len, r_buf, r_len);
+	return wifi_cmd_hw_test(wifi_dev, t_buf,
+			t_len, r_buf, r_len);
 }
 
 static int uwp_mgmt_scan(struct device *dev,

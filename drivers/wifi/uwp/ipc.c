@@ -14,7 +14,7 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 #include <sipc.h>
 #include <sblock.h>
 
-#include "wifi_main.h"
+#include "main.h"
 
 int wifi_ipc_create_channel(int ch, void (*callback)(int ch))
 {
