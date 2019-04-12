@@ -112,7 +112,7 @@ static int gpio_uwp_manage_callback(struct device *dev,
 {
 	struct gpio_uwp_data *data = DEV_DATA(dev);
 
-	_gpio_manage_callback(&data->callbacks, callback, set);
+	gpio_manage_callback(&data->callbacks, callback, set);
 
 	return 0;
 }
@@ -170,7 +170,7 @@ static void gpio_uwp_isr(void *arg)
 	uwp_gpio_int_disable(base, int_status);
 	uwp_gpio_int_clear(base, int_status);
 
-	_gpio_fire_callbacks(&data->callbacks, (struct device *)dev,
+	gpio_fire_callbacks(&data->callbacks, (struct device *)dev,
 			     enabled_int);
 
 	uwp_gpio_int_enable(base, int_status);
