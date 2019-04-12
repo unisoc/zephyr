@@ -629,24 +629,28 @@ static int uwp_tx(struct device *dev, struct net_pkt *pkt)
 	return 0;
 }
 
+struct uwp_wifi_drv_api {
+	struct ethernet_api eth_api;
+	struct wifi_drv_api wifi_api;
+};
 
-static const struct wifi_drv_api uwp_api = {
-	.eth_api.iface_api.init = uwp_iface_init,
-	.eth_api.send           = uwp_tx,
-	.get_capa               = uwp_mgmt_get_capa,
-	.open                   = uwp_mgmt_open,
-	.close                  = uwp_mgmt_close,
-	.scan                   = uwp_mgmt_scan,
-	.get_station            = uwp_mgmt_get_station,
-	.connect                = uwp_mgmt_connect,
-	.disconnect             = uwp_mgmt_disconnect,
-	.notify_ip              = uwp_mgmt_notify_ip_acquired,
-	.start_ap               = uwp_mgmt_start_ap,
-	.stop_ap                = uwp_mgmt_stop_ap,
-	.del_station            = uwp_mgmt_del_station,
-	.set_mac_acl            = uwp_mgmt_set_mac_acl,
-	.rtt_req                = uwp_mgmt_session_req,
-	.hw_test                = uwp_mgmt_hw_test,
+static const struct uwp_wifi_drv_api uwp_api = {
+	.eth_api.iface_api.init          = uwp_iface_init,
+	.eth_api.send                    = uwp_tx,
+	.wifi_api.get_capa               = uwp_mgmt_get_capa,
+	.wifi_api.open                   = uwp_mgmt_open,
+	.wifi_api.close                  = uwp_mgmt_close,
+	.wifi_api.scan                   = uwp_mgmt_scan,
+	.wifi_api.get_station            = uwp_mgmt_get_station,
+	.wifi_api.connect                = uwp_mgmt_connect,
+	.wifi_api.disconnect             = uwp_mgmt_disconnect,
+	.wifi_api.notify_ip              = uwp_mgmt_notify_ip_acquired,
+	.wifi_api.start_ap               = uwp_mgmt_start_ap,
+	.wifi_api.stop_ap                = uwp_mgmt_stop_ap,
+	.wifi_api.del_station            = uwp_mgmt_del_station,
+	.wifi_api.set_mac_acl            = uwp_mgmt_set_mac_acl,
+	.wifi_api.rtt_req                = uwp_mgmt_session_req,
+	.wifi_api.hw_test                = uwp_mgmt_hw_test,
 };
 
 static int uwp_init(struct device *dev)
