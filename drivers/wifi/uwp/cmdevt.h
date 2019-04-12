@@ -9,7 +9,7 @@
 
 #include <net/wifi_drv.h>
 
-#include "wifi_main.h"
+#include "main.h"
 
 #define MAX_SSID_LEN (33) /* SSID end with 0 */
 #define MAX_KEY_LEN (128) /* FIXME: Max size 64 */
@@ -317,7 +317,7 @@ int wifi_cmd_set_blacklist(struct wifi_device *wifi_dev,
 		u8_t sub_type, u8_t mac_num, u8_t **mac_addr);
 int wifi_cmd_stop_ap(struct wifi_device *wifi_dev);
 int wifi_cmd_hw_test(struct wifi_device *wifi_dev,
-		int ictx_id, char *t_buf, u32_t t_len,
+		char *t_buf, u32_t t_len,
 		char *r_buf, u32_t *r_len);
 int wifi_cmd_notify_ip_acquired(struct wifi_device *wifi_dev,
 		u8_t *ip, u8_t len);
