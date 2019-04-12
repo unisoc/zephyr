@@ -47,3 +47,5 @@ GRTAGS
 GTAGS
 
 .idea
+
+ext/hal/unisoc/uwp/
