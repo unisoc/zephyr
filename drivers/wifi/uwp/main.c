@@ -31,9 +31,9 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
  * due to board name.
  */
 #if defined(CONFIG_SOC_UWP5661)
-#include "wifi_rf_96b_ivy5661.h"
+#include "rf_96b_ivy5661.h"
 #elif defined(CONFIG_SOC_UWP5662)
-#include "wifi_rf_ivy5662.h"
+#include "rf_ivy5662.h"
 #endif
 
 #define MTU (1500)
