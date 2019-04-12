@@ -133,7 +133,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 
 	/* Check parmas and prepare ACL table for driver */
 	switch (set_acl->subcmd) {
-	case WIFIMGR_SUBCMD_ACL_BLOCK:
+	case WIFI_MAC_ACL_BLOCK:
 		if ((mac_acl->nr + nr_acl) >
 		    mgr->ap_capa.ap.max_acl_mac_addrs) {
 			wifimgr_warn("Max number of ACL reached!");
@@ -150,7 +150,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 		drv_subcmd = WIFI_DRV_BLACKLIST_ADD;
 		acl_mac_addrs = (char (*)[WIFI_MAC_ADDR_LEN])set_acl->mac;
 		break;
-	case WIFIMGR_SUBCMD_ACL_UNBLOCK:
+	case WIFI_MAC_ACL_UNBLOCK:
 		if (!mac_acl->nr) {
 			wifimgr_warn("Empty ACL!");
 			return -ENOENT;
@@ -166,7 +166,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 		drv_subcmd = WIFI_DRV_BLACKLIST_DEL;
 		acl_mac_addrs = (char (*)[WIFI_MAC_ADDR_LEN])set_acl->mac;
 		break;
-	case WIFIMGR_SUBCMD_ACL_BLOCK_ALL:
+	case WIFI_MAC_ACL_BLOCK_ALL:
 		if (!assoc_list->nr) {
 			wifimgr_warn("Empty Station List!");
 			return -ENOENT;
@@ -181,7 +181,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 		drv_subcmd = WIFI_DRV_BLACKLIST_ADD;
 		acl_mac_addrs = sts->u.ap.sta_mac_addrs;
 		break;
-	case WIFIMGR_SUBCMD_ACL_UNBLOCK_ALL:
+	case WIFI_MAC_ACL_UNBLOCK_ALL:
 		if (!mac_acl->nr) {
 			wifimgr_warn("Empty ACL!");
 			return -ENOENT;
@@ -203,7 +203,7 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 	} else {
 		/* Update ACL list */
 		switch (set_acl->subcmd) {
-		case WIFIMGR_SUBCMD_ACL_BLOCK:
+		case WIFI_MAC_ACL_BLOCK:
 			marked_sta = malloc(sizeof(struct wifimgr_mac_node));
 			if (!marked_sta) {
 				ret = -ENOMEM;
@@ -215,19 +215,19 @@ static int wifimgr_ap_set_mac_acl(void *handle)
 			mac_acl->nr++;
 			wifimgr_info("Block ");
 			break;
-		case WIFIMGR_SUBCMD_ACL_UNBLOCK:
+		case WIFI_MAC_ACL_UNBLOCK:
 			wifimgr_list_remove(&mac_acl->list, &marked_sta->node);
 			free(marked_sta);
 			mac_acl->nr--;
 			wifimgr_info("Unblock ");
 			break;
-		case WIFIMGR_SUBCMD_ACL_BLOCK_ALL:
+		case WIFI_MAC_ACL_BLOCK_ALL:
 			wifimgr_list_merge(&mac_acl->list, &assoc_list->list);
 			mac_acl->nr = assoc_list->nr;
 			assoc_list->nr = 0;
 			wifimgr_info("Block ");
 			break;
-		case WIFIMGR_SUBCMD_ACL_UNBLOCK_ALL:
+		case WIFI_MAC_ACL_UNBLOCK_ALL:
 			wifimgr_list_free(&mac_acl->list);
 			mac_acl->nr = 0;
 			wifimgr_info("Unblock ");
