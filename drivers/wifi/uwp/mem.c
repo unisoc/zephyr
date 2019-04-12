@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "wifi_mem.h"
+#include "mem.h"
 
 static wifi_slist_t tx_buf_list;
 static wifi_slist_t rx_buf_list;

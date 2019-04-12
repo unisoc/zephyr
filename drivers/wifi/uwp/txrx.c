@@ -15,11 +15,11 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 #include <sblock.h>
 #include <net/net_pkt.h>
 
-#include "wifi_main.h"
-#include "wifi_txrx.h"
-#include "wifi_ipc.h"
-#include "wifi_cmdevt.h"
-#include "wifi_mem.h"
+#include "main.h"
+#include "txrx.h"
+#include "ipc.h"
+#include "cmdevt.h"
+#include "mem.h"
 
 #define RX_STACK_SIZE (1024)
 #define RX_DATA_SIZE (2000)
