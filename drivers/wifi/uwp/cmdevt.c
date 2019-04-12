@@ -14,8 +14,8 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 #include <sipc.h>
 #include <sblock.h>
 
-#include "wifi_cmdevt.h"
-#include "wifi_txrx.h"
+#include "cmdevt.h"
+#include "txrx.h"
 
 #define RECV_BUF_SIZE (128)
 #define GET_STA_BUF_SIZE (12)
@@ -232,8 +232,8 @@ int wifi_cmd_connect(struct wifi_device *wifi_dev,
 	}
 
 	cmd.channel = params->channel;
-	cmd.ssid_len = params->ssid_length;
-	cmd.psk_len = params->psk_length;
+	cmd.ssid_len = params->ssid_len;
+	cmd.psk_len = params->psk_len;
 
 	memcpy(cmd.ssid, params->ssid, cmd.ssid_len);
 	memcpy(cmd.psk, params->psk, cmd.psk_len);
@@ -422,13 +422,13 @@ int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 	memset(&cmd, 0, sizeof(cmd));
 
 	if (params->ssid_length > 0) {
-		memcpy(cmd.ssid, params->ssid, params->ssid_length);
-		cmd.ssid_len = params->ssid_length;
+		memcpy(cmd.ssid, params->ssid, params->ssid_len);
+		cmd.ssid_len = params->ssid_len;
 		LOG_DBG("SSID: %s(%d).", cmd.ssid, cmd.ssid_len);
 	}
-	if (params->psk_length > 0) {
-		memcpy(cmd.password, params->psk, params->psk_length);
-		cmd.password_len = params->psk_length;
+	if (params->psk_len > 0) {
+		memcpy(cmd.password, params->psk, params->psk_len);
+		cmd.password_len = params->psk_len;
 		LOG_DBG("PSK: %s(%d).", cmd.password, cmd.password_len);
 	}
 
@@ -525,7 +525,7 @@ int wifi_cmd_stop_ap(struct wifi_device *wifi_dev)
  * @param r_len: length of return value
  */
 int wifi_cmd_hw_test(struct wifi_device *wifi_dev,
-		int ictx_id, char *t_buf, u32_t t_len,
+		char *t_buf, u32_t t_len,
 		char *r_buf, u32_t *r_len)
 {
 	ARG_UNUSED(wifi_dev);
@@ -652,7 +652,7 @@ static int wifi_evt_scan_result(struct wifi_device *wifi_dev,
 	memset(&scan_result, 0, sizeof(scan_result));
 
 	memcpy(scan_result.ssid, event->ssid, MAX_SSID_LEN);
-	scan_result.ssid_length = strlen(scan_result.ssid);
+	scan_result.ssid_len = strlen(scan_result.ssid);
 	memcpy(scan_result.bssid, event->bssid, ETH_ALEN);
 
 	scan_result.channel = event->channel;

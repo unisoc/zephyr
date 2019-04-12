@@ -7,7 +7,7 @@
 #ifndef __WIFI_TXRX_H__
 #define __WIFI_TXRX_H__
 
-#include "wifi_main.h"
+#include "main.h"
 
 #define SPRD_AP_CP_DRAM_MAP_BASE (0x40400000)
 
