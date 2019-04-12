@@ -183,8 +183,8 @@ int wifi_drv_connect(void *iface, char *ssid, char *bssid, char *psk,
 		return -EIO;
 
 	/* SSID is mandatory */
-	params.ssid_length = strlen(ssid);
-	if (!ssid || !params.ssid_length)
+	params.ssid_len = strlen(ssid);
+	if (!ssid || !params.ssid_len)
 		return -EINVAL;
 	params.ssid = ssid;
 
@@ -194,8 +194,8 @@ int wifi_drv_connect(void *iface, char *ssid, char *bssid, char *psk,
 	params.bssid = bssid;
 
 	/* Passphrase is only valid for WPA/WPA2-PSK */
-	params.psk_length = psk_len;
-	if (psk && !params.psk_length)
+	params.psk_len = psk_len;
+	if (psk && !params.psk_len)
 		return -EINVAL;
 	params.psk = psk;
 
@@ -256,14 +256,14 @@ int wifi_drv_start_ap(void *iface, char *ssid, char *psk, unsigned char psk_len,
 		return -EIO;
 
 	/* SSID is mandatory */
-	params.ssid_length = strlen(ssid);
-	if (!ssid || !params.ssid_length)
+	params.ssid_len = strlen(ssid);
+	if (!ssid || !params.ssid_len)
 		return -EINVAL;
 	params.ssid = ssid;
 
 	/* Passphrase is only valid for WPA/WPA2-PSK */
-	params.psk_length = psk_len;
-	if (psk && !params.psk_length)
+	params.psk_len = psk_len;
+	if (psk && !params.psk_len)
 		return -EINVAL;
 	params.psk = psk;
 

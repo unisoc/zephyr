@@ -531,16 +531,16 @@ static int wifimgr_cli_cmd_set_mac_acl(const struct shell *shell, size_t argc,
 		case 'u':
 			switch (choice) {
 			case 'a':
-				subcmd = WIFIMGR_SUBCMD_ACL_BLOCK_ALL;
+				subcmd = WIFI_MAC_ACL_BLOCK_ALL;
 				break;
 			case 'b':
-				subcmd = WIFIMGR_SUBCMD_ACL_BLOCK;
+				subcmd = WIFI_MAC_ACL_BLOCK;
 				break;
 			case 'c':
-				subcmd = WIFIMGR_SUBCMD_ACL_UNBLOCK_ALL;
+				subcmd = WIFI_MAC_ACL_UNBLOCK_ALL;
 				break;
 			case 'u':
-				subcmd = WIFIMGR_SUBCMD_ACL_UNBLOCK;
+				subcmd = WIFI_MAC_ACL_UNBLOCK;
 				break;
 			}
 			if (!optarg) {

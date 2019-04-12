@@ -50,10 +50,6 @@ enum wifimgr_cmd {
 };
 
 struct wifimgr_set_mac_acl {
-#define WIFIMGR_SUBCMD_ACL_BLOCK	(1)
-#define WIFIMGR_SUBCMD_ACL_UNBLOCK	(2)
-#define WIFIMGR_SUBCMD_ACL_BLOCK_ALL	(3)
-#define WIFIMGR_SUBCMD_ACL_UNBLOCK_ALL	(4)
 	char subcmd;
 	char mac[WIFI_MAC_ADDR_LEN];
 };
