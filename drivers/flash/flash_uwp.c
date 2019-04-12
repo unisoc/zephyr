@@ -10,7 +10,7 @@
 #include <flash.h>
 #include <init.h>
 #include <soc.h>
-#include <logging/sys_log.h>
+#include <logging/log.h>
 #include <errno.h>
 
 #include "hal_sfc.h"
