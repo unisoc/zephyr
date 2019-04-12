@@ -584,10 +584,10 @@ int wifimgr_ctrl_iface_set_mac_acl(char subcmd, char *mac)
 	struct wifimgr_set_mac_acl set_acl;
 
 	switch (subcmd) {
-	case WIFIMGR_SUBCMD_ACL_BLOCK:
-	case WIFIMGR_SUBCMD_ACL_UNBLOCK:
-	case WIFIMGR_SUBCMD_ACL_BLOCK_ALL:
-	case WIFIMGR_SUBCMD_ACL_UNBLOCK_ALL:
+	case WIFI_MAC_ACL_BLOCK:
+	case WIFI_MAC_ACL_UNBLOCK:
+	case WIFI_MAC_ACL_BLOCK_ALL:
+	case WIFI_MAC_ACL_UNBLOCK_ALL:
 		set_acl.subcmd = subcmd;
 		break;
 	default:
