@@ -421,7 +421,7 @@ int wifi_cmd_start_ap(struct wifi_device *wifi_dev,
 	LOG_DBG("Start ap at channel: %d.", params->channel);
 	memset(&cmd, 0, sizeof(cmd));
 
-	if (params->ssid_length > 0) {
+	if (params->ssid_len > 0) {
 		memcpy(cmd.ssid, params->ssid, params->ssid_len);
 		cmd.ssid_len = params->ssid_len;
 		LOG_DBG("SSID: %s(%d).", cmd.ssid, cmd.ssid_len);
