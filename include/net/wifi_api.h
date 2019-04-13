@@ -14,6 +14,13 @@
 
 #include <net/wifi_drv.h>
 
+enum wifi_security {
+	WIFI_SECURITY_UNKNOWN,
+	WIFI_SECURITY_OPEN,
+	WIFI_SECURITY_PSK,
+	WIFI_SECURITY_OTHERS,
+};
+
 /**
  * @struct wifi_config
  * @brief Structure holding WiFi configuration.
@@ -118,11 +125,20 @@ struct wifi_status {
 	} u;
 };
 
-enum wifi_security {
-	WIFI_SECURITY_UNKNOWN,
-	WIFI_SECURITY_OPEN,
-	WIFI_SECURITY_PSK,
-	WIFI_SECURITY_OTHERS,
+/**
+ * @struct wifi_scan_params
+ * @brief Structure holding scan parameters.
+ *
+ * @var unsigned char wifi_scan_params::band
+ * Band
+ *
+ * @var unsigned char wifi_scan_params::channel
+ * Channel number
+ *
+ */
+struct wifi_scan_params {
+	unsigned char band;
+	unsigned char channel;
 };
 
 /**
@@ -168,13 +184,12 @@ struct wifi_scan_result {
  * Number of RTT peers
  *
  * @var struct wifi_rtt_request::peers
- * Structure containing RTT range request parameters
+ * RTT range request parameters (@ref wifi_rtt_peers)
  */
 struct wifi_rtt_request {
 	unsigned char nr_peers;
 	struct wifi_rtt_peers *peers;
 };
-
 
 /**
  * @struct wifi_rtt_response
@@ -303,9 +318,9 @@ int wifi_unregister_station_leave_notifier(wifi_notifier_fn_t notifier_call);
  * A function of this type is given to the wifi_sta_scan() function
  * and will be called for any discovered Access Point.
  *
- * @param scan_res A scan result.
+ * @param res A scan result.
  */
-typedef void (*scan_res_cb_t)(struct wifi_scan_result *scan_res);
+typedef void (*scan_res_cb_t)(struct wifi_scan_result *res);
 
 /**
  * @typedef rtt_resp_cb_t
@@ -314,9 +329,9 @@ typedef void (*scan_res_cb_t)(struct wifi_scan_result *scan_res);
  * A function of this type is given to the wifi_sta_rtt_request() function
  * and will be called for any received RTT range response.
  *
- * @param rtt_resp A RTT range response.
+ * @param resp A RTT range response.
  */
-typedef void (*rtt_resp_cb_t)(struct wifi_rtt_response *rtt_resp);
+typedef void (*rtt_resp_cb_t)(struct wifi_rtt_response *resp);
 
 
 /**
@@ -369,7 +384,7 @@ int wifi_sta_get_capa(union wifi_drv_capa *capa);
  *
  * This function get the STA status.
  *
- * @param sts Structure containing STA status (@ref wifi_status).
+ * @param sts STA status (@ref wifi_status).
  *
  * @retval 0 on success, non-zero on failure.
  */
@@ -392,24 +407,23 @@ int wifi_sta_close(void);
 /**
  * @brief STA scan.
  *
+ * @param params Scan parameters, NULL for all (@ref wifi_scan_params).
  * @param cb Callback to invoke for each scan result (@ref scan_res_cb_t).
  *
  * @retval 0 on success, non-zero on failure.
  */
-int wifi_sta_scan(scan_res_cb_t cb);
+int wifi_sta_scan(struct wifi_scan_params *params, scan_res_cb_t cb);
 
 /**
  * @brief Request RTT range.
  *
- * @param rtt_req Structure containing RTT range request parameters
- * (@ref wifi_rtt_request).
- * @param rtt_resp_cb Callback to invoke for each RTT range response
+ * @param req RTT range request parameters (@ref wifi_rtt_request).
+ * @param cb Callback to invoke for each RTT range response
  * (@ref rtt_resp_cb_t).
  *
  * @retval 0 on success, non-zero on failure.
  */
-int wifi_sta_rtt_request(struct wifi_rtt_request *rtt_req,
-			 rtt_resp_cb_t cb);
+int wifi_sta_rtt_request(struct wifi_rtt_request *req, rtt_resp_cb_t cb);
 
 /**
  * @brief Connect to the specified BSS/ESS
@@ -478,7 +492,7 @@ int wifi_ap_get_capa(union wifi_drv_capa *capa);
  *
  * This function get the STA status.
  *
- * @param sts Structure containing AP status (@ref wifi_status).
+ * @param sts AP status (@ref wifi_status).
  *
  * @retval 0 on success, non-zero on failure.
  */
@@ -528,7 +542,7 @@ int wifi_ap_del_station(char *mac);
  * @brief Sets MAC address control list in AP mode.
  *
  * @param subcmd Subcommand (@ref wifi_mac_acl_subcmd).
- * @param acl_nr ACL MAC address, NULL for all.
+ * @param mac ACL MAC address, NULL for all.
  *
  * @retval 0 on success, non-zero on failure.
  */
