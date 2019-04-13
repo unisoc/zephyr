@@ -66,14 +66,13 @@ int wifimgr_unregister_station_leave_notifier(wifi_notifier_fn_t notifier_call)
 					   notifier_call);
 }
 
-void wifimgr_ctrl_evt_scan_result(void *handle,
-				  struct wifi_scan_result *scan_res)
+void wifimgr_ctrl_evt_scan_result(void *handle, struct wifi_scan_result *res)
 {
 	struct wifimgr_ctrl_iface *ctrl = (struct wifimgr_ctrl_iface *)handle;
 
 	/* Notify the external caller */
 	if (ctrl->scan_res_cb)
-		ctrl->scan_res_cb(scan_res);
+		ctrl->scan_res_cb(res);
 }
 
 void wifimgr_ctrl_evt_scan_done(void *handle, char status)
@@ -144,14 +143,13 @@ static int wifimgr_ctrl_iface_send_cmd(struct wifimgr_ctrl_iface *ctrl,
 }
 
 #ifdef CONFIG_WIFIMGR_STA
-void wifimgr_ctrl_evt_rtt_response(void *handle,
-				   struct wifi_rtt_response *rtt_resp)
+void wifimgr_ctrl_evt_rtt_response(void *handle, struct wifi_rtt_response *resp)
 {
 	struct wifimgr_ctrl_iface *ctrl = (struct wifimgr_ctrl_iface *)handle;
 
 	/* Notify the external caller */
 	if (ctrl->rtt_resp_cb)
-		ctrl->rtt_resp_cb(rtt_resp);
+		ctrl->rtt_resp_cb(resp);
 }
 
 void wifimgr_ctrl_evt_rtt_done(void *handle, char status)
@@ -170,7 +168,7 @@ void wifimgr_ctrl_evt_rtt_done(void *handle, char status)
 }
 
 void wifimgr_ctrl_evt_connect(void *handle,
-			      struct wifimgr_notifier_chain *conn_chain,
+			      struct wifimgr_notifier_chain *chain,
 			      char status)
 {
 	struct wifimgr_ctrl_iface *ctrl = (struct wifimgr_ctrl_iface *)handle;
@@ -179,7 +177,7 @@ void wifimgr_ctrl_evt_connect(void *handle,
 	ctrl->evt_status = status;
 
 	/* Notify the passive callback on the connection chain */
-	wifimgr_list_for_each_entry(notifier, &conn_chain->list,
+	wifimgr_list_for_each_entry(notifier, &chain->list,
 				    struct wifimgr_notifier, node) {
 		if (notifier->notifier_call) {
 			union wifi_notifier_val val;
@@ -193,7 +191,7 @@ void wifimgr_ctrl_evt_connect(void *handle,
 }
 
 void wifimgr_ctrl_evt_disconnect(void *handle,
-				 struct wifimgr_notifier_chain *disc_chain,
+				 struct wifimgr_notifier_chain *chain,
 				 char reason_code)
 {
 	struct wifimgr_ctrl_iface *ctrl = (struct wifimgr_ctrl_iface *)handle;
@@ -202,7 +200,7 @@ void wifimgr_ctrl_evt_disconnect(void *handle,
 	ctrl->evt_status = 0;
 
 	/* Notify the passive callback on the disconnection chain */
-	wifimgr_list_for_each_entry(notifier, &disc_chain->list,
+	wifimgr_list_for_each_entry(notifier, &chain->list,
 				    struct wifimgr_notifier, node) {
 		if (notifier->notifier_call) {
 			union wifi_notifier_val val;
@@ -260,10 +258,42 @@ void wifimgr_ctrl_evt_new_station(void *handle,
 }
 #endif
 
+int check_band_and_channel(unsigned char band, unsigned char channel)
+{
+	int ret = 0;
+
+	switch (band) {
+	case WIFI_BAND_2G:
+		if (channel &&
+		    (channel < WIFI_CHANNEL_2G_MIN) &&
+		    (channel > WIFI_CHANNEL_2G_MAX))
+			ret = -EINVAL;
+
+		break;
+	case WIFI_BAND_5G:
+		if (channel &&
+		    (channel < WIFI_CHANNEL_5G_MIN) &&
+		    (channel > WIFI_CHANNEL_5G_MAX))
+			ret = -EINVAL;
+
+		break;
+	case 0:
+		if (channel)
+			ret = -EINVAL;
+
+		break;
+	default:
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+
 int wifimgr_ctrl_iface_set_conf(char *iface_name, struct wifi_config *conf)
 {
 	struct wifimgr_ctrl_iface *ctrl;
 	unsigned int cmd_id;
+	int ret;
 
 	if (!iface_name || !conf)
 		return -EINVAL;
@@ -292,7 +322,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, struct wifi_config *conf)
 		wifimgr_info("BSSID:\t\t" MACSTR "\n", MAC2STR(conf->bssid));
 	}
 
-	/* Check Security */
+	/* Check security type */
 	switch (conf->security) {
 	case WIFI_SECURITY_OPEN:
 	case WIFI_SECURITY_PSK:
@@ -304,7 +334,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, struct wifi_config *conf)
 		return -EINVAL;
 	}
 
-	/* Check Passphrase (optional: valid only for WPA/WPA2-PSK) */
+	/* Check passphrase (optional: valid only for WPA/WPA2-PSK) */
 	if (strlen(conf->passphrase)) {
 		if (strlen(conf->passphrase) > sizeof(conf->passphrase)) {
 			wifimgr_err("invalid PSK: %s!\n", conf->passphrase);
@@ -313,33 +343,24 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, struct wifi_config *conf)
 		wifimgr_info("Passphrase:\t%s\n", conf->passphrase);
 	}
 
-	/* Check band */
-	switch (conf->band) {
-	case 2:
-	case 5:
+	/* Check band and channel */
+	ret = check_band_and_channel(conf->band, conf->channel);
+	if (ret) {
+		wifimgr_err("invalid combination! band %u channel %u\n",
+			    conf->band, conf->channel);
+		return ret;
+	}
+	if (conf->band)
 		wifimgr_info("Band:\t%u\n", conf->band);
-	case 0:
-		break;
-	default:
-		wifimgr_err("invalid band: %u!\n", conf->band);
-		return -EINVAL;
-	}
-
-	/* Check channel */
-	if ((conf->channel > 14 && conf->channel < 34) ||
-	    (conf->channel > 196)) {
-		wifimgr_err("invalid channel: %u!\n", conf->channel);
-		return -EINVAL;
-	}
 	if (conf->channel)
 		wifimgr_info("Channel:\t%u\n", conf->channel);
 
 	/* Check channel width */
 	switch (conf->ch_width) {
-	case 20:
-	case 40:
-	case 80:
-	case 160:
+	case WIFI_CHANNEL_WIDTH_20:
+	case WIFI_CHANNEL_WIDTH_40:
+	case WIFI_CHANNEL_WIDTH_80:
+	case WIFI_CHANNEL_WIDTH_160:
 		wifimgr_info("Channel Width:\t%u\n", conf->ch_width);
 	case 0:
 		break;
@@ -462,10 +483,13 @@ int wifimgr_ctrl_iface_close(char *iface_name)
 	return wifimgr_ctrl_iface_send_cmd(ctrl, cmd_id, NULL, 0);
 }
 
-int wifimgr_ctrl_iface_scan(char *iface_name, scan_res_cb_t scan_res_cb)
+int wifimgr_ctrl_iface_scan(char *iface_name, struct wifi_scan_params *params,
+			    scan_res_cb_t cb)
 {
 	struct wifimgr_ctrl_iface *ctrl;
+	struct wifi_scan_params all, *scan_params;
 	unsigned int cmd_id = 0;
+	int ret;
 
 	if (!iface_name)
 		return -EINVAL;
@@ -480,54 +504,62 @@ int wifimgr_ctrl_iface_scan(char *iface_name, scan_res_cb_t scan_res_cb)
 		return -EINVAL;
 	}
 
-	ctrl->scan_res_cb = scan_res_cb;
+	if (!params) {
+		/* Scan all bands and channels */
+		memset(&all, 0, sizeof(all));
+		scan_params = &all;
+	} else {
+		/* Check band and channel */
+		ret = check_band_and_channel(params->band, params->channel);
+		if (ret) {
+			wifimgr_err("invalid combination! band %u channel %u\n",
+				    params->band, params->channel);
+			return ret;
+		}
 
-	return wifimgr_ctrl_iface_send_cmd(ctrl, cmd_id, NULL, 0);
+		scan_params = params;
+	}
+
+	ctrl->scan_res_cb = cb;
+
+	return wifimgr_ctrl_iface_send_cmd(ctrl, cmd_id, scan_params,
+					   sizeof(struct wifi_scan_params));
 }
 
 #ifdef CONFIG_WIFIMGR_STA
-int wifimgr_ctrl_iface_rtt_request(struct wifi_rtt_request *rtt_req,
-				   rtt_resp_cb_t rtt_resp_cb)
+int wifimgr_ctrl_iface_rtt_request(struct wifi_rtt_request *req,
+				   rtt_resp_cb_t cb)
 {
 	struct wifimgr_ctrl_iface *ctrl = sta_ctrl;
 	struct wifi_rtt_peers *peer;
 	unsigned char nr_peers;
+	int ret;
 	int i;
 
-	if (!rtt_req)
+	if (!req)
 		return -EINVAL;
 
 	ctrl = sta_ctrl;
 
-	peer = rtt_req->peers;
-	nr_peers = rtt_req->nr_peers;
+	peer = req->peers;
+	nr_peers = req->nr_peers;
 	for (i = 0; i < nr_peers; i++, peer++) {
 		/* Check BSSID */
 		if (is_zero_ether_addr(peer->bssid))
 			return -EINVAL;
 
-		/* Check band */
-		switch (peer->band) {
-		case 2:
-		case 5:
-		case 0:
-			break;
-		default:
-			wifimgr_err("invalid band: %u!\n", peer->band);
-			return -EINVAL;
-		}
-
-		/* Check channel */
-		if (!peer->channel || (peer->channel > 14 && peer->channel < 34)
-		    || (peer->channel > 196)) {
-			wifimgr_err("invalid channel: %u!\n", peer->channel);
-			return -EINVAL;
+		/* Check band and channel */
+		ret = check_band_and_channel(peer->band, peer->channel);
+		if (ret) {
+			wifimgr_err("invalid combination! band %u channel %u\n",
+				    peer->band, peer->channel);
+			return ret;
 		}
 	}
 
-	ctrl->rtt_resp_cb = rtt_resp_cb;
+	ctrl->rtt_resp_cb = cb;
 
-	return wifimgr_ctrl_iface_send_cmd(ctrl, WIFIMGR_CMD_RTT_REQ, rtt_req,
+	return wifimgr_ctrl_iface_send_cmd(ctrl, WIFIMGR_CMD_RTT_REQ, req,
 					   sizeof(struct wifi_rtt_request));
 }
 

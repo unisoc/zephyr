@@ -76,17 +76,16 @@ int wifimgr_unregister_new_station_notifier(wifi_notifier_fn_t notifier_call);
 int wifimgr_register_station_leave_notifier(wifi_notifier_fn_t notifier_call);
 int wifimgr_unregister_station_leave_notifier(wifi_notifier_fn_t notifier_call);
 
-void wifimgr_ctrl_evt_scan_result(void *handle,
-				  struct wifi_scan_result *scan_res);
+void wifimgr_ctrl_evt_scan_result(void *handle, struct wifi_scan_result *res);
 void wifimgr_ctrl_evt_scan_done(void *handle, char status);
 void wifimgr_ctrl_evt_rtt_response(void *handle,
-				   struct wifi_rtt_response *rtt_resp);
+				   struct wifi_rtt_response *resp);
 void wifimgr_ctrl_evt_rtt_done(void *handle, char status);
 void wifimgr_ctrl_evt_connect(void *handle,
-			      struct wifimgr_notifier_chain *conn_chain,
+			      struct wifimgr_notifier_chain *chain,
 			      char status);
 void wifimgr_ctrl_evt_disconnect(void *handle,
-				 struct wifimgr_notifier_chain *disc_chain,
+				 struct wifimgr_notifier_chain *chain,
 				 char reason_code);
 void wifimgr_ctrl_evt_new_station(void *handle,
 				  struct wifimgr_notifier_chain *chain,
@@ -101,9 +100,10 @@ int wifimgr_ctrl_iface_get_capa(char *iface_name, union wifi_drv_capa *capa);
 int wifimgr_ctrl_iface_get_status(char *iface_name, struct wifi_status *sts);
 int wifimgr_ctrl_iface_open(char *iface_name);
 int wifimgr_ctrl_iface_close(char *iface_name);
-int wifimgr_ctrl_iface_scan(char *iface_name, scan_res_cb_t scan_res_cb);
-int wifimgr_ctrl_iface_rtt_request(struct wifi_rtt_request *rtt_req,
-				   rtt_resp_cb_t rtt_resp_cb);
+int wifimgr_ctrl_iface_scan(char *iface_name,
+			    struct wifi_scan_params *params, scan_res_cb_t cb);
+int wifimgr_ctrl_iface_rtt_request(struct wifi_rtt_request *req,
+				   rtt_resp_cb_t cb);
 int wifimgr_ctrl_iface_connect(void);
 int wifimgr_ctrl_iface_disconnect(void);
 int wifimgr_ctrl_iface_start_ap(void);
