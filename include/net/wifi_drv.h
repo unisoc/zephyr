@@ -25,13 +25,13 @@
  * @struct wifi_drv_capa
  * @brief Union holding driver capability info.
  *
- * @var unsigned char wifi_drv_capa::max_rtt_peers
+ * @var unsigned char wifi_drv_capa::sta::max_rtt_peers
  * Maximum RTT peers
  *
- * @var unsigned char wifi_drv_capa::max_ap_assoc_sta
+ * @var unsigned char wifi_drv_capa::ap::max_ap_assoc_sta
  * Maximum number of associated STAs supported in AP mode
  *
- * @var unsigned char wifi_drv_capa::max_acl_mac_addrs
+ * @var unsigned char wifi_drv_capa::ap::max_acl_mac_addrs
  * Maximum number of ACL MAC addresses supported in AP mode
  */
 union wifi_drv_capa {
@@ -44,9 +44,22 @@ union wifi_drv_capa {
 	} ap;
 };
 
+#define WIFI_BAND_2G		(2)
+#define WIFI_BAND_5G		(5)
+
+#define WIFI_CHANNEL_2G_MIN	(1)
+#define WIFI_CHANNEL_2G_MAX	(14)
+#define WIFI_CHANNEL_5G_MIN	(7)
+#define WIFI_CHANNEL_5G_MAX	(196)
+
+#define WIFI_CHANNEL_WIDTH_20	(20)
+#define WIFI_CHANNEL_WIDTH_40	(40)
+#define WIFI_CHANNEL_WIDTH_80	(80)
+#define WIFI_CHANNEL_WIDTH_160	(160)
+
 /**
  * @struct wifi_drv_scan_params
- * @brief Union holding scan parameters.
+ * @brief Structure holding scan parameters.
  *
  * @var unsigned char wifi_drv_scan_params::band
  * Band
@@ -56,8 +69,6 @@ union wifi_drv_capa {
  *
  */
 struct wifi_drv_scan_params {
-#define WIFI_BAND_2_4G	(1)
-#define WIFI_BAND_5G	(2)
 	unsigned char band;
 	unsigned char channel;
 };
@@ -98,28 +109,28 @@ struct wifi_drv_connect_params {
 };
 
 /**
- * @struct wifi_drv_connect_params
+ * @struct wifi_drv_start_ap_params
  * @brief Structure holding connect parameters.
  *
- * @var char wifi_drv_connect_params::ssid
+ * @var char wifi_drv_start_ap_params::ssid
  * SSID
  *
- * @var char wifi_drv_connect_params::ssid_len
+ * @var char wifi_drv_start_ap_params::ssid_len
  * SSID length (maximum is 32 bytes)
  *
- * @var char wifi_drv_connect_params::psk
+ * @var char wifi_drv_start_ap_params::psk
  * PSK for WPA/WPA2-PSK
  *
- * @var char wifi_drv_connect_params::psk_len
+ * @var char wifi_drv_start_ap_params::psk_len
  * PSK length (maximum is 32 bytes)
  *
- * @var unsigned char wifi_drv_connect_params::channel
+ * @var unsigned char wifi_drv_start_ap_params::channel
  * Channel number
  *
  * @var unsigned char wifi_config::ch_width
  * Channel width
  *
- * @var char wifi_drv_connect_params::security
+ * @var char wifi_drv_start_ap_params::security
  * Security type
  */
 struct wifi_drv_start_ap_params {
@@ -133,19 +144,24 @@ struct wifi_drv_start_ap_params {
 };
 
 /**
- * @struct wifi_drv_rtt_request
+ * @struct wifi_rtt_peers
  * @brief Structure holding RTT peer.
  *
- * @var char wifi_drv_rtt_request::bssid
+ * @var char wifi_rtt_peers::bssid
  * BSSID of RTT peer
  *
- * @var unsigned char wifi_drv_rtt_request::band
+ * @var unsigned char wifi_rtt_peers::band
  * Band of RTT peer
  *
- * @var unsigned char wifi_drv_rtt_request::channel
+ * @var unsigned char wifi_rtt_peers::channel
  * Channel number of RTT peer
  *
  */
+struct wifi_rtt_peers {
+	char bssid[NET_LINK_ADDR_MAX_LENGTH];
+	unsigned char band;
+	unsigned char channel;
+};
 
 /**
  * @struct wifi_drv_rtt_request
@@ -155,16 +171,12 @@ struct wifi_drv_start_ap_params {
  * Number of RTT peers
  *
  * @var struct wifi_drv_rtt_request::peers
- * Structure containing RTT peer
+ * RTT peer (@ref wifi_rtt_peers)
  *
  */
 struct wifi_drv_rtt_request {
 	unsigned char nr_peers;
-	struct wifi_rtt_peers {
-		char bssid[NET_LINK_ADDR_MAX_LENGTH];
-		unsigned char band;
-		unsigned char channel;
-	} *peers;
+	struct wifi_rtt_peers *peers;
 };
 
 /**
@@ -188,31 +200,31 @@ struct wifi_drv_connect_evt {
 };
 
 /**
- * @struct wifi_scan_result
+ * @struct wifi_drv_scan_result_evt
  * @brief Structure holding WiFi scan result.
  *
- * @var char wifi_scan_result::bssid
+ * @var char wifi_drv_scan_result_evt::bssid
  * BSSID
  *
- * @var char wifi_scan_result::ssid
+ * @var char wifi_drv_scan_result_evt::ssid
  * SSID
  *
- * @var char wifi_scan_result::ssid_len
+ * @var char wifi_drv_scan_result_evt::ssid_len
  * SSID length (maximum is 32 bytes)
  *
- * @var unsigned char wifi_scan_result::band
+ * @var unsigned char wifi_drv_scan_result_evt::band
  * Band
  *
- * @var unsigned char wifi_scan_result::channel
+ * @var unsigned char wifi_drv_scan_result_evt::channel
  * Channel number
  *
- * @var signed char wifi_scan_result::rssi
+ * @var signed char wifi_drv_scan_result_evt::rssi
  * Signal strength
  *
- * @var char wifi_scan_result::security
+ * @var char wifi_drv_scan_result_evt::security
  * Security type
  *
- * @var char wifi_scan_result::rtt_supported
+ * @var char wifi_drv_scan_result_evt::rtt_supported
  * Indicate whether RTT is supported
  */
 struct wifi_drv_scan_result_evt {
@@ -245,10 +257,10 @@ struct wifi_drv_rtt_response_evt {
  * @struct wifi_drv_new_station_evt
  * @brief Structure holding RTT peer.
  *
- * @var char wifi_drv_new_station_evt::status
+ * @var char wifi_drv_new_station_evt::is_connect
  * Indicate whether the station is connected or disconnected.
  *
- * @var char wifi_drv_new_station_evt::bssid
+ * @var char wifi_drv_new_station_evt::mac
  * BSSID of the STA
  */
 struct wifi_drv_new_station_evt {
@@ -380,14 +392,14 @@ struct wifi_drv_api {
 	 * @brief Request RTT range.
 	 *
 	 * @param dev Wi-Fi device.
-	 * @param params RTT range request parameters
+	 * @param req RTT range request parameters
 	 * (@ref wifi_drv_rtt_request).
 	 * @param cb Callback to invoke for each RTT range response
 	 * (@ref rtt_result_evt_t).
 	 *
 	 * @retval 0 on success, non-zero on failure.
 	 */
-	int (*rtt_req)(struct device *dev, struct wifi_drv_rtt_request *params,
+	int (*rtt_req)(struct device *dev, struct wifi_drv_rtt_request *req,
 		    rtt_result_evt_t cb);
 
 	/**
@@ -451,8 +463,7 @@ struct wifi_drv_api {
 	 * @brief Start acting in AP mode defined by the parameters.
 	 *
 	 * @param dev Wi-Fi device.
-	 * @param params Structure containing AP parameters
-	 * (@ref wifi_drv_start_ap_params).
+	 * @param params AP parameters (@ref wifi_drv_start_ap_params).
 	 * @param cb Callback to notify connected/disconnected STA
 	 * (@ref new_station_evt_t).
 	 *
