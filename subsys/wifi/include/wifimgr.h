@@ -73,6 +73,7 @@ struct wifi_manager {
 	struct wifi_config sta_conf;
 	struct wifi_status sta_sts;
 	struct wifimgr_state_machine sta_sm;
+	struct wifi_scan_params sta_scan_params;
 	struct wifi_scan_result sta_scan_res;
 	struct wifi_rtt_request sta_rtt_req;
 	struct wifi_rtt_response sta_rtt_resp;

@@ -288,8 +288,9 @@ static int wifimgr_sta_scan_done_event(void *arg)
 
 static int wifimgr_sta_scan(void *handle)
 {
-	struct wifi_manager *mgr = (struct wifi_manager *)handle;
-	struct wifi_config *conf = &mgr->sta_conf;
+	struct wifi_scan_params *params = (struct wifi_scan_params *)handle;
+	struct wifi_manager *mgr =
+	    container_of(params, struct wifi_manager, sta_scan_params);
 	int ret;
 
 	ret = evt_listener_add_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_RESULT,
@@ -309,7 +310,7 @@ static int wifimgr_sta_scan(void *handle)
 
 	mgr->sta_sts.u.sta.host_found = 0;
 
-	ret = wifi_drv_scan(mgr->sta_iface, conf->band, conf->channel);
+	ret = wifi_drv_scan(mgr->sta_iface, params->band, params->channel);
 	if (ret) {
 		evt_listener_remove_receiver(&mgr->lsnr,
 					     WIFIMGR_EVT_SCAN_RESULT);
@@ -355,7 +356,7 @@ static int wifimgr_sta_rtt_done_event(void *arg)
 	return status;
 }
 
-static int wifimgr_sta_rtt_req(void *handle)
+static int wifimgr_sta_rtt_request(void *handle)
 {
 	struct wifi_rtt_request *rtt_req = (struct wifi_rtt_request *)handle;
 	struct wifi_manager *mgr =
@@ -385,7 +386,7 @@ static int wifimgr_sta_rtt_req(void *handle)
 		wifimgr_err("failed to trigger RTT! %d\n", ret);
 	}
 
-	wifimgr_info("trgger RTT!\n");
+	wifimgr_info("request RTT range!\n");
 	return ret;
 }
 
@@ -407,10 +408,10 @@ static int wifimgr_sta_open(void *handle)
 				 wifimgr_sta_close, mgr);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_STA_SCAN,
 				 WIFIMGR_CMD_TYPE_EXCHANGE,
-				 wifimgr_sta_scan, mgr);
+				 wifimgr_sta_scan, &mgr->sta_scan_params);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_RTT_REQ,
 				 WIFIMGR_CMD_TYPE_EXCHANGE,
-				 wifimgr_sta_rtt_req, &mgr->sta_rtt_req);
+				 wifimgr_sta_rtt_request, &mgr->sta_rtt_req);
 	cmd_processor_add_sender(&mgr->prcs, WIFIMGR_CMD_CONNECT,
 				 WIFIMGR_CMD_TYPE_EXCHANGE,
 				 wifimgr_sta_connect, mgr);

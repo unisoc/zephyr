@@ -93,11 +93,11 @@ int wifi_sta_close(void)
 	return wifimgr_ctrl_iface_close(WIFIMGR_IFACE_NAME_STA);
 }
 
-int wifi_sta_scan(scan_res_cb_t cb)
+int wifi_sta_scan(struct wifi_scan_params *params, scan_res_cb_t cb)
 {
 	int ret;
 
-	ret = wifimgr_ctrl_iface_scan(WIFIMGR_IFACE_NAME_STA, cb);
+	ret = wifimgr_ctrl_iface_scan(WIFIMGR_IFACE_NAME_STA, params, cb);
 	if (ret)
 		return ret;
 
@@ -105,12 +105,11 @@ int wifi_sta_scan(scan_res_cb_t cb)
 	return ret;
 }
 
-int wifi_sta_rtt_request(struct wifi_rtt_request *rtt_req,
-			 rtt_resp_cb_t cb)
+int wifi_sta_rtt_request(struct wifi_rtt_request *req, rtt_resp_cb_t cb)
 {
 	int ret;
 
-	ret = wifimgr_ctrl_iface_rtt_request(rtt_req, cb);
+	ret = wifimgr_ctrl_iface_rtt_request(req, cb);
 	if (ret)
 		return ret;
 

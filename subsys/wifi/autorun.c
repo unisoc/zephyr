@@ -153,7 +153,7 @@ static void wifi_autorun_sta(struct k_work *work)
 	case WIFI_STATE_STA_READY:
 		/* Trigger STA scan */
 		for (cnt = 0; cnt < WIFIMGR_AUTORUN_STA_RETRY; cnt++) {
-			ret = wifi_sta_scan(wifi_autorun_scan_result);
+			ret = wifi_sta_scan(NULL, wifi_autorun_scan_result);
 			if (ret)
 				printf("failed to scan! %d\n", ret);
 			if (sta_status.u.sta.host_found)

@@ -134,20 +134,20 @@ static void wifimgr_cli_show_status(const struct shell *shell, char *iface_name,
 	}
 }
 
-static void wifimgr_cli_show_scan_res(struct wifi_scan_result *scan_res)
+static void wifimgr_cli_show_scan_res(struct wifi_scan_result *res)
 {
-	if (scan_res->ssid && strlen(scan_res->ssid))
-		printf("\t%-32s", scan_res->ssid);
+	if (res->ssid && strlen(res->ssid))
+		printf("\t%-32s", res->ssid);
 	else
 		printf("\t\t\t\t\t");
 
-	if (scan_res->bssid && !is_zero_ether_addr(scan_res->bssid))
-		printf("\t" MACSTR, MAC2STR(scan_res->bssid));
+	if (res->bssid && !is_zero_ether_addr(res->bssid))
+		printf("\t" MACSTR, MAC2STR(res->bssid));
 	else
 		printf("\t\t\t");
 
-	printf("\t%s", security2str(scan_res->security));
-	printf("\t%u\t%d\n", scan_res->channel, scan_res->rssi);
+	printf("\t%s", security2str(res->security));
+	printf("\t%u\t%d\n", res->channel, res->rssi);
 }
 
 #ifdef CONFIG_WIFIMGR_STA
@@ -395,13 +395,40 @@ static int wifimgr_cli_cmd_close(const struct shell *shell, size_t argc,
 static int wifimgr_cli_cmd_scan(const struct shell *shell, size_t argc,
 				char *argv[])
 {
+	struct wifi_scan_params params;
 	char *iface_name;
+	int choice;
 
-	if (argc != 2 || !argv[1])
+	if (!argv[1])
 		return -EINVAL;
 	iface_name = argv[1];
 
-	return wifimgr_ctrl_iface_scan(iface_name, wifimgr_cli_show_scan_res);
+	memset(&params, 0, sizeof(params));
+
+	optind = 0;
+	while ((choice = getopt(argc, argv, "b:c:")) != -1) {
+		switch (choice) {
+		case 'b':
+			params.band = atoi(optarg);
+			if (!params.band) {
+				shell_error(shell, "invalid band!");
+				return -EINVAL;
+			}
+			break;
+		case 'c':
+			params.channel = atoi(optarg);
+			if (!params.channel) {
+				shell_error(shell, "invalid channel!");
+				return -EINVAL;
+			}
+			break;
+		default:
+			return -EINVAL;
+		}
+	}
+
+	return wifimgr_ctrl_iface_scan(iface_name, &params,
+				       wifimgr_cli_show_scan_res);
 }
 
 #ifdef CONFIG_WIFIMGR_STA
@@ -595,7 +622,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(wifimgr_commands,
 	SHELL_CMD(close, NULL, WIFIMGR_CMD_COMMON_HELP,
 	 wifimgr_cli_cmd_close),
 	SHELL_CMD(scan, NULL,
-	 WIFIMGR_CMD_COMMON_HELP" <band (optional)> <channel (optional)>",
+	 WIFIMGR_CMD_COMMON_HELP" -b <band (optional)> -c <channel (optional)>",
 	 wifimgr_cli_cmd_scan),
 #ifdef CONFIG_WIFIMGR_STA
 	SHELL_CMD(rtt_req, NULL, "-m <BSSID> -c <channel>",
