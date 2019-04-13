@@ -131,7 +131,7 @@ int wifi_cmd_scan(struct wifi_device *wifi_dev,
 	cmd_len = sizeof(*cmd) + ssid_len;
 
 	switch (band) {
-	case WIFI_BAND_2_4G:
+	case WIFI_BAND_2G:
 		cmd = k_malloc(cmd_len);
 		if (!cmd) {
 			LOG_ERR("cmd is null");
