@@ -35,7 +35,7 @@ static int wifimgr_settings_set(int argc, char **argv, void *value_ctx)
 {
 	u8_t cnt = ARRAY_SIZE(wifimgr_setting_keynames);
 	u8_t i;
-	int rc;
+	int len;
 
 	if (argc >= 1) {
 		for (i = 0; i < cnt; i++) {
@@ -46,32 +46,38 @@ static int wifimgr_settings_set(int argc, char **argv, void *value_ctx)
 
 			if (!strcmp(argv[argc - 2], settings_category)
 			    && !strcmp(argv[argc - 1], settings[i].name)) {
-				
-				wifimgr_dbg(
-					"\nmatch !!! argv[%d]:%s, argv[%d]:%s, settings[%d].name:%s\n",
-					argc - 2, argv[argc - 2], argc - 1,
-					argv[argc - 1], i, settings[i].name);
-
 				if (settings[i].mask)
 					continue;
 
 				memset(settings[i].valptr, 0,
 				       settings[i].vallen);
 
-				rc = settings_val_read_cb(value_ctx,
-						     settings[i].valptr,
-						     settings[i].vallen);
-				wifimgr_dbg("settings_val_read_cb callback rc: %d\n", rc);
-				assert(rc >= 0);
+				len = settings_val_read_cb(value_ctx,
+							   settings[i].valptr,
+							   settings[i].vallen);
+				if (len < 0) {
+					wifimgr_err("failed to read value! %d",
+						    len);
+					return len;
+				}
 
-				if ((i >= WIFIMGR_SETTING_ID_SSID)&& (i <= WIFIMGR_SETTING_ID_PSPHR)) {
-					wifimgr_dbg("SETTINGS_STRING val: %s\n",
+				if (len != settings[i].vallen) {
+					wifimgr_err("unexpected value len: %d",
+						    len);
+					return -EINVAL;
+				}
+
+				if ((i >= WIFIMGR_SETTING_ID_SSID)
+				    && (i <= WIFIMGR_SETTING_ID_PSPHR)) {
+					wifimgr_dbg("val: %s\n",
 						    (char *)settings[i].valptr);
-				} else if ((i >= WIFIMGR_SETTING_ID_SECURITY)&& (i <= WIFIMGR_SETTING_ID_CHANNEL_WIDTH)) {
-					wifimgr_dbg("SETTINGS_INT8 val: %d\n", *(char *)
+				} else if ((i >= WIFIMGR_SETTING_ID_SECURITY) &&
+					   (i <=
+					    WIFIMGR_SETTING_ID_CHANNEL_WIDTH)) {
+					wifimgr_dbg("val: %d\n", *(char *)
 						    settings[i].valptr);
 				} else if (i >= WIFIMGR_SETTING_ID_AUTORUN) {
-					wifimgr_dbg("SETTINGS_INT32 val: %d\n",
+					wifimgr_dbg("val: %d\n",
 						    *(int *)settings[i].valptr);
 				}
 
@@ -88,7 +94,8 @@ static struct settings_handler wifimgr_settings_handler = {
 	.h_set = wifimgr_settings_set,
 };
 
-static int wifimgr_settings_save_one(u8_t id, struct wifimgr_settings_map *setting,
+static int wifimgr_settings_save_one(u8_t id,
+				     struct wifimgr_settings_map *setting,
 				     char *path, bool clear)
 {
 	char abs_path[WIFIMGR_SETTING_NAME_LEN + 1];
@@ -97,24 +104,8 @@ static int wifimgr_settings_save_one(u8_t id, struct wifimgr_settings_map *setti
 	if (setting->mask)
 		return 0;
 
-	switch (id) {
-	case WIFIMGR_SETTING_ID_SSID:
-	case WIFIMGR_SETTING_ID_BSSID:
-	case WIFIMGR_SETTING_ID_PSPHR:
-		wifimgr_dbg("type of setting value is string!\n");
-		break;
-	case WIFIMGR_SETTING_ID_SECURITY:
-	case WIFIMGR_SETTING_ID_BAND:
-	case WIFIMGR_SETTING_ID_CHANNEL:
-	case WIFIMGR_SETTING_ID_CHANNEL_WIDTH:
-		wifimgr_dbg("type of setting value is int8!\n");
-		break;
-	case WIFIMGR_SETTING_ID_AUTORUN:
-		wifimgr_dbg("type of setting value is int32!\n");
-		break;
-	}
-
-	if ((id >= WIFIMGR_SETTING_ID_SSID)&& (id <= WIFIMGR_SETTING_ID_PSPHR)) {
+	if ((id >= WIFIMGR_SETTING_ID_SSID) &&
+	    (id <= WIFIMGR_SETTING_ID_PSPHR)) {
 		if (!strcmp(setting->name, WIFIMGR_SETTING_NAME_BSSID)
 		    && is_zero_ether_addr(setting->valptr) && !clear)
 			return 0;
@@ -122,19 +113,20 @@ static int wifimgr_settings_save_one(u8_t id, struct wifimgr_settings_map *setti
 			 && !strlen(setting->valptr) && !clear)
 			return 0;
 
-		wifimgr_dbg("SETTINGS_STRING name:%s, val:%s\n", setting->name,
+		wifimgr_dbg("name:%s, val:%s\n", setting->name,
 			    (char *)setting->valptr);
-	} else if ((id >= WIFIMGR_SETTING_ID_SECURITY)&& (id <= WIFIMGR_SETTING_ID_CHANNEL_WIDTH)) {
+	} else if ((id >= WIFIMGR_SETTING_ID_SECURITY)
+		   && (id <= WIFIMGR_SETTING_ID_CHANNEL_WIDTH)) {
 		if ((*(char *)setting->valptr == 0) && !clear)
 			return 0;
 
-		wifimgr_dbg("SETTINGS_INT8 name:%s, val:%d\n", setting->name,
+		wifimgr_dbg("name:%s, val:%d\n", setting->name,
 			    *(char *)setting->valptr);
 	} else if (id >= WIFIMGR_SETTING_ID_AUTORUN) {
 		if ((*(int *)setting->valptr == 0) && !clear)
 			return 0;
 
-		wifimgr_dbg("SETTINGS_INT32 name:%s, val:%d\n", setting->name,
+		wifimgr_dbg("name:%s, val:%d\n", setting->name,
 			    *(int *)setting->valptr);
 	}
 
@@ -150,6 +142,7 @@ int wifimgr_settings_save(void *handle, char *path, bool clear)
 {
 	int cnt = ARRAY_SIZE(wifimgr_setting_keynames);
 	int i;
+	int ret;
 
 	if (!strcmp(path, WIFIMGR_SETTING_STA_PATH)
 	    && wifimgr_sta_settings_map) {
@@ -163,16 +156,18 @@ int wifimgr_settings_save(void *handle, char *path, bool clear)
 	}
 
 	for (i = 0; i < cnt; i++) {
-		wifimgr_dbg(" input param wifimgr_settings_save_one i:[%d], path:[%s], clear:[%d] !\n", i, path, clear);
-		wifimgr_settings_save_one(i, &settings[i], path, clear);
+		ret = wifimgr_settings_save_one(i, &settings[i], path, clear);
+		if (ret)
+			break;
 	}
 
-	return 0;
+	return ret;
 }
 
 static
 void wifimgr_settings_init_one(struct wifimgr_settings_map *setting,
-			       const char *name, void *valptr, int vallen, bool mask)
+			       const char *name, void *valptr, int vallen,
+			       bool mask)
 {
 	strcpy(setting->name, name);
 	setting->valptr = valptr;
@@ -216,11 +211,13 @@ int wifimgr_settings_init(struct wifi_config *conf, char *path)
 	i++;
 	/* Initialize Passphrase setting map */
 	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
-				  conf->passphrase, sizeof(conf->passphrase), false);
+				  conf->passphrase, sizeof(conf->passphrase),
+				  false);
 	i++;
 	/* Initialize Security setting map */
 	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
-				  &conf->security, sizeof(conf->security), false);
+				  &conf->security, sizeof(conf->security),
+				  false);
 	i++;
 	/* Initialize Band setting map */
 	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
@@ -235,7 +232,8 @@ int wifimgr_settings_init(struct wifi_config *conf, char *path)
 		mask = true;
 
 	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],
-				  &conf->ch_width, sizeof(conf->ch_width), false);
+				  &conf->ch_width, sizeof(conf->ch_width),
+				  false);
 	i++;
 	/* Initialize Autorun setting map */
 	wifimgr_settings_init_one(&settings[i], wifimgr_setting_keynames[i],

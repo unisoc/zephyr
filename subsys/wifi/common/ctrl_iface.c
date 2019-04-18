@@ -351,7 +351,7 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, struct wifi_config *conf)
 		return ret;
 	}
 	if (conf->band)
-		wifimgr_info("Band:\t%u\n", conf->band);
+		wifimgr_info("Band:\t\t%u\n", conf->band);
 	if (conf->channel)
 		wifimgr_info("Channel:\t%u\n", conf->channel);
 
