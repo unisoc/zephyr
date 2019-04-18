@@ -36,7 +36,7 @@
 /**
  * enum of settings key id.
  */
-enum wifi_variables_id {
+enum wifimgr_settings_id {
 	WIFIMGR_SETTING_ID_SSID = 0x00,
 	WIFIMGR_SETTING_ID_BSSID,
 	WIFIMGR_SETTING_ID_PSPHR,
