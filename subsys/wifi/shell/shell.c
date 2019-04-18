@@ -49,7 +49,7 @@ static void wifimgr_cli_show_conf(const struct shell *shell, char *iface_name,
 		shell_print(shell, "Passphrase:\t%s", conf->passphrase);
 
 	if (conf->band)
-		shell_print(shell, "Band:\t%u", conf->band);
+		shell_print(shell, "Band:\t\t%u", conf->band);
 	if (conf->channel)
 		shell_print(shell, "Channel:\t%u", conf->channel);
 	if (conf->ch_width)
