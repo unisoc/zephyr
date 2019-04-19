@@ -40,6 +40,10 @@
 	status = "ok";
 };
 
+&wci2 {
+	status = "ok";
+};
+
 &flash0 {
 	/*
 	 * For more information, see:

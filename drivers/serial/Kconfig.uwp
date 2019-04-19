@@ -27,3 +27,13 @@ menuconfig AON_UART_UWP
 	depends on SOC_FAMILY_UWP
 	help
 	  This option enables the UWP AON UART driver.
+
+menuconfig WCI2_UWP
+	depends on SOC_SERIES_UWP566X
+	bool "UWP WCI2 UART driver"
+	default n
+	select SERIAL_HAS_DRIVER
+	select SERIAL_SUPPORT_INTERRUPT
+	depends on SOC_FAMILY_UWP
+	help
+	  This option enables the UWP WCI2 UART driver, for WCI2.
