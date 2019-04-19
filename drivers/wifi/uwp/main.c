@@ -602,7 +602,6 @@ static int uwp_tx(struct device *dev, struct net_pkt *pkt)
 			total_len);
 
 	total_len += sizeof(struct tx_msdu_dscr);
-	net_pkt_unref(pkt);
 
 	LOG_DBG("wifi tx data: %d bytes", total_len);
 
