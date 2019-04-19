@@ -80,6 +80,16 @@
 			status = "disabled";
 		};
 
+		wci2: wci2@40048000 {
+			compatible = "unisoc,uwp-wci2";
+			reg = <0x40048000 0x100>;
+			interrupts = <18 3>;
+			current-speed = <115200>;
+			clock-frequency = <26000000>;
+			label = "WCI2";
+			status = "disabled";
+		};
+
 		wdog: watchdog@40001000 {
 			compatible = "unisoc,uwp-watchdog";
 			reg = <0x40010000 0x30>;
