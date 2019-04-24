@@ -25,13 +25,13 @@
  * @struct wifi_drv_capa
  * @brief Union holding driver capability info.
  *
- * @var unsigned char wifi_drv_capa::sta::max_rtt_peers
+ * @param unsigned char max_rtt_peers
  * Maximum RTT peers
  *
- * @var unsigned char wifi_drv_capa::ap::max_ap_assoc_sta
+ * @param unsigned char max_ap_assoc_sta
  * Maximum number of associated STAs supported in AP mode
  *
- * @var unsigned char wifi_drv_capa::ap::max_acl_mac_addrs
+ * @param unsigned char max_acl_mac_addrs
  * Maximum number of ACL MAC addresses supported in AP mode
  */
 union wifi_drv_capa {

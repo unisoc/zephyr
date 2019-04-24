@@ -47,7 +47,7 @@ enum wifi_security {
  * Channel width
  *
  * @var int wifi_config::autorun
- * Autorun switch
+ * Autorun switch & interval (in milliseconds)
  */
 struct wifi_config {
 	char ssid[WIFI_MAX_SSID_LEN + 1];
@@ -80,31 +80,31 @@ enum wifi_ap_state {
  * @struct wifi_status
  * @brief Structure holding WiFi status.
  *
- * @var char wifi_status::state
+ * @param char state
  * WiFi state
  *
- * @var char wifi_status::own_mac
+ * @param char own_mac
  * Own MAC address
  *
- * @var char wifi_status::host_found
+ * @param char host_found
  * Indicate whether the specified AP is found
  *
- * @var char wifi_status::host_bssid
+ * @param char host_bssid
  * BSSID of the specified AP
  *
- * @var signed char wifi_status::host_rssi
+ * @param signed char host_rssi
  * Signal strength of the connected AP
  *
- * @var unsigned char wifi_status::nr_sta
+ * @param unsigned char nr_sta
  * Number of connected STAs
  *
- * @var char wifi_status::sta_mac_addrs
+ * @param char sta_mac_addrs
  * Array of connected MAC addresses
  *
- * @var unsigned char wifi_status::nr_acl
+ * @param unsigned char nr_acl
  * Number of ACL MAC addresses
  *
- * @var char wifi_status::acl_mac_addrs
+ * @param char acl_mac_addrs
  * Array of ACL MAC addresses
  */
 struct wifi_status {
@@ -157,13 +157,13 @@ struct wifi_scan_params {
  * @var unsigned char wifi_scan_result::channel
  * Channel number
  *
- * @var signed char wifi_status::rssi
+ * @var signed char wifi_scan_result::rssi
  * Signal strength
  *
  * @var enum wifi_security wifi_scan_result::security
  * Security type
  *
- * @var char wifi_status::rtt_supported
+ * @var char wifi_scan_result::rtt_supported
  * Indicate whether RTT is supported
  */
 struct wifi_scan_result {
