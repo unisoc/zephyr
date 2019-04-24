@@ -58,7 +58,7 @@ static void wifimgr_cli_show_conf(const struct shell *shell, char *iface_name,
 	if (conf->autorun)
 		shell_print(shell, "----------------");
 	if (conf->autorun > 0)
-		shell_print(shell, "Autorun:\t%ds", conf->autorun);
+		shell_print(shell, "Autorun:\t%dms", conf->autorun);
 	else if (conf->autorun < 0)
 		shell_print(shell, "Autorun:\toff");
 }
@@ -147,7 +147,7 @@ static void wifimgr_cli_show_scan_res(struct wifi_scan_result *res)
 		printf("\t\t\t");
 
 	printf("\t%s", security2str(res->security));
-	printf("\t%u\t%d\n", res->channel, res->rssi);
+	printf("\t%uG\t%u\t%d\n", res->band, res->channel, res->rssi);
 }
 
 #ifdef CONFIG_WIFIMGR_STA
@@ -607,7 +607,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(wifimgr_commands,
 #ifdef CONFIG_WIFIMGR_AP
 	 "\n<ap> -n <SSID> -c <channel> -w <channel_width>"
 	 "\n<ap> -p <passphrase (\"\" for OPEN)>"
-	 "\n<ap> -a <autorun interval sec (<0: disable)>"
+	 "\n<ap> -a <autorun interval (in milliseconds) (<0: disable)>"
 #endif
 	 ,
 	 wifimgr_cli_cmd_set_config),

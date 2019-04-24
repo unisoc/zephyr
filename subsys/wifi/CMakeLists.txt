@@ -8,6 +8,5 @@ add_subdirectory_ifdef(CONFIG_WIFIMGR_STA sta)
 add_subdirectory_ifdef(CONFIG_WIFIMGR_SHELL shell)
 
 zephyr_sources_ifdef(CONFIG_WIFIMGR wifimgr.c)
-zephyr_sources_ifdef(CONFIG_WIFIMGR_AUTORUN autorun.c)
 
 target_link_libraries(subsys__wifi INTERFACE zephyr_interface)
