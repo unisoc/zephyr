@@ -2792,16 +2792,16 @@ static enum net_verdict handle_ipv4_echo_reply(struct net_pkt *pkt,
 	}
 
 	cycles = k_cycle_get_32() - cycles;
+	cycles = SYS_CLOCK_HW_CYCLES_TO_NS(cycles);
 
-	PR_SHELL(shell_for_ping, "%d bytes from %s to %s: icmp_seq=%d ttl=%d time=%.2f ms\n",
+	PR_SHELL(shell_for_ping, "%d bytes from %s to %s: icmp_seq=%d ttl=%d time=%d ms\n",
 		 ntohs(ip_hdr->len) - net_pkt_ipv6_ext_len(pkt) - NET_ICMPH_LEN,
 		 net_sprint_ipv4_addr(&ip_hdr->src),
 		 net_sprint_ipv4_addr(&ip_hdr->dst),
 		 ntohs(icmp_echo->sequence),
 		 ip_hdr->ttl,
-		 SYS_CLOCK_HW_CYCLES_TO_NS(cycles) / 1000000.f);
+		 cycles / 1000000);
 	k_sem_give(&ping_timeout);
-	remove_ipv4_ping_handler();
 
 	net_pkt_unref(pkt);
 	return NET_OK;
@@ -2835,6 +2835,7 @@ static int ping_ipv4(const struct shell *shell,
 						   &time_stamp,
 						   sizeof(time_stamp));
 		if (ret) {
+			printk("error: %d\n", ret);
 			break;
 		}
 
