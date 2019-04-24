@@ -31,7 +31,7 @@ static struct wifimgr_settings_map *wifimgr_ap_settings_map;
 static struct wifimgr_settings_map *settings;
 static char *settings_category;
 
-static int wifimgr_settings_set(int argc, char **argv, void *value_ctx)
+static int wifimgr_settings_set(int argc, char **argv, void *val)
 {
 	u8_t cnt = ARRAY_SIZE(wifimgr_setting_keynames);
 	u8_t i;
@@ -52,7 +52,7 @@ static int wifimgr_settings_set(int argc, char **argv, void *value_ctx)
 				memset(settings[i].valptr, 0,
 				       settings[i].vallen);
 
-				len = settings_val_read_cb(value_ctx,
+				len = settings_val_read_cb(val,
 							   settings[i].valptr,
 							   settings[i].vallen);
 				if (len < 0) {
