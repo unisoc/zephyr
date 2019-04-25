@@ -21,6 +21,9 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME);
 #define GET_STA_BUF_SIZE (12)
 #define ALL_2_4_GHZ_CHANNELS (0x3FFF)
 
+#define IS_5G_CHANNEL(ch) (((ch) >= 36) && ((ch) <= 165))
+#define IS_2G_CHANNEL(ch) (((ch) >= 1) && ((ch) <= 14))
+
 extern struct wifi_priv uwp_wifi_ap_priv;
 
 static unsigned char recv_buf[RECV_BUF_SIZE];
@@ -660,7 +663,14 @@ static int wifi_evt_scan_result(struct wifi_device *wifi_dev,
 	scan_result.security = event->encrypt_mode;
 	scan_result.rtt_supported = event->extra & BIT(0);
 
-	LOG_DBG("ssid: %s", event->ssid);
+	if (IS_5G_CHANNEL(event->channel)) {
+		scan_result.band = WIFI_BAND_5G;
+	} else if (IS_2G_CHANNEL(event->channel)) {
+		scan_result.band = WIFI_BAND_2G;
+	}
+
+	LOG_DBG("channel: %u band: %u", scan_result.channel,
+			scan_result.band);
 
 	if (wifi_dev->scan_result_cb) {
 		wifi_dev->scan_result_cb(wifi_dev->iface, 0, &scan_result);
