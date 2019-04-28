@@ -539,7 +539,7 @@ static int wifi_tx_fill_msdu_dscr(struct wifi_device *wifi_dev,
 		dscr->common.interface = WIFI_DEV_AP;
 	}
 
-	dscr->pkt_len = total_len + sizeof(struct tx_msdu_dscr);
+	dscr->pkt_len = total_len;
 	dscr->offset = 11;
 	/* TODO */
 	dscr->tx_ctrl.sw_rate = (type == SPRDWL_TYPE_DATA_SPECIAL ? 1 : 0);
