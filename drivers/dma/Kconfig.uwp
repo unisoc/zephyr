@@ -1,0 +1,12 @@
+# Kconfig.cavs - CAVS DMA configuration options
+#
+#
+# Copyright (c) 2018 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menuconfig DMA_UWP
+	bool "Enable UWP DMA driver"
+	help
+	  UWP DMA driver.
