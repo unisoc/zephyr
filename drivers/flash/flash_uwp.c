@@ -206,5 +206,5 @@ __ramfunc static int uwp_flash_init(struct device *dev)
 DEVICE_AND_API_INIT(uwp_flash, DT_FLASH_DEV_NAME,
 		    uwp_flash_init,
 			&uwp_data,
-			&uwp_config, APPLICATION,
+			&uwp_config, POST_KERNEL,
 		    CONFIG_KERNEL_INIT_PRIORITY_DEVICE, &flash_uwp_api);
