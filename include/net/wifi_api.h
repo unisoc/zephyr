@@ -57,7 +57,7 @@ struct wifi_config {
 	unsigned char band;
 	unsigned char channel;
 	unsigned char ch_width;
-	int autorun;
+	unsigned int autorun;
 };
 
 enum wifi_sta_state {
