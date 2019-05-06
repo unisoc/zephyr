@@ -575,7 +575,7 @@ static void smp_check_complete(struct bt_conn *conn, u8_t dist_complete)
 	if (conn->type == BT_CONN_TYPE_BR) {
 		struct bt_smp_br *smp;
 
-		chan = bt_l2cap_le_lookup_tx_cid(conn, BT_L2CAP_CID_BR_SMP);
+		chan = bt_l2cap_br_lookup_tx_cid(conn, BT_L2CAP_CID_BR_SMP);
 		__ASSERT(chan, "No SMP channel found");
 
 		smp = CONTAINER_OF(chan, struct bt_smp_br, chan);
@@ -1028,7 +1028,7 @@ static u8_t smp_br_pairing_req(struct bt_smp_br *smp, struct net_buf *buf)
 	 */
 	rsp = net_buf_add(rsp_buf, sizeof(*rsp));
 
-	rsp->auth_req = 0x00;
+	rsp->auth_req = 0x21;// ct_2 bit set 1. bonding bit set 1
 	rsp->io_capability = 0x00;
 	rsp->oob_flag = 0x00;
 	rsp->max_key_size = max_key_size;
