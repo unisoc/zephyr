@@ -114,8 +114,6 @@ static void uart_uwp_poll_out(struct device *dev, unsigned char c)
 
 	if (uwp_uart_tx_ready(uart)) {
 		uwp_uart_write(uart, c);
-		while (!uwp_uart_trans_over(uart))
-			;
 	};
 }
 
