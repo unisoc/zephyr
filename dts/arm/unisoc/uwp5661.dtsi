@@ -30,6 +30,8 @@
 		compatible = "serial-flash";
 		reg = <0x2000000 DT_SIZE_M(4)>;
 		label = "UWP_FLASH";
+		erase-block-size = <4096>;
+		write-block-size = <1>;
 	};
 
 	soc {
