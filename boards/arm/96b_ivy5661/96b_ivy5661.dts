@@ -78,6 +78,10 @@
 			label = "modem-1";
 			reg = <0x0024C000 0xB4000>;
 		};
+		hwparam_partition: partition@300000 {
+			label = "hwparam";
+			reg = <0x00300000 0x2000>;
+		};
 
 #if defined(CONFIG_FILE_SYSTEM_NFFS)
 		nffs_partition: partition@300000 {
@@ -87,9 +91,9 @@
 #endif
 
 // #if defined(CONFIG_FS_FLASH_STORAGE_PARTITION)
-		storage_partition: partition@300000 {
+		storage_partition: partition@302000 {
 			label = "storage";
-			reg = <0x000300000 0x00100000>;
+			reg = <0x000302000 0x00FE0000>;
 		};
 // #endif
 
