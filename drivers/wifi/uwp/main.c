@@ -31,7 +31,13 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 #define SEC1 (1)
 #define SEC2 (2)
+
+#ifdef DT_FLASH_AREA_HWPARAM_OFFSET
 #define WIFI_INI_OFFSET (DT_FLASH_AREA_HWPARAM_OFFSET + 0)
+#else
+#error "DT_FLASH_AREA_HWPARAM_OFFSET is mandatory."
+#endif
+
 #define SEC1_LEN (328)
 #define SEC2_LEN (1464)
 
@@ -62,6 +68,7 @@ static int wifi_rf_init(void)
 	u8_t *sec_buf;
 	struct device *flash_dev;
 
+#if defined(DT_FLASH_AREA_HWPARAM_OFFSET) && defined(DT_FLASH_DEV_NAME)
 	flash_dev = device_get_binding(DT_FLASH_DEV_NAME);
 	if (!flash_dev) {
 		LOG_ERR("Could not find device %s", DT_FLASH_DEV_NAME);
@@ -102,6 +109,9 @@ static int wifi_rf_init(void)
 	}
 
 	k_free(sec_buf);
+#else
+#error "DT_FLASH_AREA_HWPARAM_OFFSET and DT_FLASH_DEV_NAME is mandatory."
+#endif
 
 	LOG_DBG("Load wifi ini success.");
 
