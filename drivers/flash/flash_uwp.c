@@ -166,8 +166,8 @@ static const struct flash_driver_api flash_uwp_api = {
 #ifdef CONFIG_FLASH_PAGE_LAYOUT
 	.page_layout = flash_uwp_page_layout,
 #endif
-#ifdef FLASH_WRITE_BLOCK_SIZE
-	.write_block_size = FLASH_WRITE_BLOCK_SIZE,
+#ifdef DT_FLASH_WRITE_BLOCK_SIZE
+	.write_block_size = DT_FLASH_WRITE_BLOCK_SIZE,
 #else
 #error Flash write block size not available
 	/* Flash Write block size is extracted from device tree */
