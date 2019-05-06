@@ -84,7 +84,7 @@ static void wifi_autorun_sta(struct k_work *work)
 		printf("failed to get_conf! %d\n", ret);
 		goto exit;
 	}
-	if (sta_config.autorun <= 0) {
+	if (!sta_config.autorun) {
 		printf("STA autorun disabled!\n");
 		return;
 	}
@@ -122,7 +122,7 @@ static void wifi_autorun_sta(struct k_work *work)
 			goto exit;
 		}
 
-		/* Connect the AP */
+		/* Connect to the AP */
 		ret = wifi_sta_connect();
 		if (ret) {
 			printf("failed to connect! %d\n", ret);
@@ -150,7 +150,7 @@ static void wifi_autorun_ap(struct k_work *work)
 		printf("failed to get_conf! %d\n", ret);
 		goto exit;
 	}
-	if (ap_config.autorun <= 0) {
+	if (!ap_config.autorun) {
 		printf("AP autorun disabled!\n");
 		return;
 	}
