@@ -26,7 +26,8 @@ unsigned char max_nr_peers;
 static void wifi_autorun_scan_result(struct wifi_scan_result *scan_res)
 {
 	if (sta_rtt_req.nr_peers >= max_nr_peers) {
-		printf("\t%s\t\t" MACSTR " (dropped)\n", scan_res->ssid, MAC2STR(scan_res->bssid));
+		printf("\t%s\t\t" MACSTR " (dropped)\n", scan_res->ssid,
+		       MAC2STR(scan_res->bssid));
 		return;
 	}
 
@@ -37,14 +38,17 @@ static void wifi_autorun_scan_result(struct wifi_scan_result *scan_res)
 
 		/* Drop the duplicate result */
 		for (i = 0; i < sta_rtt_req.nr_peers; i++, rtt_peers++) {
-			if (!memcmp (scan_res->bssid, rtt_peers->bssid, WIFI_MAC_ADDR_LEN) &&
-			    (scan_res->band == rtt_peers->band) &&
-			    (scan_res->channel == rtt_peers->channel))
+			if (!memcmp
+			    (scan_res->bssid, rtt_peers->bssid,
+			     WIFI_MAC_ADDR_LEN)
+			    && (scan_res->band == rtt_peers->band)
+			    && (scan_res->channel == rtt_peers->channel))
 				return;
 		}
 
 		/* Fill RTT peers */
-		printf("\t%s\t\t" MACSTR "\t%d\n", scan_res->ssid, MAC2STR(scan_res->bssid), scan_res->channel);
+		printf("\t%s\t\t" MACSTR "\t%d\n", scan_res->ssid,
+		       MAC2STR(scan_res->bssid), scan_res->channel);
 		memcpy(rtt_peers->bssid, scan_res->bssid, WIFI_MAC_ADDR_LEN);
 		rtt_peers->band = scan_res->band;
 		rtt_peers->channel = scan_res->channel;
@@ -95,7 +99,7 @@ static void wifi_autorun_sta(struct k_work *work)
 		printf("failed to get_conf! %d\n", ret);
 		goto exit;
 	}
-	if (sta_config.autorun <= 0) {
+	if (!sta_config.autorun) {
 		printf("STA autorun disabled!\n");
 		return;
 	}
@@ -129,8 +133,10 @@ static void wifi_autorun_sta(struct k_work *work)
 		}
 	case WIFI_STATE_STA_READY:
 		/* Prepare RTT request */
-		rtt_peers = malloc(sizeof(struct wifi_rtt_peers) * max_nr_peers);
-		memset(rtt_peers, 0, sizeof(struct wifi_rtt_peers) * max_nr_peers);
+		rtt_peers =
+		    malloc(sizeof(struct wifi_rtt_peers) * max_nr_peers);
+		memset(rtt_peers, 0,
+		       sizeof(struct wifi_rtt_peers) * max_nr_peers);
 		sta_rtt_req.peers = rtt_peers;
 		sta_rtt_req.nr_peers = 0;
 
@@ -155,7 +161,7 @@ static void wifi_autorun_sta(struct k_work *work)
 		break;
 	default:
 		printf("nothing else to do under %s!\n",
-			    sta_sts2str(sta_status.state));
+		       sta_sts2str(sta_status.state));
 		break;
 	}
 exit:
