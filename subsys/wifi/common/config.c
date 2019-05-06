@@ -74,11 +74,13 @@ static int wifimgr_settings_set(int argc, char **argv, void *val)
 				} else if ((i >= WIFIMGR_SETTING_ID_SECURITY) &&
 					   (i <=
 					    WIFIMGR_SETTING_ID_CHANNEL_WIDTH)) {
-					wifimgr_dbg("val: %d\n", *(char *)
+					wifimgr_dbg("val: %d\n",
+						    *(unsigned char *)
 						    settings[i].valptr);
 				} else if (i >= WIFIMGR_SETTING_ID_AUTORUN) {
 					wifimgr_dbg("val: %d\n",
-						    *(int *)settings[i].valptr);
+						    *(unsigned int *)
+						    settings[i].valptr);
 				}
 
 				break;
@@ -103,32 +105,6 @@ static int wifimgr_settings_save_one(u8_t id,
 
 	if (setting->mask)
 		return 0;
-
-	if ((id >= WIFIMGR_SETTING_ID_SSID) &&
-	    (id <= WIFIMGR_SETTING_ID_PSPHR)) {
-		if (!strcmp(setting->name, WIFIMGR_SETTING_NAME_BSSID)
-		    && is_zero_ether_addr(setting->valptr) && !clear)
-			return 0;
-		else if (strcmp(setting->name, WIFIMGR_SETTING_NAME_PSPHR)
-			 && !strlen(setting->valptr) && !clear)
-			return 0;
-
-		wifimgr_dbg("name:%s, val:%s\n", setting->name,
-			    (char *)setting->valptr);
-	} else if ((id >= WIFIMGR_SETTING_ID_SECURITY)
-		   && (id <= WIFIMGR_SETTING_ID_CHANNEL_WIDTH)) {
-		if ((*(char *)setting->valptr == 0) && !clear)
-			return 0;
-
-		wifimgr_dbg("name:%s, val:%d\n", setting->name,
-			    *(char *)setting->valptr);
-	} else if (id >= WIFIMGR_SETTING_ID_AUTORUN) {
-		if ((*(int *)setting->valptr == 0) && !clear)
-			return 0;
-
-		wifimgr_dbg("name:%s, val:%d\n", setting->name,
-			    *(int *)setting->valptr);
-	}
 
 	snprintk(abs_path, sizeof(abs_path), "%s/%s", path, setting->name);
 	ret = settings_save_one(abs_path, setting->valptr, setting->vallen);

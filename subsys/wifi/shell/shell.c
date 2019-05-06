@@ -55,12 +55,11 @@ static void wifimgr_cli_show_conf(const struct shell *shell, char *iface_name,
 	if (conf->ch_width)
 		shell_print(shell, "Channel Width:\t%u", conf->ch_width);
 
-	if (conf->autorun)
-		shell_print(shell, "----------------");
-	if (conf->autorun > 0)
-		shell_print(shell, "Autorun:\t%dms", conf->autorun);
-	else if (conf->autorun < 0)
+	shell_print(shell, "----------------");
+	if (!conf->autorun)
 		shell_print(shell, "Autorun:\toff");
+	else
+		shell_print(shell, "Autorun:\t%ums", conf->autorun);
 }
 
 static void wifimgr_cli_show_capa(const struct shell *shell, char *iface_name,
@@ -205,16 +204,14 @@ static int wifimgr_cli_cmd_set_config(const struct shell *shell, size_t argc,
 		return -EINVAL;
 
 	memset(&conf, 0, sizeof(conf));
+	/* Load previous config */
+	wifimgr_ctrl_iface_get_conf(iface_name, &conf);
 
 	optind = 0;
 	while ((choice = getopt(argc, argv, "a:b:c:m:n:p:w:")) != -1) {
 		switch (choice) {
 		case 'a':
 			conf.autorun = atoi(optarg);
-			if (!conf.autorun) {
-				shell_error(shell, "invalid autorun!");
-				return -EINVAL;
-			}
 			break;
 		case 'b':
 			conf.band = atoi(optarg);
@@ -602,7 +599,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(wifimgr_commands,
 #ifdef CONFIG_WIFIMGR_STA
 	 "<sta> -n <SSID> -m <BSSID> -c <channel>"
 	 "\n<sta> -p <passphrase (\"\" for OPEN)>"
-	 "\n<sta> -a <autorun interval sec (<0: disable)>"
+	 "\n<sta> -a <autorun interval (in milliseconds) (<0: disable)>"
 #endif
 #ifdef CONFIG_WIFIMGR_AP
 	 "\n<ap> -n <SSID> -c <channel> -w <channel_width>"
