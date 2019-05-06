@@ -370,12 +370,11 @@ int wifimgr_ctrl_iface_set_conf(char *iface_name, struct wifi_config *conf)
 	}
 
 	/* Check autorun */
-	if (conf->autorun)
-		wifimgr_info("----------------\n");
-	if (conf->autorun > 0)
-		wifimgr_info("Autorun:\t%ds\n", conf->autorun);
-	else if (conf->autorun < 0)
+	wifimgr_info("----------------\n");
+	if (!conf->autorun)
 		wifimgr_info("Autorun:\toff\n");
+	else
+		wifimgr_info("Autorun:\t%ums\n", conf->autorun);
 
 	return wifimgr_ctrl_iface_send_cmd(ctrl, cmd_id, conf,
 					   sizeof(struct wifi_config));
