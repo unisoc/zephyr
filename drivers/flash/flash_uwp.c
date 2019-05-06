@@ -22,8 +22,6 @@
 #define DEV_DATA(dev) \
 	((struct flash_uwp_data * const)((dev)->driver_data))
 
-#define FLASH_WRITE_BLOCK_SIZE 0x1
-
 struct flash_uwp_config {
 	struct spi_flash flash;
 	struct spi_flash_params *params;
