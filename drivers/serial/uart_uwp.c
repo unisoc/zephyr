@@ -34,6 +34,9 @@ struct uart_uwp_dev_data_t {
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 	uart_irq_callback_user_data_t cb; /**< Callback function pointer */
 	void *user_data;
+	/*It can not break when translating data in some special case(such as audio),
+	 * use a flag to indicate whether we can break or not*/
+	int tx_nowait;
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 };
 
@@ -41,6 +44,7 @@ static struct uart_uwp_dev_data_t uart_uwp_dev_data_0 = {
 	.baud_rate = DT_UART_UWP_SPEED,
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 	.cb = NULL,
+	.tx_nowait = 0,
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 };
 
@@ -63,6 +67,7 @@ static struct uart_uwp_dev_data_t uart_uwp_dev_data_1 = {
 	.baud_rate = DT_UART_1_UWP_SPEED,
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 	.cb = NULL,
+	.tx_nowait = 1,
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 };
 
@@ -84,6 +89,7 @@ static struct uart_uwp_dev_data_t uart_uwp_dev_data_2 = {
 	.baud_rate = DT_AON_UART_UWP_SPEED,
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 	.cb = NULL,
+	.tx_nowait = 0,
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 };
 
@@ -124,6 +130,7 @@ static int uart_uwp_fifo_fill(struct device *dev, const u8_t *tx_data,
 				 int size)
 {
 	volatile struct uwp_uart *uart = UART_STRUCT(dev);
+	struct uart_uwp_dev_data_t * const dev_data = DEV_DATA(dev);
 	unsigned int num_tx = 0;
 
 	while ((size - num_tx) > 0) {
@@ -132,7 +139,8 @@ static int uart_uwp_fifo_fill(struct device *dev, const u8_t *tx_data,
 			uwp_uart_write(uart, tx_data[num_tx]);
 			num_tx++;
 		} else {
-			break;
+			if (!dev_data->tx_nowait)
+				break;
 		}
 	}
 
