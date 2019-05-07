@@ -65,7 +65,7 @@
 			compatible = "unisoc,uwp-uart";
 			reg = <0x40040000 0x30>;
 			interrupts = <36 3>;
-			current-speed = <115200>;
+			current-speed = <3250000>;
 			clock-frequency = <26000000>;
 			label = "UART_1";
 			status = "disabled";
