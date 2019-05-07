@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 add_library(subsys__wifi INTERFACE)
 
 target_include_directories(subsys__wifi INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
