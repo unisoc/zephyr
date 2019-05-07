@@ -82,7 +82,7 @@
 			status = "disabled";
 		};
 
-		wdog: watchdog@40001000 {
+		wdog: watchdog@40010000 {
 			compatible = "unisoc,uwp-watchdog";
 			reg = <0x40010000 0x30>;
 			interrupts = <40 0>;
