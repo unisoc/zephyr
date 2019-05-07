@@ -1,34 +1,17 @@
+/** @file
+ * @brief HTTP client high-level api implementation for Zephyr.
+ */
+
 /*
  * Copyright (c) 2019 Unisoc Technologies INC.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * @file
- *
- * @brief HTTP client high-level api implementation for Zephyr.
- */
-
-#ifndef __ZEPHYR_HTTP_CLIENT_H__
-#define __ZEPHYR_HTTP_CLIENT_H__
+#ifndef ZEPHYR_INCLUDE_HTTP_CLIENT_H_
+#define ZEPHYR_INCLUDE_HTTP_CLIENT_H_
 
 #include <net/http_parser.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/**
- * @brief Http client library
- * @defgroup http client Library
- * @ingroup networking
- * @{
- */
-
-#ifdef CONFIG_HTTPS
-	#define CONFIG_NET_SOCKETS_SOCKOPT_TLS
-#endif
 
 #if !defined(ZEPHYR_USER_AGENT)
 #define ZEPHYR_USER_AGENT "Zephyr"
@@ -48,9 +31,9 @@ extern "C" {
 #define HTTP_STATUS_STR_SIZE	16
 
 #if defined(CONFIG_NET_SOCKETS_SOCKOPT_TLS)
-	#define HTTP_PORT "443"
+#define HTTP_PORT "443"
 #else
-	#define HTTP_PORT "80"
+#define HTTP_PORT "80"
 #endif
 
 struct http_ctx;
@@ -91,30 +74,30 @@ enum http_header_field_val {
  * @brief Callback used when a response has been received from peer.
  *
  * @param ctx HTTP context.
- * @param data Received body point
- * @param received body length
+ * @param body data Received body point
+ * @param body_len received body length
  * @param final_data Does this data buffer contain all the data or
  * is there still more data to come.
- * @param user_data A valid pointer on some user data or NULL
  */
 typedef void (*http_response_cb_t)(struct http_ctx *ctx,
-					const char *body,
-					int body_len,
-					enum http_final_call final_data);
+			  const char *body,
+			  int body_len,
+			  enum http_final_call final_data);
 
 /**
- * @typedef http_get_filed_value_cb_ts
+ * @typedef http_get_filed_value_cb_t
  * @brief Callback used when got http header filed and value.
  *
  * @param ctx HTTP context.
- * @param data of header
- * @param header field or value length
- * @param http_header_field_val indicate it's filed or value
+ * @param at data of header
+ * @param at_len header field or value length
+ * @param f_v http_header_field_val indicate it's filed or value
  */
 typedef void (*http_get_filed_value_cb_t)(struct http_ctx *ctx,
-					const char *at,
-					int at_len,
-					enum http_header_field_val f_v);
+			  const char *at,
+			  int at_len,
+			  enum http_header_field_val f_v);
+
 /**
  * HTTP client request. This contains all the data that is needed when doing
  * a HTTP request.
@@ -126,7 +109,7 @@ struct http_request {
 	/** The URL for this request, for example: /index.html */
 	const char *path;
 
-	/** The HTTP header with optional*/
+	/** The HTTP header for user added (like Range/Connect-Type...)*/
 	const char *header_fields;
 
 	/** The size of HTTP header fields */
@@ -166,10 +149,6 @@ struct http_resp {
  * needed when working with http API.
  */
 struct http_ctx {
-
-	/** socket id with http conenct*/
-	u16_t sock_id;
-
 	/** Server socket addr */
 	struct addrinfo *addr_info;
 	char host[HOST_NAME_MAX_SIZE];
@@ -182,6 +161,15 @@ struct http_ctx {
 	struct http_resp rsp;
 	char *rsp_buf;
 
+	/** HTTP parser for parsing the initial request */
+	struct http_parser parser;
+
+	/** HTTP parser settings */
+	struct http_parser_settings parser_settings;
+
+	/** socket id with http conenct*/
+	u16_t sock_id;
+
 	/** User provided HTTP response callback which is
 	 * called when a response is received to a sent HTTP
 	 * request.
@@ -192,32 +180,23 @@ struct http_ctx {
 	 * it, such as Content-Range to get the resource file size
 	 */
 	http_get_filed_value_cb_t fv_cb;
-
-	/** HTTP parser for parsing the initial request */
-	struct http_parser parser;
-
-	/** HTTP parser settings */
-	struct http_parser_settings parser_settings;
 };
 
 /**
  * @brief Initialize user-supplied HTTP context.
  *
- * @detail Caller can set the various fields in http_ctx after this call
- * if needed.
- *
- * @param http_ctx HTTP context.
+ * @param ctx HTTP context.
  * @param host HTTP request host name.
  * @param port http server port number.
  * @param tls http connect is https or not
  *
  * @return Return 0 if ok, and <0 if error.
  */
-int
-http_client_init(struct http_ctx *ctx,
-				 char *host,
-				 char *port,
-				 bool tls);
+int http_client_init(struct http_ctx *ctx,
+					 char *host,
+					 char *port,
+					 bool tls);
+
 /**
  *@brief Generic function to get a HTTP request to the network.
  *
@@ -230,9 +209,9 @@ http_client_init(struct http_ctx *ctx,
  * @return Return 0 if ok, and <0 if error.
  */
 int http_client_get(struct http_ctx *ctx,
-		char *path,
-		bool keep_alive,
-		void *user_data);
+					char *path,
+					bool keep_alive,
+					void *user_data);
 
 /**
  * @brief Generic function to post a HTTP request to the network.
@@ -246,9 +225,9 @@ int http_client_get(struct http_ctx *ctx,
  * @return Return 0 if ok, and <0 if error.
  */
 int http_client_post(struct http_ctx *ctx,
-		char *path,
-		bool keep_alive,
-		void *user_data);
+					 char *path,
+					 bool keep_alive,
+					 void *user_data);
 
 /**
  * @brief Close a network connection to peer.
@@ -263,16 +242,16 @@ int http_client_close(struct http_ctx *ctx);
  * @brief Add HTTP header field to the message.
  *
  * @details This can be called multiple times to add pieces of HTTP header
- * fields into the message. Caller must put the "\r\n" characters to the
- * input http_header_field variable.
+ * fields into the message. Caller must put the "\\r\\n" characters to the
+ * input header_fields variable.
  *
  * @param ctx Http context.
- * @param http_header_field All or part of HTTP header to be added.
+ * @param header_fields All or part of HTTP header to be added.
  *
  * @return void
  */
 void http_add_header_field(struct http_ctx *ctx,
-			char *header_fields);
+						   char *header_fields);
 
 /**
  * @brief set http response callback.
@@ -281,12 +260,13 @@ void http_add_header_field(struct http_ctx *ctx,
  * then it will got the response body data.
  *
  * @param ctx Http context.
- * @param http_response_cb_t function of response callback.
+ * @param resp_cb function of response callback.
  *
  * @return void
  */
 void http_set_resp_callback(struct http_ctx *ctx,
-			http_response_cb_t resp_cb);
+							http_response_cb_t resp_cb);
+
 /**
  * @brief set parse http response header field and value.
  *
@@ -295,18 +275,12 @@ void http_set_resp_callback(struct http_ctx *ctx,
  * and ETag to get the resource brief of resource...
  *
  * @param ctx Http context.
- * @param http_response_cb_t function of response callback.
+ * @param fv_cb function of parse filed and value
+ * callback.
  *
  * @return void
  */
 void http_set_fv_callback(struct http_ctx *ctx,
-			http_get_filed_value_cb_t fv_cb);
-/**
- * @}
- */
+						  http_get_filed_value_cb_t fv_cb);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* __ZEPHYR_HTTP_CLIENT_H__ */
+#endif /* ZEPHYR_INCLUDE_HTTP_CLIENT_H_ */
