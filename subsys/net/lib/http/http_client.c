@@ -36,9 +36,8 @@ LOG_MODULE_REGISTER(net_http_client, CONFIG_HTTP_CLIENT_LOG_LEVEL);
 
 #define MAX_NUM_DIGITS	16
 
-
 static int on_status(struct http_parser *parser,
-					const char *at, size_t length)
+					 const char *at, size_t length)
 {
 	struct http_ctx *ctx = CONTAINER_OF(parser,
 					    struct http_ctx,
@@ -46,8 +45,9 @@ static int on_status(struct http_parser *parser,
 
 	if (length > (HTTP_STATUS_STR_SIZE - 1)) {
 		NET_ERR("HTTP response status error, status=%s", at);
-		return -1;
+		return -EINVAL;
 	}
+
 	memcpy(ctx->rsp.http_status, at, length);
 	ctx->rsp.http_status[length] = 0;
 
@@ -58,7 +58,7 @@ static int on_status(struct http_parser *parser,
 }
 
 static int on_body(struct http_parser *parser,
-					const char *at, size_t length)
+				   const char *at, size_t length)
 {
 	struct http_ctx *ctx = CONTAINER_OF(parser,
 					    struct http_ctx,
@@ -71,17 +71,14 @@ static int on_body(struct http_parser *parser,
 		__func__, ctx->rsp.processed, length);
 
 	if (ctx->rsp_cb) {
-		ctx->rsp_cb(ctx,
-				 at,
-				 length,
-				 HTTP_DATA_MORE);
+		ctx->rsp_cb(ctx, at, length, HTTP_DATA_MORE);
 	}
 
 	return 0;
 }
 
 static int on_header_field(struct http_parser *parser, const char *at,
-			   size_t length)
+						   size_t length)
 {
 	const char *content_len = HTTP_CONTENT_LEN;
 	struct http_ctx *ctx = CONTAINER_OF(parser,
@@ -103,7 +100,7 @@ static int on_header_field(struct http_parser *parser, const char *at,
 
 
 static int on_header_value(struct http_parser *parser, const char *at,
-			   size_t length)
+						   size_t length)
 {
 	char str[MAX_NUM_DIGITS];
 	struct http_ctx *ctx = CONTAINER_OF(parser,
@@ -146,10 +143,7 @@ static int on_message_complete(struct http_parser *parser)
 	ctx->rsp.message_complete = 1;
 
 	if (ctx->rsp_cb) {
-		ctx->rsp_cb(ctx,
-				 NULL,
-				 0,
-				 HTTP_DATA_FINAL);
+		ctx->rsp_cb(ctx, NULL, 0, HTTP_DATA_FINAL);
 	}
 
 	return 0;
@@ -164,11 +158,94 @@ static void dump_addrinfo(const struct addrinfo *ai)
 	       ((struct sockaddr_in *)ai->ai_addr)->sin_port);
 }
 
-int
-http_client_init(struct http_ctx *ctx,
-				 char *host,
-				 char *port,
-				 bool tls)
+
+static int http_client_request(struct http_ctx *ctx)
+{
+	int ret;
+	int size = strlen(ctx->req_buf);
+	int sent, recved;
+	int parsered;
+
+	if (ctx->sock_id <= 0)  {
+		NET_ERR("http request, socket error, sock_id=%d", ctx->sock_id);
+		return ctx->sock_id;
+	}
+
+	sent = 0;
+	NET_DBG("http client request start\n");
+	while (sent < size) {
+		ret = send(ctx->sock_id, ctx->req_buf+sent, size-sent, 0);
+		if (ret < 0) {
+			NET_ERR("http send error, ret=%d", ret);
+			return ret;
+		}
+
+		sent += ret;
+	}
+
+	/** init the http parse*/
+	http_parser_init(&ctx->parser, HTTP_RESPONSE);
+	memset(&ctx->parser_settings, 0, sizeof(struct http_parser_settings));
+	ctx->parser_settings.on_body = on_body;
+	ctx->parser_settings.on_header_field = on_header_field;
+	ctx->parser_settings.on_header_value = on_header_value;
+	ctx->parser_settings.on_message_complete = on_message_complete;
+	ctx->parser_settings.on_status = on_status;
+
+	ctx->rsp_buf = malloc(HTTP_RESPONSE_MAX_SIZE);
+	if (ctx->rsp_buf == NULL) {
+		NET_DBG("Cannot malloc http request buf[ctx->rsp_buf]\n");
+		return -ENOMEM;
+	}
+
+	memset(ctx->rsp_buf, 0, HTTP_RESPONSE_MAX_SIZE);
+	memset(&ctx->rsp, 0, sizeof(struct http_resp));
+
+	do {
+		memset(ctx->rsp_buf, 0, HTTP_RESPONSE_MAX_SIZE);
+		recved = recv(ctx->sock_id, ctx->rsp_buf,
+					HTTP_RESPONSE_MAX_SIZE-1, 0);
+		if (recved < 0) {
+			NET_ERR("http recv error, recved=%d", recved);
+			ret = recved;
+			goto end;
+		}
+
+		NET_DBG("http client recv response, recved=%d\n", recved);
+
+		parsered = http_parser_execute(&ctx->parser,
+						    &ctx->parser_settings,
+						    ctx->rsp_buf,
+						    recved);
+
+		if (!strcmp(ctx->rsp.http_status, HTTP_STATUS_OK) ||
+			!strcmp(ctx->rsp.http_status, HTTP_PARTIAL_CONTENT)) {
+			if (ctx->rsp.message_complete != 1) {
+				NET_DBG("http recv response continue\n");
+				continue;
+			} else {
+				NET_DBG("http recv response complete\n");
+				recved = 0;
+			}
+		} else {
+			NET_ERR("http resp err, http_status=%s",
+				ctx->rsp.http_status);
+			ret = -1;
+			goto end;
+		}
+
+	} while (recved);
+
+end:
+	free(ctx->rsp_buf);
+
+	return ret;
+}
+
+int http_client_init(struct http_ctx *ctx,
+					 char *host,
+					 char *port,
+					 bool tls)
 {
 	static struct addrinfo hints;
 	struct addrinfo *res, *cur;
@@ -245,101 +322,22 @@ http_client_init(struct http_ctx *ctx,
 	return 0;
 }
 
-static int http_client_request(struct http_ctx *ctx)
-{
-	int ret;
-	int size = strlen(ctx->req_buf);
-	int sent, recved;
-	int parsered;
-
-	if (ctx->sock_id <= 0)  {
-		NET_ERR("http request, socket error, sock_id=%d", ctx->sock_id);
-		return ctx->sock_id;
-	}
-
-	sent = 0;
-	NET_DBG("http client request start\n");
-	while (sent < size) {
-		ret = send(ctx->sock_id, ctx->req_buf+sent, size-sent, 0);
-		if (ret < 0) {
-			NET_ERR("http send error, ret=%d", ret);
-			return ret;
-		}
-		sent += ret;
-	}
-	/** init the http parse*/
-	http_parser_init(&ctx->parser, HTTP_RESPONSE);
-	memset(&ctx->parser_settings, 0, sizeof(struct http_parser_settings));
-	ctx->parser_settings.on_body = on_body;
-	ctx->parser_settings.on_header_field = on_header_field;
-	ctx->parser_settings.on_header_value = on_header_value;
-	ctx->parser_settings.on_message_complete = on_message_complete;
-	ctx->parser_settings.on_status = on_status;
-
-	ctx->rsp_buf = malloc(HTTP_RESPONSE_MAX_SIZE);
-	if (ctx->rsp_buf < 0) {
-		NET_DBG("Cannot malloc http request buf[ctx->rsp_buf]\n");
-		return -2;
-	}
-	memset(ctx->rsp_buf, 0, HTTP_RESPONSE_MAX_SIZE);
-	memset(&ctx->rsp, 0, sizeof(struct http_resp));
-
-	do {
-		memset(ctx->rsp_buf, 0, HTTP_RESPONSE_MAX_SIZE);
-		recved = recv(ctx->sock_id, ctx->rsp_buf,
-					HTTP_RESPONSE_MAX_SIZE-1, 0);
-		if (recved < 0) {
-			NET_ERR("http recv error, recved=%d", recved);
-			ret = recved;
-			goto FREE;
-		}
-		NET_DBG("http client recv response, recved=%d\n", recved);
-
-		parsered = http_parser_execute(&ctx->parser,
-						    &ctx->parser_settings,
-						    ctx->rsp_buf,
-						    recved);
-
-		if (!strcmp(ctx->rsp.http_status, HTTP_STATUS_OK) ||
-			!strcmp(ctx->rsp.http_status, HTTP_PARTIAL_CONTENT)) {
-			if (ctx->rsp.message_complete != 1) {
-				NET_DBG("http recv response continue\n");
-				continue;
-			} else {
-				NET_DBG("http recv response complete\n");
-				recved = 0;
-			}
-		} else {
-			NET_ERR("http resp err, http_status=%s",
-				ctx->rsp.http_status);
-			ret = -1;
-			goto FREE;
-		}
-
-	} while (recved);
-
-FREE:
-	free(ctx->rsp_buf);
-
-	return 0;
-}
-
 int http_client_get(struct http_ctx *ctx,
-		char *path,
-		bool keep_alive,
-		void *user_data)
+					char *path,
+					bool keep_alive,
+					void *user_data)
 {
 	int ret;
 	char temp[128];
 
 	if (ctx == NULL) {
-		return -1;
+		return -EINVAL;
 	}
 
 	ctx->req_buf = malloc(HTTP_REQUEST_MAX_SIZE);
-	if (ctx->req_buf < 0) {
+	if (ctx->req_buf == NULL) {
 		NET_DBG("Cannot malloc http request buff [ctx->req_buf]");
-		return -2;
+		return -ENOMEM;
 	}
 	memset(ctx->req_buf, 0, HTTP_REQUEST_MAX_SIZE);
 	memset(temp, 0, sizeof(temp));
@@ -367,6 +365,7 @@ int http_client_get(struct http_ctx *ctx,
 	} else {
 		sprintf(temp, "Connection: close\r\n");
 	}
+
 	strcat(ctx->req_buf, temp);
 
 	/** add header fields*/
@@ -376,8 +375,9 @@ int http_client_get(struct http_ctx *ctx,
 
 	/**add http end */
 	strcat(ctx->req_buf, "\r\n");
-
+	NET_DBG("http request size=%d\n", strlen(ctx->req_buf));
 	NET_DBG("http client send request:%s\n", ctx->req_buf);
+
 	/**send http request*/
 	ret = http_client_request(ctx);
 
@@ -386,22 +386,23 @@ int http_client_get(struct http_ctx *ctx,
 }
 
 int http_client_post(struct http_ctx *ctx,
-		char *path,
-		bool keep_alive,
-		void *user_data)
+					 char *path,
+					 bool keep_alive,
+					 void *user_data)
 {
 	int ret;
 	char temp[128];
 
 	if (ctx == NULL) {
-		return -1;
+		return -EINVAL;
 	}
 
 	ctx->req_buf = malloc(HTTP_REQUEST_MAX_SIZE);
-	if (ctx->req_buf < 0) {
+	if (ctx->req_buf == NULL) {
 		NET_DBG("Cannot malloc http request buff [ctx->req_buf]");
-		return -2;
+		return -ENOMEM;
 	}
+
 	memset(ctx->req_buf, 0, HTTP_REQUEST_MAX_SIZE);
 	memset(temp, 0, sizeof(temp));
 
@@ -420,6 +421,7 @@ int http_client_post(struct http_ctx *ctx,
 	} else {
 		sprintf(temp, "Connection: close\r\n");
 	}
+
 	strcat(ctx->req_buf, temp);
 
 	/** add header fields*/
@@ -446,7 +448,7 @@ int http_client_post(struct http_ctx *ctx,
 int http_client_close(struct http_ctx *ctx)
 {
 	if (ctx == NULL) {
-		return -1;
+		return -EINVAL;
 	}
 
 	close(ctx->sock_id);
@@ -460,11 +462,12 @@ void http_add_header_field(struct http_ctx *ctx,
 	if (ctx == NULL) {
 		return;
 	}
+
 	ctx->req.header_fields = header_fields;
 }
 
 void http_set_resp_callback(struct http_ctx *ctx,
-			http_response_cb_t rsp_cb)
+							http_response_cb_t rsp_cb)
 {
 	if (ctx == NULL) {
 		return;
@@ -474,7 +477,7 @@ void http_set_resp_callback(struct http_ctx *ctx,
 }
 
 void http_set_fv_callback(struct http_ctx *ctx,
-			http_get_filed_value_cb_t fv_cb)
+						  http_get_filed_value_cb_t fv_cb)
 {
 	if (ctx == NULL) {
 		return;
