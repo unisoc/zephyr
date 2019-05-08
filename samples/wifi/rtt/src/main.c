@@ -152,11 +152,11 @@ static void wifi_autorun_sta(struct k_work *work)
 
 		/* Request RTT range */
 		ret = wifi_sta_rtt_request(&sta_rtt_req, wifi_autorun_rtt_resp);
+		free(sta_rtt_req.peers);
 		if (ret) {
 			printf("failed to request RTT! %d\n", ret);
 			goto exit;
 		}
-		free(sta_rtt_req.peers);
 
 		break;
 	default:
