@@ -25,7 +25,6 @@ config WIFIMGR_DHCPC
 	select NETWORKING
 	select NET_IPV4
 	select NET_DHCPV4
-	default y
 	help
 	  Start DHCP client by WiFi manger.
 

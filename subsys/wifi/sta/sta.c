@@ -126,6 +126,8 @@ static int wifimgr_sta_disconnect_event(void *arg)
 	wifimgr_ctrl_evt_disconnect(&mgr->sta_ctrl, &mgr->sta_ctrl.disc_chain,
 				    reason_code);
 
+	wifimgr_sta_led_off();
+
 	if (iface)
 		wifimgr_dhcp_stop(iface);
 
@@ -170,6 +172,8 @@ static int wifimgr_sta_connect_event(void *arg)
 		if (!is_zero_ether_addr(conn->bssid))
 			memcpy(sts->u.sta.host_bssid, conn->bssid,
 			       WIFI_MAC_ADDR_LEN);
+
+		wifimgr_sta_led_on();
 
 		if (iface)
 			wifimgr_dhcp_start(iface);

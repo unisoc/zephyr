@@ -22,7 +22,7 @@ static struct net_mgmt_event_callback mgmt_cb;
 static void wifimgr_dhcp_handler(struct net_mgmt_event_callback *cb,
 				 unsigned int mgmt_event, struct net_if *iface)
 {
-	int i = 0;
+	int i;
 
 	if (mgmt_event != NET_EVENT_IPV4_ADDR_ADD)
 		return;
@@ -49,8 +49,6 @@ static void wifimgr_dhcp_handler(struct net_mgmt_event_callback *cb,
 			     net_addr_ntop(AF_INET, netmask, buf, sizeof(buf)));
 		wifimgr_info("Router: %s\n",
 			     net_addr_ntop(AF_INET, gateway, buf, sizeof(buf)));
-
-		wifimgr_sta_led_on();
 	}
 }
 
@@ -76,6 +74,4 @@ void wifimgr_dhcp_stop(void *handle)
 	net_mgmt_del_event_callback(&mgmt_cb);
 
 	net_dhcpv4_stop(iface);
-
-	wifimgr_sta_led_off();
 }
