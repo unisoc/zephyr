@@ -60,46 +60,37 @@
 
 		boot_partition: partition@0 {
 			label = "mcuboot";
-			reg = <0x00000000 0xE000>;
+			reg = <0x00000000 DT_SIZE_K(56)>;
 		};
 		scratch_partition: partition@E000 {
 			label = "image-scratch";
-			reg = <0x0000E000 0x2000>;
+			reg = <0x0000E000 DT_SIZE_K(8)>;
 		};
 		slot0_partition: partition@10000 {
 			label = "image-0";
-			reg = <0x00010000 0xC4000>;
+			reg = <0x00010000 DT_SIZE_K(1184)>;
 		};
-		slot1_partition: partition@188000 {
-			label = "image-1";
-			reg = <0x00188000 0xC4000>;
-		};
-		modem0_partition: partition@D4000 {
+		modem0_partition: partition@D138000 {
 			label = "modem-0";
-			reg = <0x000D4000 0xB4000>;
+			reg = <0x00138000 DT_SIZE_K(720)>;
 		};
-		modem1_partition: partition@24C000 {
+		slot1_partition: partition@1EC000 {
+			label = "image-1";
+			reg = <0x001EC000 DT_SIZE_K(1184)>;
+		};
+		modem1_partition: partition@314000 {
 			label = "modem-1";
-			reg = <0x0024C000 0xB4000>;
+			reg = <0x00314000 DT_SIZE_K(720)>;
 		};
-		hwparam_partition: partition@300000 {
+		hwparam_partition: partition@3C8000 {
 			label = "hwparam";
-			reg = <0x00300000 0x2000>;
+			reg = <0x003C8000 DT_SIZE_K(8)>;
 		};
 
-#if defined(CONFIG_FILE_SYSTEM_NFFS)
-		nffs_partition: partition@300000 {
-			label = "nffs";
-			reg = <0x000300000 0x00100000>;
-		};
-#endif
-
-// #if defined(CONFIG_FS_FLASH_STORAGE_PARTITION)
-		storage_partition: partition@302000 {
+		storage_partition: partition@3CA000 {
 			label = "storage";
-			reg = <0x000302000 0x00FE000>;
+			reg = <0x0003CA000 DT_SIZE_K(216)>;
 		};
-// #endif
 
 	};
 };
