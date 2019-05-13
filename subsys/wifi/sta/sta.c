@@ -248,6 +248,9 @@ static int wifimgr_sta_scan_result_event(void *arg)
 	if (is_zero_ether_addr(scan_res->bssid))
 		return 0;
 
+	if (is_zero_ether_addr(sta_scan_res->bssid))
+		wifimgr_info("scan results!\n");
+
 	memcpy(sta_scan_res->bssid, scan_res->bssid, WIFI_MAC_ADDR_LEN);
 
 	if (strlen(scan_res->ssid))
@@ -283,6 +286,7 @@ static int wifimgr_sta_scan_done_event(void *arg)
 	    container_of(sta_evt, struct wifi_manager, sta_evt);
 
 	evt_listener_remove_receiver(&mgr->lsnr, WIFIMGR_EVT_SCAN_RESULT);
+	memset(&mgr->sta_scan_res.bssid, 0, WIFI_MAC_ADDR_LEN);
 
 	/* Notify the external caller */
 	wifimgr_ctrl_evt_scan_done(&mgr->sta_ctrl, status);
